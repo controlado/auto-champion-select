@@ -2,6 +2,10 @@ import utils from "../_utils"
 import config from "./config.json"
 import * as requests from "./requests.js"
 
+/**
+ * @author Yan Gabriel <Balaclava#1912>
+ */
+
 const banChampion = config.banChampion
 const pickChampion = config.pickChampion
 

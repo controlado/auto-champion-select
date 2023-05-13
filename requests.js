@@ -1,4 +1,8 @@
 /**
+ * @author Yan Gabriel <Balaclava#1912>
+ */
+
+/**
  * Realiza uma requisição HTTP usando o método especificado e os parâmetros passados.
  *
  * @async
