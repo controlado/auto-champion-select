@@ -87,7 +87,7 @@ const onMutation = () => {
   const socialContainer = document.querySelector(".lol-social-lower-pane-container")
 
   if ( // verificando se vale a pena criar os elementos
-    !socialContainer ||
+    !socialContainer || // se o container existe no documento
     document.getElementById("pickChampion") || // dropdown de pick
     document.getElementById("banChampion") || // dropdown de ban
     document.getElementById("check-box-container") // checkboxes
