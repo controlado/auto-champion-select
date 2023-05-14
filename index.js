@@ -104,6 +104,17 @@ const onMutation = () => {
   // lugar aonde os dropdowns vão ser colocados
   const header = document.querySelector(".lol-social-lower-pane-container")
 
+  // adicionando as checkboxes
+  const checkBoxContainer = document.createElement("div")
+  checkBoxContainer.className = "alpha-version-panel"
+
+  const pickCheckbox = getPickCheckbox("Auto pick", "pickChampion")
+  const banCheckbox = getPickCheckbox("Auto ban", "banChampion")
+
+  checkBoxContainer.append(pickCheckbox)
+  checkBoxContainer.append(banCheckbox)
+  header.append(checkBoxContainer)
+
   // adicionando os dropdowns
   header.append(firstPickDropdown.element)
   header.append(secondPickDropdown.element)
@@ -112,6 +123,20 @@ const onMutation = () => {
   header.append(secondBanDropdown.element)
 }
 
+const getPickCheckbox = (text, configName) => {
+  const pickCheckbox = document.createElement("lol-uikit-radio-input-option")
+  pickCheckbox.innerHTML = text
+  pickCheckbox.style.fontFamily = "Arial"
+  pickCheckbox.style.setProperty("margin-left", "16px")
+  pickCheckbox.setAttribute("selected", config[configName]["enabled"])
+
+  pickCheckbox.addEventListener("click", function () {
+    config[configName]["enabled"] = !config[configName]["enabled"] // se estiver ligado, vai ser desligado
+    config[configName]["enabled"] ? pickCheckbox.setAttribute("selected", "true") : pickCheckbox.removeAttribute("selected")
+  })
+
+  return pickCheckbox
+}
 
 window.addEventListener("load", () => {
   console.log("Feito com carinho pelo Balaclava")
