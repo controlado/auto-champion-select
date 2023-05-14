@@ -9,11 +9,11 @@
  * @function
  * @param {string} method O método HTTP a ser utilizado.
  * @param {string} url URL da API que será consultada.
- * @param {Object} [userBody] Corpo da requisição.
+ * @param {Object} [userBody=null] Corpo da requisição.
  * @returns {Promise<Response>} Resposta da API.
  */
 const request = async (method, url, userBody = null) => {
-    let requestParams = {
+    const requestParams = {
         "method": method,
         "headers": {
             "accept": "application/json",
@@ -73,14 +73,14 @@ export async function getGamePhase() {
 }
 
 /** 
- * Obtém uma array com os campeões disponíveis para selecionar.
+ * Retorna apenas os campeões que o jogador local possui.
  * 
  * @async
  * @function
- * @return {Promise<JSON>} Resposta da requisição.
+ * @return {Promise<JSON>} Os campeões disponíveis para jogar.
  */
 export async function getPlayableChampions() {
-    const url = `/lol-champions/v1/owned-champions-minimal`
+    const url = "/lol-champions/v1/owned-champions-minimal"
     const response = await request("GET", url)
     return await response.json()
 }
