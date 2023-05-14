@@ -43,7 +43,7 @@ const onChampionSelect = async championSelectData => {
         for (const championId of pickChampion.ids) {
           if (allBans.some(bannedChampionId => bannedChampionId == championId)) { continue } // se alguém já baniu o campeão
           if (allPicks.some(unit => unit.championId == championId)) { continue } // se alguém já pegou o campeão
-          if (await requests.selectChampion(action.id, championId)) { return }
+          if (await requests.selectChampion(action.id, championId)) { return } else { break }
         }
       }
 
@@ -51,7 +51,7 @@ const onChampionSelect = async championSelectData => {
         for (const championId of banChampion.ids) {
           if (allBans.some(bannedChampionId => bannedChampionId == championId)) { continue } // se alguém já baniu o campeão
           if (!banChampion.force && myTeam.some(ally => ally.championPickIntent == championId)) { continue }  // se o force tá desativado, se algum aliado quer o campeão
-          if (await requests.selectChampion(action.id, championId)) { return }
+          if (await requests.selectChampion(action.id, championId)) { return } else { break }
         }
       }
     }
