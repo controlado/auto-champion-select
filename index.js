@@ -25,7 +25,7 @@ const gamePhaseHandler = async message => {
     if (championSelectData.timer.phase === "FINALIZATION") { return }
 
     // delay de 1 segundo pra não sobrecarregar o lcu
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    await new Promise(resolve => setTimeout(resolve, 200))
   }
 }
 
