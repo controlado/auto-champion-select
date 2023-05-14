@@ -1,3 +1,5 @@
+import axios from "https://cdn.skypack.dev/axios"
+
 /**
  * @author Yan Gabriel <Balaclava#1912>
  */
@@ -83,4 +85,21 @@ export async function getPlayableChampions() {
     const url = "/lol-champions/v1/owned-champions-minimal"
     const response = await request("GET", url)
     return await response.json()
+}
+
+/** 
+ * Retorna uma array em ordem alfabética contendo os dados de todos os campeões.
+ * 
+ * @async
+ * @function
+ * @summary Os dados estão em inglês por padrão.
+ * @param {string} [region="default"] Idioma dos dados.
+ * @return {Promise<Array>} Os dados de todos os campeões.
+ */
+export async function getAllChampions(region = "default") {
+    const url = `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/${region}/v1/champion-summary.json`
+    const response = await axios.get(url) // não é possível fazer essa requisição com fetch()
+    // ordenando alfabeticamente a array com base no nome do campeão
+    response.data.sort((a, b) => a.name.localeCompare(b.name))
+    return response.data
 }
