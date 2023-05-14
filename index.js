@@ -58,31 +58,6 @@ const onChampionSelect = async championSelectData => {
   }
 }
 
-class DropdownChampions {
-  constructor(index, id, brightness = null) {
-    this.index = index
-    this.id = id
-    this.element = front.getDropdown(this.id)
-    this.element.style.filter = `brightness(${brightness})`
-  }
-
-  setup(champions) {
-    for (const champion of champions) {
-      const option = this.getOption(champion)
-      this.element.append(option)
-    }
-  }
-
-  getOption(champion) {
-    const index = this.index
-    const dropdownId = this.id
-    const option = front.getOption(champion.name)
-    option.addEventListener("click", function () { config[dropdownId]["ids"][index] = champion.id })
-    if (config[dropdownId]["ids"][index] == champion.id) { option.setAttribute("selected", "true") }
-    return option
-  }
-}
-
 const onMutation = () => {
   const socialContainer = document.querySelector(".lol-social-lower-pane-container")
 
@@ -96,11 +71,11 @@ const onMutation = () => {
   }
 
   // instanciando os dropdowns (criando os elementos)
-  const firstPickDropdown = new DropdownChampions(0, "pickChampion")
-  const secondPickDropdown = new DropdownChampions(1, "pickChampion")
+  const firstPickDropdown = new front.DropdownChampions(0, "pickChampion")
+  const secondPickDropdown = new front.DropdownChampions(1, "pickChampion")
 
-  const firstBanDropdown = new DropdownChampions(0, "banChampion", "0.7")
-  const secondBanDropdown = new DropdownChampions(1, "banChampion", "0.7")
+  const firstBanDropdown = new front.DropdownChampions(0, "banChampion", "0.7")
+  const secondBanDropdown = new front.DropdownChampions(1, "banChampion", "0.7")
 
   // configurando os dropdowns (configurando as opções que os dropdowns possuem)
   secondPickDropdown.setup(allChampions)
