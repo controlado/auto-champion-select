@@ -108,10 +108,10 @@ const onMutation = () => {
 
 const getPickCheckbox = (text, configName) => {
   const pickCheckbox = document.createElement("lol-uikit-radio-input-option")
-  pickCheckbox.innerHTML = text
-  pickCheckbox.style.fontFamily = "Arial"
-  pickCheckbox.style.setProperty("margin-left", "16px")
   pickCheckbox.setAttribute("selected", config[configName]["enabled"])
+  pickCheckbox.style.setProperty("margin-left", "16px")
+  pickCheckbox.style.fontFamily = "Arial"
+  pickCheckbox.innerHTML = text
 
   pickCheckbox.addEventListener("click", function () {
     config[configName]["enabled"] = !config[configName]["enabled"] // se estiver ligado, vai ser desligado
