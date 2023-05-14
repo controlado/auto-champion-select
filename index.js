@@ -84,8 +84,16 @@ class DropdownChampions {
 }
 
 const onMutation = () => {
-  if (!document.querySelector(".lol-social-lower-pane-container")) { return }
-  if (document.getElementById("pickChampion") || document.getElementById("banChampion")) { return }
+  const socialContainer = document.querySelector(".lol-social-lower-pane-container")
+
+  if ( // verificando se vale a pena criar os elementos
+    !socialContainer ||
+    document.getElementById("pickChampion") || // dropdown de pick
+    document.getElementById("banChampion") || // dropdown de ban
+    document.getElementById("check-box-container") // checkboxes
+  ) {
+    return
+  }
 
   // instanciando os dropdowns (criando os elementos)
   const firstPickDropdown = new DropdownChampions(0, "pickChampion")
@@ -101,11 +109,9 @@ const onMutation = () => {
   firstBanDropdown.setup(allChampions)
   secondBanDropdown.setup(allChampions)
 
-  // lugar aonde os dropdowns vão ser colocados
-  const header = document.querySelector(".lol-social-lower-pane-container")
-
-  // adicionando as checkboxes
+  // instanciando as checkboxes
   const checkBoxContainer = document.createElement("div")
+  checkBoxContainer.setAttribute("id", "check-box-container")
   checkBoxContainer.className = "alpha-version-panel"
 
   const pickCheckbox = getPickCheckbox("Auto pick", "pickChampion")
@@ -113,14 +119,16 @@ const onMutation = () => {
 
   checkBoxContainer.append(pickCheckbox)
   checkBoxContainer.append(banCheckbox)
-  header.append(checkBoxContainer)
+
+  // adicionando as checkboxes
+  socialContainer.append(checkBoxContainer)
 
   // adicionando os dropdowns
-  header.append(firstPickDropdown.element)
-  header.append(secondPickDropdown.element)
+  socialContainer.append(firstPickDropdown.element)
+  socialContainer.append(secondPickDropdown.element)
 
-  header.append(firstBanDropdown.element)
-  header.append(secondBanDropdown.element)
+  socialContainer.append(firstBanDropdown.element)
+  socialContainer.append(secondBanDropdown.element)
 }
 
 const getPickCheckbox = (text, configName) => {
