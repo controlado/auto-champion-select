@@ -2,10 +2,10 @@
     "banChampion": {
         "enabled": true,
         "force": false,
-        "ids": ["350", "902", "136"]
+        "ids": ["350", "350"]
     },
     "pickChampion": {
         "enabled": true,
-        "ids": ["429", "221", "222"]
+        "ids": ["429", "429"]
     }
 }
