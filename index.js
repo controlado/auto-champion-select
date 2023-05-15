@@ -84,6 +84,9 @@ export class DropdownChampions {
   }
 }
 
+/** 
+ * Cria os elementos do plugin quando o container for modificado.
+ */
 const onMutation = () => {
   const socialContainer = document.querySelector(".lol-social-lower-pane-container")
 
