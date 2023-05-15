@@ -84,7 +84,7 @@ export class DropdownChampions {
   }
 }
 
-/** 
+/**
  * Cria os elementos do plugin quando o container for modificado.
  */
 const onMutation = () => {

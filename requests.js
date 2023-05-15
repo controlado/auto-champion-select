@@ -26,7 +26,7 @@ const request = async (method, url, userBody = null) => {
     return await fetch(url, requestParams)
 }
 
-/** 
+/**
  * Seleciona um campeão na fase de seleção de campeões.
  *
  * @async
@@ -47,7 +47,7 @@ export async function selectChampion(actionId, championId, completed = true) {
     return true // solicitação bem sucedida
 }
 
-/** 
+/**
  * Obtém informações sobre a seleção de campeões atual.
  *
  * @async
@@ -60,7 +60,7 @@ export async function getChampionSelectData() {
     return await response.json()
 }
 
-/** 
+/**
  * Obtém informações sobre a fase atual do jogo.
  *
  * @async
@@ -74,7 +74,7 @@ export async function getGamePhase() {
     return await response.json()
 }
 
-/** 
+/**
  * Retorna apenas os campeões que o jogador local possui.
  * 
  * @async
@@ -87,7 +87,7 @@ export async function getPlayableChampions() {
     return await response.json()
 }
 
-/** 
+/**
  * Retorna uma array em ordem alfabética contendo os dados de todos os campeões.
  * 
  * @async
