@@ -5,7 +5,7 @@
 Selecione e bana os campeões automaticamente. <br>
 Esse é o meu primeiro projeto em Javascript! :) <br>
 
-<img src="https://github.com/controlado/auto-champion-select/assets/71716568/038d05ce-82d3-40ef-8af6-780ac0a5166e" width="700" />
+<img src="https://github.com/controlado/auto-champion-select/assets/71716568/a49b84be-54c0-4095-9fd6-aecabb063bae" width="700" />
 
 </div>
 <br>
