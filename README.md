@@ -18,4 +18,7 @@ Esse é o meu primeiro projeto utilizando Javascript :) <br>
 
 ## Instalação
 
-Baixe todos os arquivos do repositório, coloque-os dentro de uma pasta dentro dos plugins do Pengu!
+<details>
+  <summary> Baixe todos os arquivos do repositório, coloque-os dentro de uma pasta dentro dos plugins do Pengu! </summary>
+  <img src="https://github.com/controlado/auto-champion-select/assets/71716568/393d69bf-1af9-4f43-8d8a-07f6f32df118" width="750" />
+</details>
