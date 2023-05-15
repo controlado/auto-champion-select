@@ -85,9 +85,8 @@ export async function getPlayableChampions() {
     const url = "/lol-champions/v1/owned-champions-minimal"
     const response = await request("GET", url)
     const responseData = await response.json()
-    responseData.sort(
-        (a, b) => a.name.localeCompare(b.name)
-    )
+    // ordenando alfabeticamente a array com base no nome do campeão
+    responseData.sort((a, b) => a.name.localeCompare(b.name))
     return responseData
 }
 
@@ -103,8 +102,7 @@ export async function getPlayableChampions() {
 export async function getAllChampions(region = "default") {
     const url = `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/${region}/v1/champion-summary.json`
     const response = await axios.get(url) // não é possível fazer essa requisição com fetch()
-    response.data.sort( // ordenando alfabeticamente a array com base no nome do campeão
-        (a, b) => a.name.localeCompare(b.name)
-    )
+    // ordenando alfabeticamente a array com base no nome do campeão
+    response.data.sort((a, b) => a.name.localeCompare(b.name))
     return response.data
 }
