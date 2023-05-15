@@ -13,7 +13,8 @@ Esse é o meu primeiro projeto utilizando Javascript :) <br>
 ## Dependências
 
 [Pengu Loader 1.0.4](https://github.com/PenguLoader/PenguLoader) (ou qualquer versão superior) <br>
-[utils.js](https://github.com/teisseire117/league-loader-plugins/blob/main/plugins/_utils.js) [@teisseire117](https://github.com/teisseire117) (deve estar na pasta de plugins)
+[utils.js](https://github.com/teisseire117/league-loader-plugins/blob/main/plugins/_utils.js)
+[@teisseire117](https://github.com/teisseire117) (deve estar na pasta de plugins)
 
 ## Instalação
 
