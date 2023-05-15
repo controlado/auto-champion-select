@@ -13,4 +13,4 @@ Selecione e bana os campeões automaticamente.
 
 ## Instalação
 
-Baixe todos os arquivos do repositório, coloque em uma pasta e depois coloque essa pasta dentro dos plugins do Pengu Loader!
+Baixe todos os arquivos do repositório, coloque-os dentro de uma pasta dentro dos plugins do Pengu!
