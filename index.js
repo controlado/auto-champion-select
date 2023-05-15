@@ -76,9 +76,10 @@ export class DropdownChampions {
   getOption(champion) {
     const index = this.index
     const dropdownId = this.id
+    const dropdownConfig = config[dropdownId]
     const option = front.getOption(champion.name)
-    option.addEventListener("click", function () { config[dropdownId]["ids"][index] = champion.id })
-    if (config[dropdownId]["ids"][index] == champion.id) { option.setAttribute("selected", "true") }
+    option.addEventListener("click", function () { dropdownConfig["ids"][index] = champion.id })
+    if (dropdownConfig["ids"][index] == champion.id) { option.setAttribute("selected", "true") }
     return option
   }
 }
@@ -114,8 +115,8 @@ const onMutation = () => {
   checkBoxContainer.setAttribute("id", "check-box-container")
   checkBoxContainer.className = "alpha-version-panel"
 
-  const pickCheckbox = getPickCheckbox("Auto pick", "pickChampion")
-  const banCheckbox = getPickCheckbox("Auto ban", "banChampion")
+  const pickCheckbox = getAutoCheckbox("Auto pick", "pickChampion")
+  const banCheckbox = getAutoCheckbox("Auto ban", "banChampion")
 
   checkBoxContainer.append(pickCheckbox)
   checkBoxContainer.append(banCheckbox)
@@ -131,12 +132,9 @@ const onMutation = () => {
   socialContainer.append(secondBanDropdown.element)
 }
 
-const getPickCheckbox = (text, configName) => {
-  const pickCheckbox = document.createElement("lol-uikit-radio-input-option")
-  pickCheckbox.setAttribute("selected", config[configName]["enabled"])
-  pickCheckbox.style.setProperty("margin-left", "16px")
-  pickCheckbox.style.fontFamily = "Arial"
-  pickCheckbox.innerHTML = text
+const getAutoCheckbox = (text, configName) => {
+  const checkBoxStatus = config[configName]["enabled"]
+  const pickCheckbox = front.getCheckBox(text, checkBoxStatus)
 
   pickCheckbox.addEventListener("click", function () {
     config[configName]["enabled"] = !config[configName]["enabled"] // se estiver ligado, vai ser desligado
