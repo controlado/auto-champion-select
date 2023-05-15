@@ -75,7 +75,7 @@ export async function getGamePhase() {
 }
 
 /**
- * Retorna apenas os campeões que o jogador local possui.
+ * Retorna apenas os campeões que o jogador local possui em ordem alfabética.
  * 
  * @async
  * @function
@@ -84,7 +84,11 @@ export async function getGamePhase() {
 export async function getPlayableChampions() {
     const url = "/lol-champions/v1/owned-champions-minimal"
     const response = await request("GET", url)
-    return await response.json()
+    const responseData = await response.json()
+    responseData.sort(
+        (a, b) => a.name.localeCompare(b.name)
+    )
+    return responseData
 }
 
 /**
