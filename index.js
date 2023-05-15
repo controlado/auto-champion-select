@@ -58,7 +58,7 @@ const onChampionSelect = async championSelectData => {
   }
 }
 
-export class DropdownChampions {
+class DropdownChampions {
   constructor(index, id, brightness = null) {
     this.index = index
     this.id = id
