@@ -1,3 +1,7 @@
+/**
+ * @author Yan Gabriel <Balaclava#1912>
+ */
+
 export function getDropdown(dropdownId) {
     const dropdown = document.createElement("lol-uikit-framed-dropdown")
     dropdown.setAttribute("id", dropdownId)
