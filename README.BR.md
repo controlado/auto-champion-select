@@ -1,6 +1,6 @@
 <div align="center">
 
-# `🐧` Auto Champion Select <br> ![Discord](https://img.shields.io/badge/Discord-%235865F2.svg?style=flat&logo=discord&logoColor=white) ![Wakatime](https://wakatime.com/badge/user/89c5e1c8-9e67-43ef-bd0e-3ff9a4fde5e2/project/31fa1001-e2a3-4631-ae24-be1ddc46f7a6.svg) ![Lines](https://img.shields.io/tokei/lines/github/controlado/auto-champion-select) <br> ![Languages](https://img.shields.io/badge/-Documentation%20Languages-red) [![English](https://img.shields.io/badge/-English-red)](README.md) [![Português](https://img.shields.io/badge/-Português%20Brasileiro-red)](README.BR.md)
+# `🐧` Auto Champion Select <br> ![Discord](https://img.shields.io/badge/Discord-%235865F2.svg?style=flat&logo=discord&logoColor=white&color=blue) ![Wakatime](https://wakatime.com/badge/user/89c5e1c8-9e67-43ef-bd0e-3ff9a4fde5e2/project/31fa1001-e2a3-4631-ae24-be1ddc46f7a6.svg) ![Lines](https://img.shields.io/tokei/lines/github/controlado/auto-champion-select) <br> ![Languages](https://img.shields.io/badge/-Documentation%20Languages-red) [![English](https://img.shields.io/badge/-English-red)](README.md) [![Português](https://img.shields.io/badge/-Português%20Brasileiro-red)](README.BR.md)
 
 Selecione e bana os campeões automaticamente. <br>
 Esse é o meu primeiro projeto utilizando Javascript :)
