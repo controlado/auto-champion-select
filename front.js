@@ -24,7 +24,7 @@ export function getPlaceholderOption(text) {
 
 export function getCheckBox(text, enabled) {
     const pickCheckbox = document.createElement("lol-uikit-radio-input-option")
-    pickCheckbox.setAttribute("selected", enabled)
+    if (enabled) { pickCheckbox.setAttribute("selected", enabled) }
     pickCheckbox.style.setProperty("margin-left", "16px")
     pickCheckbox.style.fontFamily = "Arial"
     pickCheckbox.innerHTML = text
