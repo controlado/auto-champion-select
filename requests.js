@@ -79,17 +79,16 @@ export async function getGamePhase() {
  * 
  * @async
  * @function
- * @return {Promise<JSON>} Os campeões disponíveis para jogar.
+ * @return {Promise<JSON>} Campeões disponíveis para jogar ou null se a request foi inválida.
  */
 export async function getPlayableChampions() {
     const url = "/lol-champions/v1/owned-champions-minimal"
     const response = await request("GET", url)
-    const responseData = await response.json()
-    if (responseData) { // pode ser uma lista vazia, caso o client não esteja pronto
-        // ordenando alfabeticamente a array com base no nome do campeão
+    if (response.ok) { // ordenando alfabeticamente a array com base no nome do campeão
+        const responseData = await response.json()
         responseData.sort((a, b) => a.name.localeCompare(b.name))
+        return responseData
     }
-    return responseData
 }
 
 /**
