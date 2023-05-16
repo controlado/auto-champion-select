@@ -32,8 +32,8 @@ const onChampionSelect = async championSelectData => {
   const allBans = [...bans.myTeamBans, ...bans.theirTeamBans]
   const allPicks = [...myTeam, ...theirTeam]
 
-  pickChampion = DataStore.get("pickChampion")
-  banChampion = DataStore.get("banChampion")
+  const pickChampion = DataStore.get("pickChampion")
+  const banChampion = DataStore.get("banChampion")
 
   for (const subAction of actions) {
     for (const action of subAction) {
