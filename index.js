@@ -60,12 +60,16 @@ const onChampionSelect = async championSelectData => {
 }
 
 class DropdownChampions {
-  constructor(index, id, champions) {
+  constructor(index, id, champions, brightness = false) {
     this.index = index
     this.id = id
     this.champions = champions
     this.config = DataStore.get(this.id)
     this.element = front.getDropdown(this.id)
+
+    if (brightness) {
+      this.element.style.filter = "brightness(0.7)"
+    }
 
     for (const champion of this.champions) {
       const option = this.getOption(champion)
@@ -166,10 +170,8 @@ const onMutation = () => {
   const firstPickDropdown = new DropdownChampions(0, "pickChampion", allChampions)
   const secondPickDropdown = new DropdownChampions(1, "pickChampion", allChampions)
 
-  const firstBanDropdown = new DropdownChampions(0, "banChampion", allChampions)
-  const secondBanDropdown = new DropdownChampions(1, "banChampion", allChampions)
-  firstBanDropdown.element.style.filter = "brightness(0.7)"
-  secondBanDropdown.element.style.filter = "brightness(0.7)"
+  const firstBanDropdown = new DropdownChampions(0, "banChampion", allChampions, true)
+  const secondBanDropdown = new DropdownChampions(1, "banChampion", allChampions, true)
 
   // adicionando os elementos aos containers
   checkBoxContainer.element.append(pickCheckbox.element)
