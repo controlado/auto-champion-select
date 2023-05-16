@@ -60,35 +60,30 @@ const onChampionSelect = async championSelectData => {
 }
 
 class DropdownChampions {
-  constructor(index, id, brightness = null) {
+  constructor(index, id, champions) {
     this.index = index
     this.id = id
+    this.champions = champions
+    this.config = DataStore.get(this.id)
     this.element = front.getDropdown(this.id)
-    this.element.style.filter = `brightness(${brightness})`
-  }
 
-  setup(champions) {
-    for (const champion of champions) {
+    for (const champion of this.champions) {
       const option = this.getOption(champion)
       this.element.append(option)
     }
   }
 
   getOption(champion) {
-    const index = this.index
-    const dropdownId = this.id
-    const userValues = DataStore.get(dropdownId)
     const option = front.getOption(champion.name)
 
     // configurar campeão que foi selecionado no dropdown
-    option.addEventListener("click", function () {
-      const eventUserValues = DataStore.get(dropdownId)
-      eventUserValues.champions[index] = champion.id
-      DataStore.set(dropdownId, eventUserValues)
+    option.addEventListener("click", () => {
+      this.config.champions[this.index] = champion.id
+      DataStore.set(this.id, this.config)
     })
 
     // verificando se já existe um campeão configurado
-    if (userValues.champions[index] == champion.id) {
+    if (this.config.champions[this.index] == champion.id) {
       option.setAttribute("selected", "true")
     }
 
@@ -96,10 +91,55 @@ class DropdownChampions {
   }
 }
 
+class DropdownChampionsContainer {
+  constructor(id, configKey) {
+    this.config = DataStore.get(configKey)
+    this.element = document.createElement("div")
+    this.element.setAttribute("id", id)
+
+    if (!this.config.enabled) {
+      this.element.style.display = "none"
+    }
+  }
+}
+
+class CheckboxContainer {
+  constructor(id) {
+    this.element = document.createElement("div")
+    this.element.setAttribute("id", id)
+    this.element.className = "alpha-version-panel"
+  }
+}
+
+class AutoCheckbox {
+  constructor(text, configKey) {
+    this.configKey = configKey
+    this.config = DataStore.get(this.configKey)
+    this.element = front.getCheckBox(text, this.config.enabled)
+
+    // resposta ao click do usuário ao checkbox
+    this.element.addEventListener("click", () => {
+      this.config.enabled = !this.config.enabled
+      DataStore.set(this.configKey, this.config)
+
+      // ocultar container pai do elemento selecionado
+      const elementDropdown = document.getElementById(this.configKey)
+
+      if (this.config.enabled) {
+        this.element.setAttribute("selected", "true")
+        elementDropdown.parentNode.style.display = "block"
+      } else {
+        this.element.removeAttribute("selected")
+        elementDropdown.parentNode.style.display = "none"
+      }
+    })
+  }
+}
+
 /**
  * Cria os elementos do plugin quando o container for modificado.
  */
-const onMutation = async () => {
+const onMutation = () => {
   const socialContainer = document.querySelector(".lol-social-lower-pane-container")
 
   if ( // verificando se vale a pena criar os elementos
@@ -111,75 +151,40 @@ const onMutation = async () => {
     return
   }
 
-  const playableChampions = await requests.getPlayableChampions()
-  if (!playableChampions) { return } // se o client ainda não está pronto
-
   // criando o container de checkboxes
-  const checkBoxContainer = document.createElement("div")
-  checkBoxContainer.setAttribute("id", "checkbox-container")
-  checkBoxContainer.className = "alpha-version-panel"
+  const checkBoxContainer = new CheckboxContainer("checkbox-container")
 
-  // criando o container de dropdowns pra pick
-  const pickDropdownContainer = document.createElement("div")
-  pickDropdownContainer.setAttribute("id", "pick-dropdown-container")
-
-  // criando o container de dropdowns de ban
-  const banDropdownContainer = document.createElement("div")
-  banDropdownContainer.setAttribute("id", "ban-dropdown-container")
+  // criando o container de dropdowns
+  const pickDropdownContainer = new DropdownChampionsContainer("pick-dropdown-container", "pickChampion")
+  const banDropdownContainer = new DropdownChampionsContainer("ban-dropdown-container", "banChampion")
 
   // instanciando as checkboxes
-  const pickCheckbox = getAutoCheckbox("Auto pick", "pickChampion")
-  const banCheckbox = getAutoCheckbox("Auto ban", "banChampion")
+  const pickCheckbox = new AutoCheckbox("Auto pick", "pickChampion")
+  const banCheckbox = new AutoCheckbox("Auto ban", "banChampion")
 
   // instanciando os dropdowns
-  const firstPickDropdown = new DropdownChampions(0, "pickChampion")
-  const secondPickDropdown = new DropdownChampions(1, "pickChampion")
-  secondPickDropdown.setup(playableChampions)
-  firstPickDropdown.setup(playableChampions)
+  const firstPickDropdown = new DropdownChampions(0, "pickChampion", allChampions)
+  const secondPickDropdown = new DropdownChampions(1, "pickChampion", allChampions)
 
-  const firstBanDropdown = new DropdownChampions(0, "banChampion", "0.7")
-  const secondBanDropdown = new DropdownChampions(1, "banChampion", "0.7")
-  firstBanDropdown.setup(allChampions)
-  secondBanDropdown.setup(allChampions)
+  const firstBanDropdown = new DropdownChampions(0, "banChampion", allChampions)
+  const secondBanDropdown = new DropdownChampions(1, "banChampion", allChampions)
+  firstBanDropdown.element.style.filter = "brightness(0.7)"
+  secondBanDropdown.element.style.filter = "brightness(0.7)"
 
   // adicionando os elementos aos containers
-  checkBoxContainer.append(pickCheckbox)
-  checkBoxContainer.append(banCheckbox)
+  checkBoxContainer.element.append(pickCheckbox.element)
+  checkBoxContainer.element.append(banCheckbox.element)
 
-  pickDropdownContainer.append(firstPickDropdown.element)
-  pickDropdownContainer.append(secondPickDropdown.element)
+  pickDropdownContainer.element.append(firstPickDropdown.element)
+  pickDropdownContainer.element.append(secondPickDropdown.element)
 
-  banDropdownContainer.append(firstBanDropdown.element)
-  banDropdownContainer.append(secondBanDropdown.element)
+  banDropdownContainer.element.append(firstBanDropdown.element)
+  banDropdownContainer.element.append(secondBanDropdown.element)
 
   // adicionando os elementos ao container social
-  socialContainer.append(checkBoxContainer)
-  socialContainer.append(pickDropdownContainer)
-  socialContainer.append(banDropdownContainer)
-}
-
-const getAutoCheckbox = (text, configName) => {
-  const userValues = DataStore.get(configName)
-  const pickCheckbox = front.getCheckBox(text, userValues.enabled)
-
-  pickCheckbox.addEventListener("click", function () {
-    const eventUserValues = DataStore.get(configName)
-    eventUserValues.enabled = !eventUserValues.enabled
-    DataStore.set(configName, eventUserValues)
-
-    // ocultar container pai do elemento selecionado
-    const element = document.getElementById(configName)
-
-    if (eventUserValues.enabled) {
-      pickCheckbox.setAttribute("selected", "true")
-      element.parentNode.style.display = "block"
-    } else {
-      pickCheckbox.removeAttribute("selected")
-      element.parentNode.style.display = "none"
-    }
-  })
-
-  return pickCheckbox
+  socialContainer.append(checkBoxContainer.element)
+  socialContainer.append(pickDropdownContainer.element)
+  socialContainer.append(banDropdownContainer.element)
 }
 
 window.addEventListener("load", () => {
