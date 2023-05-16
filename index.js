@@ -22,7 +22,7 @@ const gamePhaseHandler = async message => {
     // sair do while caso `championSelectData.timer.phase` for finalization
     if (championSelectData.timer.phase === "FINALIZATION") { return }
 
-    // delay de 1 segundo pra não sobrecarregar o lcu
+    // delay básico pra não sobrecarregar o lcu
     await new Promise(resolve => setTimeout(resolve, 200))
   }
 }
