@@ -6,7 +6,9 @@ import * as front from "./front"
  * @author Yan Gabriel <Balaclava#1912>
  */
 
-let allChampions = null
+let allChampions = null // todos os campeões disponíveis no jogo
+const defaultPickSettings = { "enabled": false, "champions": [429, 136] }
+const defaultBanSettings = { "enabled": false, "force": false, "champions": [350, 221] }
 
 const gamePhaseHandler = async message => {
   const jsonObject = JSON.parse(message.data)
@@ -168,28 +170,11 @@ window.addEventListener("load", () => {
   const pickChampionExists = DataStore.has("pickChampion")
   const banChampionExists = DataStore.has("banChampion")
 
-  if (!pickChampionExists) {
-    const defaultValues = {
-      "enabled": false,
-      "champions": [
-        429,
-        136
-      ]
-    }
-    DataStore.set("pickChampion", defaultValues)
-  }
+  if (!pickChampionExists) { DataStore.set("pickChampion", defaultPickSettings) }
+  if (!banChampionExists) { DataStore.set("banChampion", defaultBanSettings) }
 
-  if (!banChampionExists) {
-    const defaultValues = {
-      "enabled": false,
-      "force": false,
-      "champions": [
-        350,
-        221
-      ]
-    }
-    DataStore.set("banChampion", defaultValues)
-  }
+  if (pickChampionExists && banChampionExists) { console.log("Configurações existentes recuperadas") }
+  else { console.log("Configurações de usuário não encontradas, valores padrões configurados") }
 
   utils.subscribe_endpoint("/lol-gameflow/v1/gameflow-phase", gamePhaseHandler)
   utils.routineAddCallback(onMutation, ["lol-social-lower-pane-container"])
