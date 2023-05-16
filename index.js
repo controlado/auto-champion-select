@@ -104,8 +104,9 @@ const onMutation = async () => {
 
   if ( // verificando se vale a pena criar os elementos
     !socialContainer || // se o container existe no documento
-    document.getElementById("dropdown-container") || // container de dropdowns
-    document.getElementById("checkbox-container") // container de checkboxes
+    document.getElementById("checkbox-container") || // container de checkboxes
+    document.getElementById("pick-dropdown-container") || // container de dropdowns
+    document.getElementById("ban-dropdown-container") // container de dropdowns
   ) {
     return
   }
@@ -113,44 +114,48 @@ const onMutation = async () => {
   const playableChampions = await requests.getPlayableChampions()
   if (!playableChampions) { return } // se o client ainda não está pronto
 
-  // instanciando os dropdowns (criando os elementos)
-  const firstPickDropdown = new DropdownChampions(0, "pickChampion")
-  const secondPickDropdown = new DropdownChampions(1, "pickChampion")
-
-  const firstBanDropdown = new DropdownChampions(0, "banChampion", "0.7")
-  const secondBanDropdown = new DropdownChampions(1, "banChampion", "0.7")
-
-  // configurando os dropdowns (configurando as opções que os dropdowns possuem)
-  secondPickDropdown.setup(playableChampions)
-  firstPickDropdown.setup(playableChampions)
-
-  firstBanDropdown.setup(allChampions)
-  secondBanDropdown.setup(allChampions)
-
-  // instanciando as checkboxes e adicionando ao container
+  // criando o container de checkboxes
   const checkBoxContainer = document.createElement("div")
   checkBoxContainer.setAttribute("id", "checkbox-container")
   checkBoxContainer.className = "alpha-version-panel"
 
+  // criando o container de dropdowns pra pick
+  const pickDropdownContainer = document.createElement("div")
+  pickDropdownContainer.setAttribute("id", "pick-dropdown-container")
+
+  // criando o container de dropdowns de ban
+  const banDropdownContainer = document.createElement("div")
+  banDropdownContainer.setAttribute("id", "ban-dropdown-container")
+
+  // instanciando as checkboxes
   const pickCheckbox = getAutoCheckbox("Auto pick", "pickChampion")
   const banCheckbox = getAutoCheckbox("Auto ban", "banChampion")
 
+  // instanciando os dropdowns
+  const firstPickDropdown = new DropdownChampions(0, "pickChampion")
+  const secondPickDropdown = new DropdownChampions(1, "pickChampion")
+  secondPickDropdown.setup(playableChampions)
+  firstPickDropdown.setup(playableChampions)
+
+  const firstBanDropdown = new DropdownChampions(0, "banChampion", "0.7")
+  const secondBanDropdown = new DropdownChampions(1, "banChampion", "0.7")
+  firstBanDropdown.setup(allChampions)
+  secondBanDropdown.setup(allChampions)
+
+  // adicionando os elementos aos containers
   checkBoxContainer.append(pickCheckbox)
   checkBoxContainer.append(banCheckbox)
 
-  // adicionando os dropdowns ao container
-  const dropdownContainer = document.createElement("div")
-  dropdownContainer.setAttribute("id", "dropdown-container")
+  pickDropdownContainer.append(firstPickDropdown.element)
+  pickDropdownContainer.append(secondPickDropdown.element)
 
-  dropdownContainer.append(firstPickDropdown.element)
-  dropdownContainer.append(secondPickDropdown.element)
-
-  dropdownContainer.append(firstBanDropdown.element)
-  dropdownContainer.append(secondBanDropdown.element)
+  banDropdownContainer.append(firstBanDropdown.element)
+  banDropdownContainer.append(secondBanDropdown.element)
 
   // adicionando os elementos ao container social
   socialContainer.append(checkBoxContainer)
-  socialContainer.append(dropdownContainer)
+  socialContainer.append(pickDropdownContainer)
+  socialContainer.append(banDropdownContainer)
 }
 
 const getAutoCheckbox = (text, configName) => {
@@ -160,8 +165,18 @@ const getAutoCheckbox = (text, configName) => {
   pickCheckbox.addEventListener("click", function () {
     const eventUserValues = DataStore.get(configName)
     eventUserValues.enabled = !eventUserValues.enabled
-    eventUserValues.enabled ? pickCheckbox.setAttribute("selected", "true") : pickCheckbox.removeAttribute("selected")
     DataStore.set(configName, eventUserValues)
+
+    // ocultar container pai do elemento selecionado
+    const element = document.getElementById(configName)
+
+    if (eventUserValues.enabled) {
+      pickCheckbox.setAttribute("selected", "true")
+      element.parentNode.style.display = "block"
+    } else {
+      pickCheckbox.removeAttribute("selected")
+      element.parentNode.style.display = "none"
+    }
   })
 
   return pickCheckbox
