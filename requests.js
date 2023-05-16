@@ -85,8 +85,10 @@ export async function getPlayableChampions() {
     const url = "/lol-champions/v1/owned-champions-minimal"
     const response = await request("GET", url)
     const responseData = await response.json()
-    // ordenando alfabeticamente a array com base no nome do campeão
-    responseData.sort((a, b) => a.name.localeCompare(b.name))
+    if (responseData) { // pode ser uma lista vazia, caso o client não esteja pronto
+        // ordenando alfabeticamente a array com base no nome do campeão
+        responseData.sort((a, b) => a.name.localeCompare(b.name))
+    }
     return responseData
 }
 
