@@ -99,17 +99,19 @@ class DropdownChampions {
 /**
  * Cria os elementos do plugin quando o container for modificado.
  */
-const onMutation = () => {
+const onMutation = async () => {
   const socialContainer = document.querySelector(".lol-social-lower-pane-container")
 
   if ( // verificando se vale a pena criar os elementos
     !socialContainer || // se o container existe no documento
-    document.getElementById("pickChampion") || // dropdown de pick
-    document.getElementById("banChampion") || // dropdown de ban
-    document.getElementById("check-box-container") // checkboxes
+    document.getElementById("dropdown-container") || // container de dropdowns
+    document.getElementById("checkbox-container") // container de checkboxes
   ) {
     return
   }
+
+  const playableChampions = await requests.getPlayableChampions()
+  if (!playableChampions) { return } // se o client ainda não está pronto
 
   // instanciando os dropdowns (criando os elementos)
   const firstPickDropdown = new DropdownChampions(0, "pickChampion")
@@ -119,15 +121,15 @@ const onMutation = () => {
   const secondBanDropdown = new DropdownChampions(1, "banChampion", "0.7")
 
   // configurando os dropdowns (configurando as opções que os dropdowns possuem)
-  secondPickDropdown.setup(allChampions)
-  firstPickDropdown.setup(allChampions)
+  secondPickDropdown.setup(playableChampions)
+  firstPickDropdown.setup(playableChampions)
 
   firstBanDropdown.setup(allChampions)
   secondBanDropdown.setup(allChampions)
 
-  // instanciando as checkboxes
+  // instanciando as checkboxes e adicionando ao container
   const checkBoxContainer = document.createElement("div")
-  checkBoxContainer.setAttribute("id", "check-box-container")
+  checkBoxContainer.setAttribute("id", "checkbox-container")
   checkBoxContainer.className = "alpha-version-panel"
 
   const pickCheckbox = getAutoCheckbox("Auto pick", "pickChampion")
@@ -136,15 +138,19 @@ const onMutation = () => {
   checkBoxContainer.append(pickCheckbox)
   checkBoxContainer.append(banCheckbox)
 
-  // adicionando as checkboxes
+  // adicionando os dropdowns ao container
+  const dropdownContainer = document.createElement("div")
+  dropdownContainer.setAttribute("id", "dropdown-container")
+
+  dropdownContainer.append(firstPickDropdown.element)
+  dropdownContainer.append(secondPickDropdown.element)
+
+  dropdownContainer.append(firstBanDropdown.element)
+  dropdownContainer.append(secondBanDropdown.element)
+
+  // adicionando os elementos ao container social
   socialContainer.append(checkBoxContainer)
-
-  // adicionando os dropdowns
-  socialContainer.append(firstPickDropdown.element)
-  socialContainer.append(secondPickDropdown.element)
-
-  socialContainer.append(firstBanDropdown.element)
-  socialContainer.append(secondBanDropdown.element)
+  socialContainer.append(dropdownContainer)
 }
 
 const getAutoCheckbox = (text, configName) => {
