@@ -1,14 +1,10 @@
 import utils from "../_utils"
-import config from "./config.json"
 import * as requests from "./requests"
 import * as front from "./front"
 
 /**
  * @author Yan Gabriel <Balaclava#1912>
  */
-
-const banChampion = config.banChampion
-const pickChampion = config.pickChampion
 
 let allChampions = null
 
@@ -34,13 +30,16 @@ const onChampionSelect = async championSelectData => {
   const allBans = [...bans.myTeamBans, ...bans.theirTeamBans]
   const allPicks = [...myTeam, ...theirTeam]
 
+  pickChampion = DataStore.get("pickChampion")
+  banChampion = DataStore.get("banChampion")
+
   for (const subAction of actions) {
     for (const action of subAction) {
       // buscando apenas por ações do usuário local que não foram completadas
       if (action.completed || action.actorCellId != localPlayerCellId) { continue }
 
       if (action.type === "pick" && pickChampion.enabled) { // se é a vez de escolher um campeão
-        for (const championId of pickChampion.ids) {
+        for (const championId of pickChampion.champions) {
           if (allBans.some(bannedChampionId => bannedChampionId == championId)) { continue } // se alguém já baniu o campeão
           if (allPicks.some(unit => unit.championId == championId)) { continue } // se alguém já pegou o campeão
           if (await requests.selectChampion(action.id, championId)) { return } else { break }
@@ -48,7 +47,7 @@ const onChampionSelect = async championSelectData => {
       }
 
       if (action.type === "ban" && banChampion.enabled) { // se é a vez de banir um campeão
-        for (const championId of banChampion.ids) {
+        for (const championId of banChampion.champions) {
           if (allBans.some(bannedChampionId => bannedChampionId == championId)) { continue } // se alguém já baniu o campeão
           if (!banChampion.force && myTeam.some(ally => ally.championPickIntent == championId)) { continue }  // se o force tá desativado, se algum aliado quer o campeão
           if (await requests.selectChampion(action.id, championId)) { return } else { break }
@@ -76,10 +75,21 @@ class DropdownChampions {
   getOption(champion) {
     const index = this.index
     const dropdownId = this.id
-    const dropdownConfig = config[dropdownId]
+    const userValues = DataStore.get(dropdownId)
     const option = front.getOption(champion.name)
-    option.addEventListener("click", function () { dropdownConfig["ids"][index] = champion.id })
-    if (dropdownConfig["ids"][index] == champion.id) { option.setAttribute("selected", "true") }
+
+    // configurar campeão que foi selecionado no dropdown
+    option.addEventListener("click", function () {
+      const eventUserValues = DataStore.get(dropdownId)
+      eventUserValues.champions[index] = champion.id
+      DataStore.set(dropdownId, eventUserValues)
+    })
+
+    // verificando se já existe um campeão configurado
+    if (userValues.champions[index] == champion.id) {
+      option.setAttribute("selected", "true")
+    }
+
     return option
   }
 }
@@ -136,12 +146,14 @@ const onMutation = () => {
 }
 
 const getAutoCheckbox = (text, configName) => {
-  const checkBoxStatus = config[configName]["enabled"]
-  const pickCheckbox = front.getCheckBox(text, checkBoxStatus)
+  const userValues = DataStore.get(configName)
+  const pickCheckbox = front.getCheckBox(text, userValues.enabled)
 
   pickCheckbox.addEventListener("click", function () {
-    config[configName]["enabled"] = !config[configName]["enabled"] // se estiver ligado, vai ser desligado
-    config[configName]["enabled"] ? pickCheckbox.setAttribute("selected", "true") : pickCheckbox.removeAttribute("selected")
+    const eventUserValues = DataStore.get(configName)
+    eventUserValues.enabled = !eventUserValues.enabled
+    eventUserValues.enabled ? pickCheckbox.setAttribute("selected", "true") : pickCheckbox.removeAttribute("selected")
+    DataStore.set(configName, eventUserValues)
   })
 
   return pickCheckbox
@@ -152,6 +164,32 @@ window.addEventListener("load", () => {
   requests.getAllChampions() // a request é feita apenas uma vez
     .then(champions => allChampions = champions)
     .finally(console.log("Campeões requisitados!"))
+
+  const pickChampionExists = DataStore.has("pickChampion")
+  const banChampionExists = DataStore.has("banChampion")
+
+  if (!pickChampionExists) {
+    const defaultValues = {
+      "enabled": false,
+      "champions": [
+        429,
+        136
+      ]
+    }
+    DataStore.set("pickChampion", defaultValues)
+  }
+
+  if (!banChampionExists) {
+    const defaultValues = {
+      "enabled": false,
+      "force": false,
+      "champions": [
+        350,
+        221
+      ]
+    }
+    DataStore.set("banChampion", defaultValues)
+  }
 
   utils.subscribe_endpoint("/lol-gameflow/v1/gameflow-phase", gamePhaseHandler)
   utils.routineAddCallback(onMutation, ["lol-social-lower-pane-container"])
