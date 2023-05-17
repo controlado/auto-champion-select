@@ -101,9 +101,10 @@ class DropdownChampionsContainer {
     this.element = document.createElement("div")
     this.element.setAttribute("id", id)
 
-    if (!this.config.enabled) {
-      this.element.style.display = "none"
-    }
+    // solução temporária pra bug de dropdown pra baixo
+    // if (!this.config.enabled) {
+    //  this.element.style.display = "none"
+    // }
   }
 }
 
