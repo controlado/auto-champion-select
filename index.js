@@ -96,12 +96,12 @@ class DropdownChampions {
 }
 
 class DropdownChampionsContainer {
-  constructor(id, configKey) {
-    this.config = DataStore.get(configKey)
+  constructor(id) {
     this.element = document.createElement("div")
     this.element.setAttribute("id", id)
 
     // solução temporária pra bug de dropdown pra baixo
+    // this.config = DataStore.get(configKey)
     // if (!this.config.enabled) {
     //  this.element.style.display = "none"
     // }
@@ -160,8 +160,8 @@ const onMutation = () => {
   const checkBoxContainer = new CheckboxContainer("checkbox-container")
 
   // criando o container de dropdowns
-  const pickDropdownContainer = new DropdownChampionsContainer("pick-dropdown-container", "pickChampion")
-  const banDropdownContainer = new DropdownChampionsContainer("ban-dropdown-container", "banChampion")
+  const pickDropdownContainer = new DropdownChampionsContainer("pickChampion")
+  const banDropdownContainer = new DropdownChampionsContainer("banChampion")
 
   // instanciando as checkboxes
   const pickCheckbox = new AutoCheckbox("Auto pick", "pickChampion")
