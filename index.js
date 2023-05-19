@@ -163,8 +163,8 @@ const onMutation = () => {
   const checkBoxContainer = new CheckboxContainer("checkbox-container")
 
   // criando o container de dropdowns
-  const pickDropdownContainer = new DropdownChampionsContainer("pickChampion")
-  const banDropdownContainer = new DropdownChampionsContainer("banChampion")
+  const pickDropdownContainer = new DropdownChampionsContainer("pick-dropdown-container")
+  const banDropdownContainer = new DropdownChampionsContainer("ban-dropdown-container")
 
   // instanciando as checkboxes
   const pickCheckbox = new AutoCheckbox("Auto pick", "pickChampion")
