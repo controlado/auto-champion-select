@@ -1,5 +1,8 @@
 /**
- * @author Yan Gabriel <Balaclava#1912>
+ * @author
+ * Nome: Yan Gabriel    
+ * Discord: Balaclava#1912 (854886148455399436)    
+ * GitHub: https://github.com/controlado
  */
 
 export function getDropdown(dropdownId) {

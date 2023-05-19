@@ -3,7 +3,10 @@ import * as requests from "./requests"
 import * as front from "./front"
 
 /**
- * @author Yan Gabriel <Balaclava#1912>
+ * @author
+ * Nome: Yan Gabriel    
+ * Discord: Balaclava#1912 (854886148455399436)    
+ * GitHub: https://github.com/controlado
  */
 
 let allChampions = null // todos os campeões disponíveis no jogo
