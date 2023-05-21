@@ -131,15 +131,12 @@ class AutoCheckbox {
       DataStore.set(this.configKey, this.config)
 
       // ocultar container pai do elemento selecionado
-      const elementDropdown = document.getElementById(this.configKey)
+      // const elementDropdown = document.getElementById(this.configKey)
+      // elementDropdown.parentNode.style.display = "block"
+      // elementDropdown.parentNode.style.display = "none"
 
-      if (this.config.enabled) {
-        this.element.setAttribute("selected", "true")
-        elementDropdown.parentNode.style.display = "block"
-      } else {
-        this.element.removeAttribute("selected")
-        elementDropdown.parentNode.style.display = "none"
-      }
+      if (this.config.enabled) { this.element.setAttribute("selected", "true") }
+      else { this.element.removeAttribute("selected") }
     })
   }
 }
