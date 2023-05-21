@@ -191,10 +191,10 @@ const onMutation = () => {
 }
 
 window.addEventListener("load", () => {
-  console.log("Feito com carinho pelo Balaclava")
+  console.debug("Feito com carinho pelo Balaclava")
   requests.getAllChampions() // a request é feita apenas uma vez
     .then(champions => allChampions = champions)
-    .finally(console.log("Campeões requisitados!"))
+    .finally(console.debug("Campeões requisitados!"))
 
   const pickChampionExists = DataStore.has("pickChampion")
   const banChampionExists = DataStore.has("banChampion")
@@ -202,8 +202,8 @@ window.addEventListener("load", () => {
   if (!pickChampionExists) { DataStore.set("pickChampion", defaultPickSettings) }
   if (!banChampionExists) { DataStore.set("banChampion", defaultBanSettings) }
 
-  if (pickChampionExists && banChampionExists) { console.log("Configurações existentes recuperadas") }
-  else { console.log("Configurações de usuário não encontradas, valores padrões configurados") }
+  if (pickChampionExists && banChampionExists) { console.debug("Configurações existentes recuperadas") }
+  else { console.debug("Configurações de usuário não encontradas, valores padrões configurados") }
 
   utils.subscribe_endpoint("/lol-gameflow/v1/gameflow-phase", gamePhaseHandler)
   utils.routineAddCallback(onMutation, ["lol-social-lower-pane-container"])
