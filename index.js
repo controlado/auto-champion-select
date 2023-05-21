@@ -46,7 +46,7 @@ const onChampionSelect = async championSelectData => {
       if (action.type === "pick" && pickChampion.enabled) { // se é a vez de escolher um campeão
         for (const championId of pickChampion.champions) {
           if (allBans.some(bannedChampionId => bannedChampionId == championId)) { continue } // se alguém já baniu o campeão
-          if (allPicks.some(unit => unit.championId == championId)) { continue } // se alguém já pegou o campeão
+          if (allPicks.some(player => player.championId == championId)) { continue } // se alguém já pegou o campeão
           if (await requests.selectChampion(action.id, championId)) { return }
         }
       }
