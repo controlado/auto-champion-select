@@ -12,12 +12,12 @@ import axios from "https://cdn.skypack.dev/axios"
  *
  * @async
  * @function
- * @param {string} method O método HTTP a ser utilizado.
- * @param {string} url URL da API que será consultada.
- * @param {Object} [userBody=null] Corpo da requisição.
+ * @param {string} method - O método HTTP a ser utilizado.
+ * @param {string} url - URL da API que será consultada.
+ * @param {JSON} [userBody] - Corpo da requisição.
  * @returns {Promise<Response>} Resposta da API.
  */
-const request = async (method, url, userBody = null) => {
+const request = async (method, url, userBody = undefined) => {
     const requestParams = {
         "method": method,
         "headers": {
@@ -34,9 +34,9 @@ const request = async (method, url, userBody = null) => {
  *
  * @async
  * @function
- * @param {string} actionId ID da ação que vai ser realizada, como banimento ou confirmação de campeão.
- * @param {string} championId ID do campeão que vai ser alvo da ação.
- * @param {boolean} [completed=true] Indica se a ação deve ser confirmada ou não.
+ * @param {string} actionId - ID da ação que vai ser realizada, como banimento ou confirmação de campeão.
+ * @param {string} championId - ID do campeão que vai ser alvo da ação.
+ * @param {boolean} [completed=true] - Indica se a ação deve ser confirmada ou não.
  * @return {Promise<boolean>} Um valor `true` se foi possível selecionar o campeão, e em `false` caso contrário.
  */
 export async function selectChampion(actionId, championId, completed = true) {
@@ -82,16 +82,14 @@ export async function getGamePhase() {
  * 
  * @async
  * @function
- * @return {Promise<JSON>} Campeões disponíveis para jogar ou null se a request foi inválida.
+ * @return {Promise<JSON[]>} Campeões disponíveis para jogar ou null se a request foi inválida.
  */
 export async function getPlayableChampions() {
     const url = "/lol-champions/v1/owned-champions-minimal"
     const response = await request("GET", url)
-    if (response.ok) { // ordenando alfabeticamente a array com base no nome do campeão
-        const responseData = await response.json()
-        responseData.sort((a, b) => a.name.localeCompare(b.name))
-        return responseData
-    }
+    const responseData = await response.json()
+    responseData.sort((a, b) => a.name.localeCompare(b.name))
+    return responseData
 }
 
 /**
@@ -100,8 +98,8 @@ export async function getPlayableChampions() {
  * @async
  * @function
  * @summary Os dados estão em inglês por padrão.
- * @param {string} [region="default"] Idioma dos dados.
- * @return {Promise<Array>} Os dados de todos os campeões.
+ * @param {string} [region="default"] - Idioma dos dados.
+ * @return {Promise<JSON[]>} Os dados de todos os campeões.
  */
 export async function getAllChampions(region = "default") {
     const url = `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/${region}/v1/champion-summary.json`
