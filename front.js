@@ -19,12 +19,6 @@ export function getOption(text) {
     return option
 }
 
-export function getPlaceholderOption(text) {
-    const placeholderOption = getOption(text)
-    placeholderOption.setAttribute("clickable", "false")
-    return placeholderOption
-}
-
 export function getCheckBox(text, enabled) {
     const pickCheckbox = document.createElement("lol-uikit-radio-input-option")
     if (enabled) { pickCheckbox.setAttribute("selected", enabled) }
