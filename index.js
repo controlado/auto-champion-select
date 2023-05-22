@@ -83,11 +83,11 @@ class DropdownChampions {
   getOption(champion) {
     const option = front.getOption(champion.name)
 
-    // configurar campeão que foi selecionado no dropdown
-    option.addEventListener("click", () => {
+    // callback da opção
+    option.onclick = () => {
       this.config.champions[this.index] = champion.id
       DataStore.set(this.id, this.config)
-    })
+    }
 
     // verificando se já existe um campeão configurado
     if (this.config.champions[this.index] == champion.id) {
@@ -101,7 +101,7 @@ class DropdownChampions {
 class DropdownChampionsContainer {
   constructor(id) {
     this.element = document.createElement("div")
-    this.element.setAttribute("id", id)
+    this.element.id = id
 
     // solução temporária pra bug de dropdown pra baixo
     // this.config = DataStore.get(configKey)
@@ -114,8 +114,8 @@ class DropdownChampionsContainer {
 class CheckboxContainer {
   constructor(id) {
     this.element = document.createElement("div")
-    this.element.setAttribute("id", id)
     this.element.className = "alpha-version-panel"
+    this.element.id = id
   }
 }
 
@@ -125,8 +125,7 @@ class AutoCheckbox {
     this.config = DataStore.get(this.configKey)
     this.element = front.getCheckBox(text, this.config.enabled)
 
-    // resposta ao click do usuário ao checkbox
-    this.element.addEventListener("click", () => {
+    this.element.onclick = () => { // resposta ao click do usuário ao checkbox
       this.config.enabled = !this.config.enabled
       DataStore.set(this.configKey, this.config)
 
@@ -137,7 +136,7 @@ class AutoCheckbox {
 
       if (this.config.enabled) { this.element.setAttribute("selected", "true") }
       else { this.element.removeAttribute("selected") }
-    })
+    }
   }
 }
 
