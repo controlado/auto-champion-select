@@ -12,7 +12,7 @@ This is my first project using JavaScript :)
 
 ## Dependencies
 
-[Pengu Loader 1.0.4.20230516-1](https://github.com/PenguLoader/PenguLoader) (must contain the [datastore fix](https://github.com/PenguLoader/PenguLoader/actions/runs/4989160102)) <br>
+[Pengu Loader 1.0.5](https://github.com/PenguLoader/PenguLoader) (or any higher version) <br>
 [utils.js](https://github.com/teisseire117/league-loader-plugins/blob/main/plugins/_utils.js)
 [@teisseire117](https://github.com/teisseire117) (must be in the plugins folder)
 
