@@ -63,21 +63,24 @@ const onChampionSelect = async championSelectData => {
 }
 
 class DropdownChampions {
-  constructor(index, id, champions, brightness = false) {
+  constructor(index, id, champions, tooltip, brightness = false) {
     this.index = index
     this.id = id
     this.champions = champions
+
+    this.selectedChampion = null
     this.config = DataStore.get(this.id)
     this.element = front.getDropdown(this.id)
-
-    if (brightness) {
-      this.element.style.filter = "brightness(0.7)"
-    }
 
     for (const champion of this.champions) {
       const option = this.getOption(champion)
       this.element.append(option)
     }
+
+    if (brightness) { this.element.style.filter = "brightness(0.7)" }
+    this.hoverText = this.element.shadowRoot.querySelector("div > dt > div")
+    this.element.onmouseenter = () => { this.hoverText.textContent = tooltip }
+    this.element.onmouseleave = () => { this.hoverText.textContent = this.selectedChampion }
   }
 
   getOption(champion) {
@@ -86,12 +89,13 @@ class DropdownChampions {
     // callback da opção
     option.onclick = () => {
       this.config.champions[this.index] = champion.id
+      this.selectedChampion = champion.name
       DataStore.set(this.id, this.config)
     }
 
     // verificando se já existe um campeão configurado
     if (this.config.champions[this.index] == champion.id) {
-      option.setAttribute("selected", "true")
+      this.selectedChampion = champion.name; option.setAttribute("selected", "true")
     }
 
     return option
@@ -167,11 +171,11 @@ const onMutation = () => {
   const banCheckbox = new AutoCheckbox("Auto ban", "banChampion")
 
   // instanciando os dropdowns
-  const firstPickDropdown = new DropdownChampions(0, "pickChampion", allChampions)
-  const secondPickDropdown = new DropdownChampions(1, "pickChampion", allChampions)
+  const firstPickDropdown = new DropdownChampions(0, "pickChampion", allChampions, "First pick option")
+  const secondPickDropdown = new DropdownChampions(1, "pickChampion", allChampions, "Second pick option")
 
-  const firstBanDropdown = new DropdownChampions(0, "banChampion", allChampions, true)
-  const secondBanDropdown = new DropdownChampions(1, "banChampion", allChampions, true)
+  const firstBanDropdown = new DropdownChampions(0, "banChampion", allChampions, "First ban option", true)
+  const secondBanDropdown = new DropdownChampions(1, "banChampion", allChampions, "Second ban option", true)
 
   // adicionando os elementos aos containers
   checkBoxContainer.element.append(pickCheckbox.element)
