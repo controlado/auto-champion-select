@@ -178,19 +178,12 @@ const onMutation = () => {
   const secondBanDropdown = new DropdownChampions(1, "banChampion", allChampions, "Second ban option", true)
 
   // adicionando os elementos aos containers
-  checkBoxContainer.element.append(pickCheckbox.element)
-  checkBoxContainer.element.append(banCheckbox.element)
-
-  pickDropdownContainer.element.append(firstPickDropdown.element)
-  pickDropdownContainer.element.append(secondPickDropdown.element)
-
-  banDropdownContainer.element.append(firstBanDropdown.element)
-  banDropdownContainer.element.append(secondBanDropdown.element)
+  checkBoxContainer.element.append(pickCheckbox.element, banCheckbox.element)
+  pickDropdownContainer.element.append(firstPickDropdown.element, secondPickDropdown.element)
+  banDropdownContainer.element.append(firstBanDropdown.element, secondBanDropdown.element)
 
   // adicionando os elementos ao container social
-  socialContainer.append(checkBoxContainer.element)
-  socialContainer.append(pickDropdownContainer.element)
-  socialContainer.append(banDropdownContainer.element)
+  socialContainer.append(checkBoxContainer.element, pickDropdownContainer.element, banDropdownContainer.element)
 }
 
 window.addEventListener("load", async () => {
