@@ -9,6 +9,11 @@ import * as front from "./front"
  * GitHub: https://github.com/controlado
  */
 
+export const plugin = {
+  "name": "Auto Champion Select",
+  "url": "https://github.com/controlado/auto-champion-select",
+  "version": "1.0.1",
+}
 let allChampions = null // todos os campeões disponíveis no jogo
 const defaultPickSettings = { "enabled": false, "champions": [429, 136] }
 const defaultBanSettings = { "enabled": false, "force": false, "champions": [350, 221] }
@@ -187,7 +192,7 @@ const onMutation = () => {
 }
 
 window.addEventListener("load", async () => {
-  console.debug("feito com carinho pelo Balaclava#1912")
+  console.debug(`${plugin.name}: coded by Balaclava#1912`)
   allChampions = await requests.getAllChampions()
 
   if (!DataStore.has("pickChampion")) { DataStore.set("pickChampion", defaultPickSettings) }
