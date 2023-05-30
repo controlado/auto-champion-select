@@ -192,7 +192,7 @@ const onMutation = () => {
 }
 
 window.addEventListener("load", async () => {
-  console.debug(`${plugin.name}: coded by Balaclava#1912`)
+  console.debug(`${plugin.name}: Report bugs to Balaclava#1912`)
   allChampions = await requests.getAllChampions()
 
   if (!DataStore.has("pickChampion")) { DataStore.set("pickChampion", defaultPickSettings) }
