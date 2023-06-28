@@ -1,4 +1,4 @@
-import { addRoutines, linkEndpoint } from "../controladoUtils"
+import { addRoutines, linkEndpoint, sleep } from "../controladoUtils"
 import * as requests from "./requests"
 import * as front from "./front"
 
@@ -19,9 +19,7 @@ const defaultPickSettings = { "enabled": false, "champions": [429, 136] }
 const defaultBanSettings = { "enabled": false, "force": false, "champions": [350, 221] }
 
 const gamePhaseHandler = async message => {
-  const jsonObject = JSON.parse(message.data)
-  const messageData = jsonObject[2]["data"]
-  if (messageData !== "ChampSelect") { return }
+  if (message.data.data !== "ChampSelect") { return }
 
   while (await requests.getGamePhase() === "ChampSelect") {
     const championSelectData = await requests.getChampionSelectData()
@@ -30,8 +28,7 @@ const gamePhaseHandler = async message => {
     // sair do while caso `championSelectData.timer.phase` for finalization
     if (championSelectData.timer.phase === "FINALIZATION") { return }
 
-    // delay básico pra não sobrecarregar o lcu
-    await new Promise(resolve => setTimeout(resolve, 200))
+    await sleep(200) // delay básico pra não sobrecarregar o lcu
   }
 }
 
