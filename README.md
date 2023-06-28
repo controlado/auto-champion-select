@@ -13,8 +13,7 @@ This is my first project using JavaScript :)
 ## Dependencies
 
 [Pengu Loader 1.0.5](https://github.com/PenguLoader/PenguLoader) (or any higher version) <br>
-[utils.js](https://github.com/teisseire117/league-loader-plugins/blob/main/plugins/_utils.js)
-[@teisseire117](https://github.com/teisseire117) (must be in the plugins folder)
+[controladoUtils.js](https://github.com/controlado/pengu-plugins/blob/master/controladoUtils.js) (must be in the plugins folder)
 
 ## Installation
 

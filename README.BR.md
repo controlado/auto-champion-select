@@ -12,9 +12,8 @@ Esse é o meu primeiro projeto utilizando JavaScript :)
 
 ## Dependências
 
-[Pengu Loader 1.0.4.20230516-1](https://github.com/PenguLoader/PenguLoader) (precisa conter o [datastore fix](https://github.com/PenguLoader/PenguLoader/actions/runs/4989160102)) <br>
-[utils.js](https://github.com/teisseire117/league-loader-plugins/blob/main/plugins/_utils.js)
-[@teisseire117](https://github.com/teisseire117) (deve estar na pasta de plugins)
+[Pengu Loader 1.0.5](https://github.com/PenguLoader/PenguLoader) (ou qualquer versão superior) <br>
+[controladoUtils.js](https://github.com/controlado/pengu-plugins/blob/master/controladoUtils.js) (deve estar na pasta de plugins)
 
 ## Instalação
 

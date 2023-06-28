@@ -1,4 +1,4 @@
-import utils from "../_utils"
+import { addRoutines, linkEndpoint } from "../controladoUtils"
 import * as requests from "./requests"
 import * as front from "./front"
 
@@ -198,6 +198,6 @@ window.addEventListener("load", async () => {
   if (!DataStore.has("pickChampion")) { DataStore.set("pickChampion", defaultPickSettings) }
   if (!DataStore.has("banChampion")) { DataStore.set("banChampion", defaultBanSettings) }
 
-  utils.subscribe_endpoint("/lol-gameflow/v1/gameflow-phase", gamePhaseHandler)
-  utils.routineAddCallback(onMutation, ["lol-social-lower-pane-container"])
+  linkEndpoint("/lol-gameflow/v1/gameflow-phase", gamePhaseHandler)
+  addRoutines(onMutation)
 })
