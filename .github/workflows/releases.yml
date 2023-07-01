@@ -1,0 +1,49 @@
+name: Criar Release
+
+on:
+  push:
+  repository_dispatch:
+
+env:
+  PLUGIN_NAME: "auto-champion-select"
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout do repositório
+        uses: actions/checkout@v2
+
+      - name: Criar pasta de arquivos do repositório
+        run: mkdir ${{ env.PLUGIN_NAME }}
+
+      - name: Mover arquivos do repositório para a pasta criada
+        run: find . -maxdepth 1 ! -name "." ! -name ".git" ! -name ".github" -exec mv {} ${{ env.PLUGIN_NAME }}/ \;
+
+      - name: Baixar arquivo de dependência
+        run: curl -o controladoUtils.js https://raw.githubusercontent.com/controlado/pengu-plugins/master/controladoUtils.js
+
+      - name: Criar arquivo ZIP
+        run: zip -r ${{ env.PLUGIN_NAME }}.zip controladoUtils.js ${{ env.PLUGIN_NAME }}/
+
+      - name: Criar Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ github.run_number }}
+          release_name: Plugin v${{ github.run_number }}
+          draft: false
+          prerelease: false
+
+      - name: Adicionar arquivo ZIP à Release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./${{ env.PLUGIN_NAME }}.zip
+          asset_name: ${{ env.PLUGIN_NAME }}.zip
+          asset_content_type: application/zip
