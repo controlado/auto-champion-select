@@ -1,17 +1,17 @@
 <div align="center">
 
-# `🐧` Auto Champion Select <br> 
+# `🐧` Auto Champion Select <br>
 
-[![wakatime](https://wakatime.com/badge/user/89c5e1c8-9e67-43ef-bd0e-3ff9a4fde5e2/project/31fa1001-e2a3-4631-ae24-be1ddc46f7a6.svg)](https://wakatime.com/89c5e1c8-9e67-43ef-bd0e-3ff9a4fde5e2) 
+[![wakatime](https://wakatime.com/badge/user/89c5e1c8-9e67-43ef-bd0e-3ff9a4fde5e2/project/31fa1001-e2a3-4631-ae24-be1ddc46f7a6.svg)](https://wakatime.com/89c5e1c8-9e67-43ef-bd0e-3ff9a4fde5e2)
 [![discord](https://img.shields.io/badge/Discord-%235865F2.svg?style=flat&logo=discord&logoColor=white&color=blue)](https://discordapp.com/users/854886148455399436) <br>
-![languages](https://img.shields.io/badge/Documentation-gray) 
-[![english](https://img.shields.io/badge/-English-blue)](README.md) 
+![languages](https://img.shields.io/badge/Documentation-gray)
+[![english](https://img.shields.io/badge/-English-blue)](README.md)
 [![português](https://img.shields.io/badge/-Português%20Brasileiro-blue)](README.BR.md)
 
 Pick and ban champions automatically. <br>
 This is my first project using JavaScript :)
 
-<img src="https://github.com/controlado/auto-champion-select/assets/71716568/a49b84be-54c0-4095-9fd6-aecabb063bae" width="700">
+<img src="https://github.com/controlado/auto-champion-select/assets/71716568/a49b84be-54c0-4095-9fd6-aecabb063bae" width="700" alt="Plugin preview">
 
 </div>
 <br>
@@ -27,6 +27,7 @@ This is my first project using JavaScript :)
 2. Extract the files to the plugins folder
 
 The structure should look something like this:
+
 ```
 📂 Pengu Loader
 └── 📂 plugins
