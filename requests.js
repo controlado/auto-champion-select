@@ -1,10 +1,10 @@
 import axios from "https://cdn.skypack.dev/axios"
 
 /**
- * @author
- * Nome: Yan Gabriel    
- * Discord: Balaclava#1912 (854886148455399436)    
- * GitHub: https://github.com/controlado
+ * @name auto-champion-select
+ * @author feminismo (balaclava)
+ * @description Pick or ban automatically! 🐧
+ * @link https://github.com/controlado/auto-champion-select
  */
 
 /**
