@@ -18,8 +18,8 @@ let allChampions = null // todos os campeões disponíveis no jogo
 const defaultPickSettings = { "enabled": false, "champions": [429, 136] }
 const defaultBanSettings = { "enabled": false, "force": false, "champions": [350, 221] }
 
-const gamePhaseHandler = async message => {
-  if (message.data.data !== "ChampSelect") { return }
+const gamePhaseHandler = async parsedEvent => {
+  if (parsedEvent.data !== "ChampSelect") { return; }
 
   while (await requests.getGamePhase() === "ChampSelect") {
     const championSelectData = await requests.getChampionSelectData()
