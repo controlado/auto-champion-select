@@ -1,10 +1,10 @@
 import axios from "https://cdn.skypack.dev/axios"
 
 /**
+ * @author balaclava
  * @name auto-champion-select
- * @author feminismo (balaclava)
- * @description Pick or ban automatically! 🐧
  * @link https://github.com/controlado/auto-champion-select
+ * @description Pick or ban automatically! 🐧
  */
 
 /**
