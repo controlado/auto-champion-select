@@ -1,4 +1,4 @@
-import axios from "https://cdn.skypack.dev/axios"
+import axios from "https://cdn.skypack.dev/axios";
 
 /**
  * @author balaclava
@@ -14,20 +14,20 @@ import axios from "https://cdn.skypack.dev/axios"
  * @function
  * @param {string} method - O método HTTP a ser utilizado.
  * @param {string} url - URL da API que será consultada.
- * @param {JSON} [userBody] - Corpo da requisição.
+ * @param {Object} [userBody] - Corpo da requisição.
  * @returns {Promise<Response>} Resposta da API.
  */
 const request = async (method, url, userBody = undefined) => {
-    const requestParams = {
-        "method": method,
-        "headers": {
-            "accept": "application/json",
-            "content-type": "application/json",
-        }
-    }
-    if (userBody) { requestParams.body = JSON.stringify(userBody) }
-    return await fetch(url, requestParams)
-}
+  const requestParams = {
+    "method": method,
+    "headers": {
+      "accept": "application/json",
+      "content-type": "application/json",
+    },
+  };
+  if (userBody) requestParams.body = JSON.stringify(userBody);
+  return await fetch(url, requestParams);
+};
 
 /**
  * Seleciona um campeão na fase de seleção de campeões.
@@ -40,14 +40,10 @@ const request = async (method, url, userBody = undefined) => {
  * @return {Promise<boolean>} Um valor `true` se foi possível selecionar o campeão, e em `false` caso contrário.
  */
 export async function selectChampion(actionId, championId, completed = true) {
-    const url = `/lol-champ-select/v1/session/actions/${actionId}`
-    const body = {
-        "completed": completed,
-        "championId": championId,
-    }
-    const response = await request("PATCH", url, body)
-    if (!response.ok) { return false }
-    return true // solicitação bem sucedida
+  const url = `/lol-champ-select/v1/session/actions/${actionId}`;
+  const body = { completed: completed, championId: championId };
+  const response = await request("PATCH", url, body);
+  return response.ok;
 }
 
 /**
@@ -55,12 +51,11 @@ export async function selectChampion(actionId, championId, completed = true) {
  *
  * @async
  * @function
- * @return {Promise<JSON>} Informações da seleção de campeões.
+ * @return {Promise<Object>} Informações da seleção de campeões.
  */
 export async function getChampionSelectData() {
-    const url = "/lol-champ-select/v1/session"
-    const response = await request("GET", url)
-    return await response.json()
+  const response = await request("GET", "/lol-champ-select/v1/session");
+  return await response.json();
 }
 
 /**
@@ -69,42 +64,39 @@ export async function getChampionSelectData() {
  * @async
  * @function
  * @summary Pode ser "ChampSelect", "None", entre outras.
- * @return {Promise<JSON>} Informações da fase atual.
+ * @return {Promise<string>} Informações da fase atual.
  */
 export async function getGamePhase() {
-    const url = "/lol-gameflow/v1/gameflow-phase"
-    const response = await request("GET", url)
-    return await response.json()
+  const response = await request("GET", "/lol-gameflow/v1/gameflow-phase");
+  return await response.json();
 }
 
 /**
  * Retorna apenas os campeões que o jogador local possui em ordem alfabética.
- * 
+ *
  * @async
  * @function
- * @return {Promise<JSON[]>} Campeões disponíveis para jogar ou null se a request foi inválida.
+ * @return {Promise<Object[]>} Campeões disponíveis para jogar ou null se a request foi inválida.
  */
 export async function getPlayableChampions() {
-    const url = "/lol-champions/v1/owned-champions-minimal"
-    const response = await request("GET", url)
-    const responseData = await response.json()
-    responseData.sort((a, b) => a.name.localeCompare(b.name))
-    return responseData
+  const response = await request("GET", "/lol-champions/v1/owned-champions-minimal");
+  const responseData = await response.json();
+  responseData.sort((a, b) => a.name.localeCompare(b.name));
+  return responseData;
 }
 
 /**
  * Retorna uma array em ordem alfabética contendo os dados de todos os campeões.
- * 
+ *
  * @async
  * @function
  * @summary Os dados estão em inglês por padrão.
  * @param {string} [region="default"] - Idioma dos dados.
- * @return {Promise<JSON[]>} Os dados de todos os campeões.
+ * @return {Promise<Object[]>} Os dados de todos os campeões.
  */
 export async function getAllChampions(region = "default") {
-    const url = `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/${region}/v1/champion-summary.json`
-    const response = await axios.get(url) // não é possível fazer essa requisição com fetch()
-    // ordenando alfabeticamente a array com base no nome do campeão
-    response.data.sort((a, b) => a.name.localeCompare(b.name))
-    return response.data
+  const url = `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/${region}/v1/champion-summary.json`;
+  const response = await axios.get(url); // não é possível fazer essa requisição com fetch()
+  response.data.sort((a, b) => a.name.localeCompare(b.name));
+  return response.data;
 }
