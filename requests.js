@@ -1,4 +1,5 @@
 import axios from "https://cdn.skypack.dev/axios";
+import { request } from "../controladoUtils";
 
 /**
  * @author balaclava
@@ -6,28 +7,6 @@ import axios from "https://cdn.skypack.dev/axios";
  * @link https://github.com/controlado/auto-champion-select
  * @description Pick or ban automatically! 🐧
  */
-
-/**
- * Realiza uma requisição HTTP usando o método especificado e os parâmetros passados.
- *
- * @async
- * @function
- * @param {string} method - O método HTTP a ser utilizado.
- * @param {string} url - URL da API que será consultada.
- * @param {Object} [userBody] - Corpo da requisição.
- * @returns {Promise<Response>} Resposta da API.
- */
-const request = async (method, url, userBody = undefined) => {
-  const requestParams = {
-    "method": method,
-    "headers": {
-      "accept": "application/json",
-      "content-type": "application/json",
-    },
-  };
-  if (userBody) requestParams.body = JSON.stringify(userBody);
-  return await fetch(url, requestParams);
-};
 
 /**
  * Seleciona um campeão na fase de seleção de campeões.
@@ -42,7 +21,7 @@ const request = async (method, url, userBody = undefined) => {
 export async function selectChampion(actionId, championId, completed = true) {
   const url = `/lol-champ-select/v1/session/actions/${actionId}`;
   const body = { completed: completed, championId: championId };
-  const response = await request("PATCH", url, body);
+  const response = await request("PATCH", url, { body });
   return response.ok;
 }
 
