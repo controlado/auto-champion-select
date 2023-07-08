@@ -186,8 +186,20 @@ const onMutation = () => {
   pickDropdownContainer.element.append(firstPickDropdown.element, secondPickDropdown.element);
   banDropdownContainer.element.append(firstBanDropdown.element, secondBanDropdown.element);
 
-  // adicionando os elementos ao container social
-  socialContainer.append(checkBoxContainer.element, pickDropdownContainer.element, banDropdownContainer.element);
+  const newSection = document.createElement("lol-social-roster-group");
+  newSection.classList.add("group", "group-label");
+  newSection.addEventListener("click", () => {
+    const nextElement = newSection.nextElementSibling;
+    nextElement.style.display = nextElement.style.display === "none" ? "block" : "none";
+    newSection.querySelector(".arrow").toggleAttribute("open");
+  });
+
+  const newDiv = document.createElement("div");
+  newDiv.append(checkBoxContainer.element, pickDropdownContainer.element, banDropdownContainer.element);
+  socialContainer.append(newSection, newDiv);
+
+  newSection.querySelector("span").textContent = "Auto pick/ban";
+  newSection.querySelector("div").removeAttribute("draggable");
 };
 
 window.addEventListener("load", async () => {
