@@ -199,7 +199,7 @@ const onMutation = () => {
   socialContainer.append(newSection, newDiv);
 
   newSection.querySelector("span").textContent = "Auto pick/ban";
-  newSection.querySelector("div").removeAttribute("draggable");
+  newSection.querySelector(".group-header").removeAttribute("draggable");
 };
 
 window.addEventListener("load", async () => {
