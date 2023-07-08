@@ -155,10 +155,10 @@ const onMutation = () => {
   const socialContainer = document.querySelector(".lol-social-lower-pane-container");
 
   if (
-      !socialContainer ||
-      document.getElementById("checkbox-container") ||
-      document.getElementById("pick-dropdown-container") ||
-      document.getElementById("ban-dropdown-container")
+    !socialContainer ||
+    document.querySelector("#checkbox-container") ||
+    document.querySelector("#pick-dropdown-container") ||
+    document.querySelector("#ban-dropdown-container")
   ) {
     return;
   }
