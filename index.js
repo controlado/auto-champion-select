@@ -184,7 +184,6 @@ const onMutation = () => {
 
   // adicionando os elementos aos containers
   const arrowToggle = document.createElement("lol-social-arrow-toggle");
-  arrowToggle.setAttribute("style", "margin-left: 10px;");
   arrowToggle.classList.add("arrow");
   arrowToggle.onclick = () => {
     const nextElement = arrowToggle.parentElement.nextElementSibling;
