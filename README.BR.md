@@ -11,7 +11,7 @@
 Selecione e bana os campeões automaticamente. <br>
 Esse é o meu primeiro projeto utilizando JavaScript :)
 
-<img src="https://i.ibb.co/GW2vbtW/image.png" width="700" alt="Plugin preview">
+<img src="https://i.imgur.com/dVbUcBp.png" width="700" alt="Plugin preview">
 
 </div>
 <br>

@@ -11,7 +11,7 @@
 Pick and ban champions automatically. <br>
 This is my first project using JavaScript :)
 
-<img src="https://i.ibb.co/GW2vbtW/image.png" width="700" alt="Plugin preview">
+<img src="https://i.imgur.com/dVbUcBp.png" width="700" alt="Plugin preview">
 
 </div>
 <br>
