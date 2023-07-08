@@ -11,7 +11,7 @@
 Pick and ban champions automatically. <br>
 This is my first project using JavaScript :)
 
-<img src="https://github.com/controlado/auto-champion-select/assets/71716568/a49b84be-54c0-4095-9fd6-aecabb063bae" width="700" alt="Plugin preview">
+<img src="https://i.ibb.co/GW2vbtW/image.png" width="700" alt="Plugin preview">
 
 </div>
 <br>
