@@ -122,6 +122,7 @@ class DropdownChampionsContainer {
 class CheckboxContainer {
   constructor(id) {
     this.element = document.createElement("div");
+    this.element.setAttribute("style", "place-content: space-evenly;");
     this.element.className = "alpha-version-panel";
     this.element.id = id;
   }
@@ -182,24 +183,22 @@ const onMutation = () => {
   const secondBanDropdown = new DropdownChampions(1, "banChampion", allChampions, "Second ban option", true);
 
   // adicionando os elementos aos containers
-  checkBoxContainer.element.append(pickCheckbox.element, banCheckbox.element);
+  const arrowToggle = document.createElement("lol-social-arrow-toggle");
+  arrowToggle.setAttribute("style", "margin-left: 10px;");
+  arrowToggle.classList.add("arrow");
+  arrowToggle.onclick = () => {
+    const nextElement = arrowToggle.parentElement.nextElementSibling;
+    nextElement.style.display = nextElement.style.display === "none" ? "block" : "none";
+    arrowToggle.toggleAttribute("open");
+  };
+
+  checkBoxContainer.element.append(arrowToggle, pickCheckbox.element, banCheckbox.element);
   pickDropdownContainer.element.append(firstPickDropdown.element, secondPickDropdown.element);
   banDropdownContainer.element.append(firstBanDropdown.element, secondBanDropdown.element);
 
-  const newSection = document.createElement("lol-social-roster-group");
-  newSection.classList.add("group", "group-label");
-  newSection.addEventListener("click", () => {
-    const nextElement = newSection.nextElementSibling;
-    nextElement.style.display = nextElement.style.display === "none" ? "block" : "none";
-    newSection.querySelector(".arrow").toggleAttribute("open");
-  });
-
   const newDiv = document.createElement("div");
-  newDiv.append(checkBoxContainer.element, pickDropdownContainer.element, banDropdownContainer.element);
-  socialContainer.append(newSection, newDiv);
-
-  newSection.querySelector("span").textContent = "Auto pick/ban";
-  newSection.querySelector("div").removeAttribute("draggable");
+  newDiv.append(pickDropdownContainer.element, banDropdownContainer.element);
+  socialContainer.append(checkBoxContainer.element, newDiv);
 };
 
 window.addEventListener("load", async () => {
