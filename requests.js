@@ -1,5 +1,5 @@
 import axios from "https://cdn.skypack.dev/axios";
-import { request } from "../controladoUtils";
+import { request } from "../_controladoUtils";
 
 /**
  * @author balaclava

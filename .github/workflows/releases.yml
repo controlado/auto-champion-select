@@ -22,10 +22,10 @@ jobs:
         run: find . -maxdepth 1 ! -name "." ! -name ".git" ! -name ".github" -exec mv {} ${{ env.PLUGIN_NAME }}/ \;
 
       - name: Baixar arquivo de dependência
-        run: curl -o controladoUtils.js https://raw.githubusercontent.com/controlado/pengu-plugins/master/controladoUtils.js
+        run: curl -o _controladoUtils.js https://raw.githubusercontent.com/controlado/pengu-plugins/master/_controladoUtils.js
 
       - name: Criar arquivo ZIP
-        run: zip -r ${{ env.PLUGIN_NAME }}.zip controladoUtils.js ${{ env.PLUGIN_NAME }}/
+        run: zip -r ${{ env.PLUGIN_NAME }}.zip _controladoUtils.js ${{ env.PLUGIN_NAME }}/
 
       - name: Criar Release
         id: create_release
