@@ -1,0 +1,33 @@
+name: Publicar pacote no NPM
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - src/**
+      - package.json
+      - package-lock.json
+
+jobs:
+  publish-npm:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Configurando o Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+          registry-url: https://registry.npmjs.org/
+
+      - name: Instalando dependências
+        run: npm install
+
+      - name: Buildando o plugin
+        run: npm run build
+
+      - name: Publicando o pacote
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

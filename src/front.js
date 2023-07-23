@@ -21,8 +21,8 @@ export function getOption(text) {
 
 export function getCheckBox(text, enabled) {
   const pickCheckbox = document.createElement("lol-uikit-radio-input-option");
-  if (enabled) { pickCheckbox.setAttribute("selected", "true"); }
   pickCheckbox.setAttribute("style", "margin-left: 16px; font-family: Arial;");
+  pickCheckbox.setAttribute("selected", enabled ? "true" : "false");
   pickCheckbox.textContent = text;
   return pickCheckbox;
 }

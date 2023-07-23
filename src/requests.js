@@ -1,5 +1,4 @@
-import axios from "https://cdn.skypack.dev/axios";
-import { request } from "../_controladoUtils";
+import { request } from "https://cdn.skypack.dev/balaclava-utils@latest";
 
 /**
  * @author balaclava
@@ -34,7 +33,7 @@ export async function selectChampion(actionId, championId, completed = true) {
  */
 export async function getChampionSelectData() {
   const response = await request("GET", "/lol-champ-select/v1/session");
-  return await response.json();
+  return response.json();
 }
 
 /**
@@ -47,21 +46,7 @@ export async function getChampionSelectData() {
  */
 export async function getGamePhase() {
   const response = await request("GET", "/lol-gameflow/v1/gameflow-phase");
-  return await response.json();
-}
-
-/**
- * Retorna apenas os campeões que o jogador local possui em ordem alfabética.
- *
- * @async
- * @function
- * @return {Promise<Object[]>} Campeões disponíveis para jogar ou null se a request foi inválida.
- */
-export async function getPlayableChampions() {
-  const response = await request("GET", "/lol-champions/v1/owned-champions-minimal");
-  const responseData = await response.json();
-  responseData.sort((a, b) => a.name.localeCompare(b.name));
-  return responseData;
+  return response.json();
 }
 
 /**
@@ -69,13 +54,15 @@ export async function getPlayableChampions() {
  *
  * @async
  * @function
- * @summary Os dados estão em inglês por padrão.
- * @param {string} [region="default"] - Idioma dos dados.
+ * @param {string} - Idioma dos dados.
  * @return {Promise<Object[]>} Os dados de todos os campeões.
  */
-export async function getAllChampions(region = "default") {
-  const url = `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/${region}/v1/champion-summary.json`;
-  const response = await axios.get(url); // não é possível fazer essa requisição com fetch()
-  response.data.sort((a, b) => a.name.localeCompare(b.name));
-  return response.data;
+export async function getAllChampions() {
+  const response = await request("GET", "/lol-game-data/assets/v1/champion-summary.json");
+  const responseData = await response.json();
+
+  // ordenando os campeões em ordem alfabética
+  responseData.sort((a, b) => a.name.localeCompare(b.name));
+
+  return responseData;
 }

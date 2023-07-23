@@ -1,6 +1,6 @@
-import { addRoutines, linkEndpoint, sleep } from "../_controladoUtils";
-import * as front from "./front";
+import { addRoutines, linkEndpoint, sleep } from "https://cdn.skypack.dev/balaclava-utils@latest";
 import * as requests from "./requests";
+import * as front from "./front";
 
 /**
  * @author balaclava
@@ -9,11 +9,6 @@ import * as requests from "./requests";
  * @description Pick or ban automatically! 🐧
  */
 
-export const plugin = {
-  name: "Auto Champion Select",
-  url: "https://github.com/controlado/auto-champion-select",
-  version: "1.0.1",
-};
 let allChampions = null; // todos os campeões disponíveis no jogo
 const defaultPickSettings = { enabled: false, champions: [429, 136] };
 const defaultBanSettings = { enabled: false, force: false, champions: [350, 221] };
@@ -203,7 +198,6 @@ const onMutation = () => {
 };
 
 window.addEventListener("load", async () => {
-  console.debug(`${plugin.name}: Report bugs to Balaclava#1912`);
   allChampions = await requests.getAllChampions();
 
   if (!DataStore.has("pickChampion")) { DataStore.set("pickChampion", defaultPickSettings); }
@@ -211,4 +205,6 @@ window.addEventListener("load", async () => {
 
   linkEndpoint("/lol-gameflow/v1/gameflow-phase", gamePhaseHandler);
   addRoutines(onMutation);
+
+  console.debug("auto-champion-select: Report bugs to Balaclava#1912");
 });

@@ -1,49 +1,38 @@
 name: Criar Release
 
-on:
-  push:
-  repository_dispatch:
-
 env:
-  PLUGIN_NAME: "auto-champion-select"
+  plugin_name: auto-champion-select
+
+on:
+  workflow_dispatch:
+  repository_dispatch:
+  push:
+    paths:
+      - index.js
+      - README.md
+      - README.br.md
 
 jobs:
   release:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout do repositório
-        uses: actions/checkout@v2
+      - name: Checkout
+        uses: actions/checkout@v3
+      
+      - name: Criando uma pasta
+        run: mkdir ${{ env.plugin_name }}
 
-      - name: Criar pasta de arquivos do repositório
-        run: mkdir ${{ env.PLUGIN_NAME }}
+      - name: Movendo os arquivos para a pasta
+        run: mv index.js README.md README.br.md ${{ env.plugin_name }}
 
-      - name: Mover arquivos do repositório para a pasta criada
-        run: find . -maxdepth 1 ! -name "." ! -name ".git" ! -name ".github" -exec mv {} ${{ env.PLUGIN_NAME }}/ \;
+      - name: Zipando a pasta
+        run: zip -r ${{ env.plugin_name }}.zip ${{ env.plugin_name }}
 
-      - name: Baixar arquivo de dependência
-        run: curl -o _controladoUtils.js https://raw.githubusercontent.com/controlado/pengu-plugins/master/_controladoUtils.js
-
-      - name: Criar arquivo ZIP
-        run: zip -r ${{ env.PLUGIN_NAME }}.zip _controladoUtils.js ${{ env.PLUGIN_NAME }}/
-
-      - name: Criar Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Criando a release
+        uses: softprops/action-gh-release@v1
         with:
+          name: ${{ env.plugin_name }} v${{ github.run_number }}
           tag_name: v${{ github.run_number }}
-          release_name: Plugin v${{ github.run_number }}
-          draft: false
-          prerelease: false
-
-      - name: Adicionar arquivo ZIP à Release
-        uses: actions/upload-release-asset@v1
+          files: ${{ env.plugin_name }}.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./${{ env.PLUGIN_NAME }}.zip
-          asset_name: ${{ env.PLUGIN_NAME }}.zip
-          asset_content_type: application/zip

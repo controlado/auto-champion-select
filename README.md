@@ -19,7 +19,7 @@ This is my first project using JavaScript :)
 ## Dependencies
 
 [Pengu Loader 1.0.5](https://github.com/PenguLoader/PenguLoader) (or any higher version) <br>
-[_controladoUtils.js](https://github.com/controlado/pengu-plugins/blob/master/_controladoUtils.js) (must be in the plugins folder)
+[controladoUtils.js](https://github.com/controlado/pengu-plugins) (automatically included)
 
 ## Installation
 
@@ -32,7 +32,8 @@ The structure should look something like this:
 📂 Pengu Loader
 └── 📂 plugins
     ├── 📂 @default
-    ├── 📄 _controladoUtils.js
     └── 📂 auto-champion-select
-        └── 📄 index.js
+        ├── 📃 README.md
+        ├── 📃 README.br.md
+        └── 📀 index.js
 ```
