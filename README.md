@@ -6,7 +6,7 @@
 [![discord](https://img.shields.io/badge/Discord-%235865F2.svg?style=flat&logo=discord&logoColor=white&color=blue)](https://discordapp.com/users/854886148455399436) <br>
 ![languages](https://img.shields.io/badge/Documentation-gray)
 [![english](https://img.shields.io/badge/-English-blue)](README.md)
-[![português](https://img.shields.io/badge/-Português%20Brasileiro-blue)](README.BR.md)
+[![português](https://img.shields.io/badge/-Português%20Brasileiro-blue)](README.br.md)
 
 Pick and ban champions automatically. <br>
 This is my first project using JavaScript :)
