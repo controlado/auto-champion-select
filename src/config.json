@@ -1,16 +1,16 @@
 {
     "controladoPick": {
-        "status": true,
+        "status": false,
         "champions": [
-            1,
-            1
+            21,
+            21
         ]
     },
     "controladoBan": {
-        "status": true,
+        "status": false,
         "champions": [
-            1,
-            1
+            21,
+            21
         ]
     }
 }
