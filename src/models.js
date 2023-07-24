@@ -87,6 +87,7 @@ export class Dropdown {
         this.element.classList.add("dropdown-champions-default");
 
         this.text = text;
+
         this.config = null;
         this.configKey = configKey;
         this.configIndex = configIndex;
@@ -157,7 +158,7 @@ export class Checkbox {
         this.configKey = configKey;
     }
 
-    async setup() {
+    setup() {
         this.config = DataStore.get(this.configKey) || defaultPluginConfig[this.configKey];
 
         if (this.config.status) {
@@ -165,28 +166,30 @@ export class Checkbox {
         }
 
         this.element.addEventListener("click", () => {
-            this.element.toggleAttribute("selected");
             this.config.status = !this.config.status;
             DataStore.set(this.configKey, this.config);
+            this.element.toggleAttribute("selected");
         });
     }
 }
 
 export class SocialSection {
     constructor(label, ...hiddableElements) {
-        this.label = label;
-        this.hiddableElements = hiddableElements;
-
         this.element = document.createElement("lol-social-roster-group");
         this.element.addEventListener("post-render", () => this.onPostRender());
         this.element.addEventListener("click", () => this.onClick());
+
+        this.label = label;
+        this.hiddableElements = hiddableElements;
+
         this.waitRender();
     }
 
     waitRender() {
         new MutationObserver((_, observer) => {
             if (this.element.querySelector("span")) {
-                this.element.dispatchEvent(new Event("post-render"));
+                const newEvent = new Event("post-render");
+                this.element.dispatchEvent(newEvent);
                 observer.disconnect();
             }
         }

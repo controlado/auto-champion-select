@@ -15,7 +15,7 @@ async function getPlayableChampions() {
     while (!response.ok) {
         console.debug("auto-champion-select(owned-champions-minimal): retrying...");
         response = await request("GET", "/lol-champions/v1/owned-champions-minimal");
-        await sleep(1000); // /lol-champions/v1/owned-champions-minimal returns 404 at startup
+        await sleep(1000); // endpoint /lol-champions/v1/owned-champions-minimal returns 404 at startup
     }
 
     const responseData = await response.json();
@@ -37,12 +37,12 @@ function getSocialContainer() {
 const championSelect = new ChampionSelect();
 
 const pickCheckbox = new Checkbox("Pick", "controladoPick");
-const firstPlayableChampionsDropdown = new Dropdown("1st pick", "controladoPick", 0, getPlayableChampions);
-const secondPlayableChampionsDropdown = new Dropdown("2st pick", "controladoPick", 1, getPlayableChampions);
+const firstPlayableChampionsDropdown = new Dropdown("1st pick option", "controladoPick", 0, getPlayableChampions);
+const secondPlayableChampionsDropdown = new Dropdown("2st pick option", "controladoPick", 1, getPlayableChampions);
 
 const banCheckbox = new Checkbox("Ban", "controladoBan");
-const firstAllChampionsDropdown = new Dropdown("1st ban", "controladoBan", 0, getAllChampions);
-const secondAllChampionsDropdown = new Dropdown("2st ban", "controladoBan", 1, getAllChampions);
+const firstAllChampionsDropdown = new Dropdown("1st ban option", "controladoBan", 0, getAllChampions);
+const secondAllChampionsDropdown = new Dropdown("2st ban option", "controladoBan", 1, getAllChampions);
 
 window.addEventListener("load", async () => {
     let socialContainer = getSocialContainer();
