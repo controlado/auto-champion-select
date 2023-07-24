@@ -1,0 +1,18 @@
+.dropdown-champions-default {
+    position: inherit;
+    width: -webkit-fill-available;
+}
+
+.auto-select-checkboxes-div {
+    display: flex;
+    justify-content: center;
+    border-top: thin solid #1e282d;
+}
+
+.auto-select-checkbox {
+    margin: auto;
+}
+
+.auto-select-checkbox:last-child {
+    margin-right: 42px;
+}
