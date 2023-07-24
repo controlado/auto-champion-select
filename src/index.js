@@ -38,11 +38,11 @@ const championSelect = new ChampionSelect();
 
 const pickCheckbox = new Checkbox("Pick", "controladoPick");
 const firstPlayableChampionsDropdown = new Dropdown("1st pick option", "controladoPick", 0, getPlayableChampions);
-const secondPlayableChampionsDropdown = new Dropdown("2st pick option", "controladoPick", 1, getPlayableChampions);
+const secondPlayableChampionsDropdown = new Dropdown("2nd pick option", "controladoPick", 1, getPlayableChampions);
 
 const banCheckbox = new Checkbox("Ban", "controladoBan");
 const firstAllChampionsDropdown = new Dropdown("1st ban option", "controladoBan", 0, getAllChampions);
-const secondAllChampionsDropdown = new Dropdown("2st ban option", "controladoBan", 1, getAllChampions);
+const secondAllChampionsDropdown = new Dropdown("2nd ban option", "controladoBan", 1, getAllChampions);
 
 window.addEventListener("load", async () => {
     let socialContainer = getSocialContainer();
