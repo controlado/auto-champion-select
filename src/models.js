@@ -1,6 +1,13 @@
 import { request, sleep } from "https://cdn.skypack.dev/balaclava-utils@latest";
 import defaultPluginConfig from "./config.json";
 
+/**
+ * @author balaclava
+ * @name auto-champion-select
+ * @link https://github.com/controlado/auto-champion-select
+ * @description Pick or ban automatically! 🐧
+ */
+
 export class ChampionSelect {
     constructor() {
         this.session = null;
