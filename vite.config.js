@@ -14,7 +14,6 @@ const banner = `/**
 export default defineConfig({
     plugins: [cssInjectedByJsPlugin()],
     build: {
-        outDir: "../../auto-champion-select",
         rollupOptions: {
             input: "src/index.js",
             output: {
