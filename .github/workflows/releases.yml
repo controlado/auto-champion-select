@@ -1,4 +1,4 @@
-name: Criar Release
+name: Criar nova release
 
 env:
   plugin_name: auto-champion-select
