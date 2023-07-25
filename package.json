@@ -22,7 +22,7 @@
   ],
   "scripts": {
     "build": "vite build",
-    "watch": "vite build --watch"
+    "watch": "vite build --watch --outDir ."
   },
   "bugs": {
     "url": "https://github.com/controlado/auto-champion-select/issues"
