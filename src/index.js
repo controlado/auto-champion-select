@@ -1,5 +1,6 @@
 import { request, sleep, linkEndpoint } from "https://cdn.skypack.dev/balaclava-utils@latest";
 import { ChampionSelect, Dropdown, Checkbox, SocialSection } from "./models.js";
+import { version } from "../package.json";
 import "./assets/style.css";
 
 /**
@@ -8,6 +9,20 @@ import "./assets/style.css";
  * @link https://github.com/controlado/auto-champion-select
  * @description Pick or ban automatically! 🐧
  */
+
+const championSelect = new ChampionSelect();
+
+const pickCheckbox = new Checkbox("Pick", "controladoPick");
+const firstPlayableChampionsDropdown = new Dropdown("1st pick option", "controladoPick", 0, getPlayableChampions);
+const secondPlayableChampionsDropdown = new Dropdown("2nd pick option", "controladoPick", 1, getPlayableChampions);
+
+const banCheckbox = new Checkbox("Ban", "controladoBan");
+const firstAllChampionsDropdown = new Dropdown("1st ban option", "controladoBan", 0, getAllChampions);
+const secondAllChampionsDropdown = new Dropdown("2nd ban option", "controladoBan", 1, getAllChampions);
+
+function getSocialContainer() {
+    return document.querySelector("lol-social-roster.roster");
+}
 
 async function getPlayableChampions() {
     let response = await request("GET", "/lol-champions/v1/owned-champions-minimal");
@@ -30,20 +45,6 @@ async function getAllChampions() {
     return responseData;
 }
 
-function getSocialContainer() {
-    return document.querySelector("lol-social-roster.roster");
-}
-
-const championSelect = new ChampionSelect();
-
-const pickCheckbox = new Checkbox("Pick", "controladoPick");
-const firstPlayableChampionsDropdown = new Dropdown("1st pick option", "controladoPick", 0, getPlayableChampions);
-const secondPlayableChampionsDropdown = new Dropdown("2nd pick option", "controladoPick", 1, getPlayableChampions);
-
-const banCheckbox = new Checkbox("Ban", "controladoBan");
-const firstAllChampionsDropdown = new Dropdown("1st ban option", "controladoBan", 0, getAllChampions);
-const secondAllChampionsDropdown = new Dropdown("2nd ban option", "controladoBan", 1, getAllChampions);
-
 window.addEventListener("load", async () => {
     let socialContainer = getSocialContainer();
 
@@ -63,8 +64,11 @@ window.addEventListener("load", async () => {
 
     linkEndpoint("/lol-inventory/v1/wallet", parsedEvent => {
         if (parsedEvent.eventType === "Update") {
-            firstPlayableChampionsDropdown.refresh();
-            secondPlayableChampionsDropdown.refresh();
+            console.debug("auto-champion-select(wallet): refreshing dropdowns...");
+            Promise.all([
+                firstPlayableChampionsDropdown.refresh(),
+                secondPlayableChampionsDropdown.refresh(),
+            ]);
         }
     });
 
@@ -83,5 +87,6 @@ window.addEventListener("load", async () => {
 
     const pluginSection = new SocialSection("Auto champion select", dropdownsContainer, checkboxesContainer);
     socialContainer.append(pluginSection.element, checkboxesContainer, dropdownsContainer);
-    console.debug("auto-champion-select: Report bugs to Balaclava#1912");
+
+    console.debug(`auto-champion-select(${version}): report bugs to Balaclava#1912`);
 });
