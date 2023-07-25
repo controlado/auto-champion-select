@@ -28,7 +28,7 @@ async function getPlayableChampions() {
     let response = await request("GET", "/lol-champions/v1/owned-champions-minimal");
 
     while (!response.ok) {
-        console.debug("auto-champion-select(owned-champions-minimal): retrying...");
+        console.debug("auto-champion-select(owned-champions-minimal): Retrying...");
         response = await request("GET", "/lol-champions/v1/owned-champions-minimal");
         await sleep(1000); // endpoint /lol-champions/v1/owned-champions-minimal returns 404 at startup
     }
@@ -64,7 +64,7 @@ window.addEventListener("load", async () => {
 
     linkEndpoint("/lol-inventory/v1/wallet", parsedEvent => {
         if (parsedEvent.eventType === "Update") {
-            console.debug("auto-champion-select(wallet): refreshing dropdowns...");
+            console.debug("auto-champion-select(wallet): Refreshing dropdowns...");
             Promise.all([
                 firstPlayableChampionsDropdown.refresh(),
                 secondPlayableChampionsDropdown.refresh(),
@@ -88,5 +88,5 @@ window.addEventListener("load", async () => {
     const pluginSection = new SocialSection("Auto champion select", dropdownsContainer, checkboxesContainer);
     socialContainer.append(pluginSection.element, checkboxesContainer, dropdownsContainer);
 
-    console.debug(`auto-champion-select(${version}): report bugs to Balaclava#1912`);
+    console.debug(`auto-champion-select(${version}): Report bugs to Balaclava#1912`);
 });
