@@ -14,6 +14,7 @@ const banner = `/**
 export default defineConfig({
     plugins: [cssInjectedByJsPlugin()],
     build: {
+        outDir: "dist",
         rollupOptions: {
             input: "src/index.js",
             output: {
