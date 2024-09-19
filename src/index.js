@@ -12,6 +12,8 @@ import "./assets/style.css";
 
 const championSelect = new ChampionSelect();
 
+const autoAcceptCheckbox = new Checkbox("Accept", "controladoAutoAccept");
+
 const pickCheckbox = new Checkbox("Pick", "controladoPick");
 const firstPlayableChampionsDropdown = new Dropdown("1st pick option", "controladoPick", 0, getPlayableChampions);
 const secondPlayableChampionsDropdown = new Dropdown("2nd pick option", "controladoPick", 1, getPlayableChampions);
@@ -45,6 +47,23 @@ async function getAllChampions() {
     return responseData;
 }
 
+async function onReadyCheck() {
+    if (autoAcceptCheckbox.config.status === true) {
+        console.debug("auto-champion-select(auto-accept): Ready check detected, accepting in 2 seconds...");
+        await sleep(2000);
+        await autoAccept();
+    }
+}
+
+async function autoAccept() {
+    const response = await request("POST", "/lol-matchmaking/v1/ready-check/accept");
+    if (response.ok) {
+        console.debug("auto-champion-select(auto-accept): Accepted ready check");
+    } else {
+        console.error("auto-champion-select(auto-accept): Failed to accept ready check");
+    }
+}
+
 window.addEventListener("load", async () => {
     let socialContainer = getSocialContainer();
 
@@ -54,6 +73,7 @@ window.addEventListener("load", async () => {
     }
 
     Promise.all([
+        autoAcceptCheckbox.setup(),
         pickCheckbox.setup(),
         banCheckbox.setup(),
         firstPlayableChampionsDropdown.setup(),
@@ -73,6 +93,7 @@ window.addEventListener("load", async () => {
     });
 
     linkEndpoint("/lol-gameflow/v1/gameflow-phase", parsedEvent => {
+        if (parsedEvent.data === "ReadyCheck") { onReadyCheck(); }
         if (parsedEvent.data === "ChampSelect") { championSelect.mount(); }
         else { championSelect.unmount(); }
     });
@@ -80,8 +101,8 @@ window.addEventListener("load", async () => {
     const dropdownsContainer = document.createElement("div");
     const checkboxesContainer = document.createElement("div");
     checkboxesContainer.classList.add("auto-select-checkboxes-div");
-
-    checkboxesContainer.append(pickCheckbox.element, banCheckbox.element);
+    
+    checkboxesContainer.append(autoAcceptCheckbox.element, pickCheckbox.element, banCheckbox.element);
     dropdownsContainer.append(firstPlayableChampionsDropdown.element, secondPlayableChampionsDropdown.element);
     dropdownsContainer.append(firstAllChampionsDropdown.element, secondAllChampionsDropdown.element);
 

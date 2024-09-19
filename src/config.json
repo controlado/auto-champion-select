@@ -1,4 +1,7 @@
 {
+    "controladoAutoAccept": {
+        "status": false
+    },
     "controladoPick": {
         "status": false,
         "champions": [
