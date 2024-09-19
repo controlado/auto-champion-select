@@ -165,11 +165,15 @@ export class Checkbox {
             this.element.setAttribute("selected", "true");
         }
 
-        this.element.addEventListener("click", () => {
-            this.config.status = !this.config.status;
-            DataStore.set(this.configKey, this.config);
-            this.element.toggleAttribute("selected");
-        });
+        this.element.addEventListener("click", () => this.toggle());
+    }
+
+    toggle() {
+        console.debug("auto-champion-select: Toggling", this.configKey);
+        this.config.status = !this.config.status;
+        DataStore.set(this.configKey, this.config);
+        this.element.toggleAttribute("selected");
+        return this.config.status;
     }
 }
 
