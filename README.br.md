@@ -8,13 +8,18 @@
 [![english](https://img.shields.io/badge/-English-blue)](README.md)
 [![português](https://img.shields.io/badge/-Português%20Brasileiro-blue)](README.br.md)
 
-Selecione e bana os campeões automaticamente. <br>
+Aceite a fila, selecione e bana os campeões automaticamente. <br>
 Esse é o meu primeiro projeto utilizando JavaScript :)
 
-<img src="https://i.imgur.com/dVbUcBp.png" width="700" alt="Plugin preview">
+<img src="https://i.imgur.com/Ovy1gGw.png" width="700" alt="Plugin preview">
 
 </div>
 <br>
+
+## 📍 Novidades
+
+- Accept: aceita, automaticamente, as partidas
+- CommandBar: use `CTRL + K` para desligar/ligar o auto pick/ban
 
 ## Dependências
 

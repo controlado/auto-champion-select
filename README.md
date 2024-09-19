@@ -8,13 +8,18 @@
 [![english](https://img.shields.io/badge/-English-blue)](README.md)
 [![português](https://img.shields.io/badge/-Português%20Brasileiro-blue)](README.br.md)
 
-Pick and ban champions automatically. <br>
+Accept queue, pick and ban champions automatically. <br>
 This is my first project using JavaScript :)
 
-<img src="https://i.imgur.com/dVbUcBp.png" width="700" alt="Plugin preview">
+<img src="https://i.imgur.com/Ovy1gGw.png" width="700" alt="Plugin preview">
 
 </div>
 <br>
+
+## 📍 What's new
+
+- Accept: automatically accepts matches (ready check)
+- CommandBar: use `CTRL + K` to turn auto pick/ban off/on
 
 ## Dependencies
 
