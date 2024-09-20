@@ -61,7 +61,7 @@ async function autoAccept() {
     if (response.ok) {
         console.debug("auto-champion-select(auto-accept): Accepted ready check");
     } else {
-        console.error("auto-champion-select(auto-accept): Failed to accept ready check");
+        console.error("auto-champion-select(auto-accept): Failed to accept ready check", response);
     }
 }
 
