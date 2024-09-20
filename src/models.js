@@ -142,6 +142,7 @@ export class Dropdown {
 
         if (!this.element.shadowRoot.querySelector("#controlado-placeholder")) {
             const placeholderContainer = this.element.shadowRoot.querySelector(".ui-dropdown-current");
+            placeholderContainer.style = "display: flex; justify-content: space-between;";
             const placeholder = this.getNewPlaceholder();
             placeholderContainer.appendChild(placeholder);
         }
@@ -166,7 +167,7 @@ export class Dropdown {
     getNewPlaceholder() {
         const placeholder = document.createElement("div");
         placeholder.classList.add("ui-dropdown-current-content");
-        placeholder.style.overflow = "visible";
+        placeholder.style = "width: unset; overflow: visible;";
         placeholder.id = "controlado-placeholder";
         placeholder.innerText = this.text;
         return placeholder;
