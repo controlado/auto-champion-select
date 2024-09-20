@@ -33,8 +33,8 @@ class FunctionSwitchAction extends Action {
             pluginGroup,
             callback,
             {
-                on: `Auto ${name} is ON`,
-                off: `Auto ${name} is OFF`,
+                on: `Auto ${name} is ON!`,
+                off: `Auto ${name} is OFF!`,
                 error: `Failed to toggle Auto ${name}. Check console.`
             }
         )
@@ -51,8 +51,8 @@ class ForceSwitchAction extends Action {
             pluginGroup,
             () => this.switchDataStore(configKey),
             {
-                on: `Force ${name} is ON`,
-                off: `Force ${name} is OFF`,
+                on: `Force ${name} is ON!`,
+                off: `Force ${name} is OFF!`,
                 error: `Failed to toggle Force ${name}. Check console.`
             }
         );
