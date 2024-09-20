@@ -13,6 +13,7 @@ export class ChampionSelect {
         this.session = null;
         this.actions = null;
 
+        this.localPlayerCellId = null;
         this.teamIntents = null;
         this.allPicks = null;
         this.allBans = null;
@@ -43,6 +44,7 @@ export class ChampionSelect {
         const sessionResponse = await request("GET", "/lol-champ-select/v1/session");
         this.session = await sessionResponse.json();
         this.actions = this.session.actions;
+        this.localPlayerCellId = this.session.localPlayerCellId;
         this.allPicks = [...this.session.myTeam, ...this.session.theirTeam];
         this.allBans = [...this.session.bans.myTeamBans, ...this.session.bans.theirTeamBans];
         this.teamIntents = this.session.myTeam.map(player => player.championPickIntent);
@@ -52,26 +54,49 @@ export class ChampionSelect {
         const pickConfig = DataStore.get("controladoPick") || defaultPluginConfig.controladoPick;
         const banConfig = DataStore.get("controladoBan") || defaultPluginConfig.controladoBan;
 
-        for (const action of this.actions) {
-            for (const subAction of action) {
-                if (subAction.completed === false || subAction.actorCellId === this.session.localPlayerCellId) {
-                    const config = subAction.type === "pick" ? pickConfig : banConfig;
+        if (!pickConfig.enabled && !banConfig.enabled) {
+            return;
+        }
 
-                    if (!config.enabled) {
-                        continue;
-                    }
+        const localPlayerSubActions = this.getLocalPlayerSubActions();
+        if (localPlayerSubActions.length === 0) {
+            console.debug("auto-champion-select: No local player sub actions found, skipping...");
+            this.unmount();
+            return;
+        }
 
-                    for (const championId of config.champions) {
-                        if (this.allBans.some(bannedChampionId => bannedChampionId == championId)) { continue; }
-                        if (subAction.type === "ban" && this.teamIntents.some(playerIntent => playerIntent == championId)) { continue; }
-                        if (subAction.type === "pick" && this.allPicks.some(player => player.championId == championId)) { continue; }
+        for (const subAction of localPlayerSubActions) {
+            const config = subAction.type === "pick" ? pickConfig : banConfig;
 
-                        const response = await this.selectChampion(subAction.id, championId);
-                        if (response.ok) { console.debug("auto-champion-select: OK!"); return; }
-                    }
+            if (!config.enabled) {
+                continue;
+            }
+
+            for (const championId of config.champions) {
+                if (this.allBans.some(bannedChampionId => bannedChampionId == championId)) {
+                    console.debug(`auto-champion-select: Banning ${championId} but it's already banned, skipping...`);
+                    continue;
                 }
+                if (subAction.type === "ban" && this.teamIntents.some(playerIntent => playerIntent == championId)) {
+                    console.debug(`auto-champion-select: Banning ${championId} but it's already picked, skipping...`);
+                    continue;
+                }
+                if (subAction.type === "pick" && this.allPicks.some(player => player.championId == championId)) {
+                    console.debug(`auto-champion-select: Picking ${championId} but it's already picked, skipping...`);
+                    continue;
+                }
+                console.debug(`auto-champion-select: Trying to ${subAction.type} ${championId}...`);
+                const response = await this.selectChampion(subAction.id, championId);
+                if (response.ok) { console.debug("auto-champion-select: OK!"); return; }
             }
         }
+    }
+
+    getLocalPlayerSubActions() {
+        return this.actions.flat().filter(subAction =>
+            subAction.actorCellId === this.localPlayerCellId &&
+            subAction.completed === false
+        );
     }
 
     selectChampion(actionId, championId) {
