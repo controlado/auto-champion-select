@@ -1,6 +1,7 @@
 import { request, sleep, linkEndpoint } from "https://cdn.skypack.dev/balaclava-utils@latest";
 import { ChampionSelect, Dropdown, Checkbox, SocialSection } from "./models.js";
-import { AutoPickSwitchAction, AutoBanSwitchAction, addActions } from "./actions.js";
+import { AutoPickSwitchAction, AutoBanSwitchAction, ForcePickSwitchAction, ForceBanSwitchAction, addActions } from "./actions.js";
+
 import { version } from "../package.json";
 import "./assets/style.css";
 
@@ -16,12 +17,12 @@ const championSelect = new ChampionSelect();
 const autoAcceptCheckbox = new Checkbox("Accept", "controladoAutoAccept");
 
 const pickCheckbox = new Checkbox("Pick", "controladoPick");
-const firstPlayableChampionsDropdown = new Dropdown("1st pick option", "controladoPick", 0, getPlayableChampions);
-const secondPlayableChampionsDropdown = new Dropdown("2nd pick option", "controladoPick", 1, getPlayableChampions);
+const firstPlayableChampionsDropdown = new Dropdown("1st pick", "controladoPick", 0, getPlayableChampions);
+const secondPlayableChampionsDropdown = new Dropdown("2nd pick", "controladoPick", 1, getPlayableChampions);
 
 const banCheckbox = new Checkbox("Ban", "controladoBan");
-const firstAllChampionsDropdown = new Dropdown("1st ban option", "controladoBan", 0, getAllChampions);
-const secondAllChampionsDropdown = new Dropdown("2nd ban option", "controladoBan", 1, getAllChampions);
+const firstAllChampionsDropdown = new Dropdown("1st ban", "controladoBan", 0, getAllChampions);
+const secondAllChampionsDropdown = new Dropdown("2nd ban", "controladoBan", 1, getAllChampions);
 
 function getSocialContainer() {
     return document.querySelector("lol-social-roster.roster");
@@ -85,7 +86,9 @@ window.addEventListener("load", async () => {
 
     addActions([
         new AutoPickSwitchAction(() => pickCheckbox.toggle()),
-        new AutoBanSwitchAction(() => banCheckbox.toggle())
+        new AutoBanSwitchAction(() => banCheckbox.toggle()),
+        new ForcePickSwitchAction(),
+        new ForceBanSwitchAction()
     ]);
 
     linkEndpoint("/lol-inventory/v1/wallet", parsedEvent => {

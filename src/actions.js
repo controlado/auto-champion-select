@@ -23,39 +23,78 @@ class SwitchAction {
     }
 }
 
-export class AutoPickSwitchAction extends SwitchAction {
-    constructor(callback) {
+class AutoSwitchAction extends SwitchAction {
+    constructor(name, configKey, callback) {
         super(
-            "controladoPickSwitch",
-            "Auto Pick [ON/OFF]",
-            "Turn the auto pick ON/OFF",
-            [pluginGroup, "pick", "switch"],
+            `${configKey}Switch`,
+            () => `Auto ${name} [${DataStore.get(configKey)?.enabled ? "ON" : "OFF"}]`,
+            () => DataStore.get(configKey)?.enabled ? `Turn OFF` : `Turn ON`,
+            [pluginGroup, configKey, "switch"],
             pluginGroup,
             callback,
             {
-                on: "Auto Pick is ON",
-                off: "Auto Pick is OFF",
-                error: "Failed to toggle Auto Pick. Check console."
+                on: `Auto ${name} is ON`,
+                off: `Auto ${name} is OFF`,
+                error: `Failed to toggle Auto ${name}. Check console.`
             }
         )
     }
 }
 
-export class AutoBanSwitchAction extends SwitchAction {
-    constructor(callback) {
+class ForceSwitchAction extends SwitchAction {
+    constructor(name, configKey) {
         super(
-            "controladoBanSwitch",
-            "Auto Ban [ON/OFF]",
-            "Turn the auto ban ON/OFF",
-            [pluginGroup, "ban", "switch"],
+            `${configKey}ForceSwitch`,
+            () => `Force ${name} [${DataStore.get(configKey)?.force ? "ON" : "OFF"}]`,
+            () => `Ignore team intent and force ${name} the selected champion`,
+            [pluginGroup, configKey, "force", "switch"],
             pluginGroup,
-            callback,
+            () => this.switchDataStore(configKey),
             {
-                on: "Auto Ban is ON",
-                off: "Auto Ban is OFF",
-                error: "Failed to toggle Auto Ban. Check console."
+                on: `Force ${name} is ON`,
+                off: `Force ${name} is OFF`,
+                error: `Failed to toggle Force ${name}. Check console.`
             }
         );
+    }
+
+    switchDataStore(configKey) {
+        const config = DataStore.get(configKey);
+        config.force = !config.force;
+        DataStore.set(configKey, config);
+        return config.force;
+    }
+}
+
+export class AutoPickSwitchAction extends AutoSwitchAction {
+    constructor(callback) {
+        super(
+            "Pick",
+            "controladoPick",
+            callback
+        )
+    }
+}
+
+export class AutoBanSwitchAction extends AutoSwitchAction {
+    constructor(callback) {
+        super(
+            "Ban",
+            "controladoBan",
+            callback
+        );
+    }
+}
+
+export class ForcePickSwitchAction extends ForceSwitchAction {
+    constructor() {
+        super("Pick", "controladoPick");
+    }
+}
+
+export class ForceBanSwitchAction extends ForceSwitchAction {
+    constructor() {
+        super("Ban", "controladoBan");
     }
 }
 

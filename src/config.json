@@ -4,6 +4,7 @@
     },
     "controladoPick": {
         "enabled": false,
+        "force": false,
         "champions": [
             21,
             21
@@ -11,6 +12,7 @@
     },
     "controladoBan": {
         "enabled": false,
+        "force": false,
         "champions": [
             21,
             21

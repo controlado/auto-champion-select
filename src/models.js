@@ -78,12 +78,20 @@ export class ChampionSelect {
                     continue;
                 }
                 if (subAction.type === "ban" && this.teamIntents.some(playerIntent => playerIntent == championId)) {
-                    console.debug(`auto-champion-select: Banning ${championId} but it's already picked, skipping...`);
-                    continue;
+                    if (config.force === true) {
+                        console.debug(`auto-champion-select: Banning ${championId} but it's already picked, forcing...`);
+                    } else {
+                        console.debug(`auto-champion-select: Banning ${championId} but it's already picked, skipping...`);
+                        continue;
+                    }
                 }
                 if (subAction.type === "pick" && this.allPicks.some(player => player.championId == championId)) {
-                    console.debug(`auto-champion-select: Picking ${championId} but it's already picked, skipping...`);
-                    continue;
+                    if (config.force === true) {
+                        console.debug(`auto-champion-select: Picking ${championId} but it's already picked, forcing...`);
+                    } else {
+                        console.debug(`auto-champion-select: Picking ${championId} but it's already picked, skipping...`);
+                        continue;
+                    }
                 }
                 console.debug(`auto-champion-select: Trying to ${subAction.type} ${championId}...`);
                 const response = await this.selectChampion(subAction.id, championId);
