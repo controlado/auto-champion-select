@@ -32,14 +32,14 @@ export class ChampionSelect {
     async watch() {
         while (true) {
             if (this.mounted) {
-                await this.update();
+                await this.updateProperties();
                 await this.task();
             }
             await sleep(300);
         }
     }
 
-    async update() {
+    async updateProperties() {
         const sessionResponse = await request("GET", "/lol-champ-select/v1/session");
         this.session = await sessionResponse.json();
         this.actions = this.session.actions;
@@ -75,9 +75,9 @@ export class ChampionSelect {
     }
 
     selectChampion(actionId, championId) {
-        const url = `/lol-champ-select/v1/session/actions/${actionId}`;
+        const endpoint = `/lol-champ-select/v1/session/actions/${actionId}`;
         const body = { championId: championId, completed: true };
-        return request("PATCH", url, { body });
+        return request("PATCH", endpoint, { body });
     }
 }
 
