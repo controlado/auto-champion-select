@@ -1,6 +1,6 @@
 const pluginGroup = "Balaclava: Auto Champion Select";
 
-class SwitchAction {
+class Action {
     constructor(id, name, legend, tags, group, callback, toasts) {
         this.id = id;
         this.name = name;
@@ -23,7 +23,7 @@ class SwitchAction {
     }
 }
 
-class AutoSwitchAction extends SwitchAction {
+class FunctionSwitchAction extends Action {
     constructor(name, configKey, callback) {
         super(
             `${configKey}Switch`,
@@ -41,7 +41,7 @@ class AutoSwitchAction extends SwitchAction {
     }
 }
 
-class ForceSwitchAction extends SwitchAction {
+class ForceSwitchAction extends Action {
     constructor(name, configKey) {
         super(
             `${configKey}ForceSwitch`,
@@ -66,7 +66,7 @@ class ForceSwitchAction extends SwitchAction {
     }
 }
 
-export class AutoPickSwitchAction extends AutoSwitchAction {
+export class AutoPickSwitchAction extends FunctionSwitchAction {
     constructor(callback) {
         super(
             "Pick",
@@ -76,7 +76,7 @@ export class AutoPickSwitchAction extends AutoSwitchAction {
     }
 }
 
-export class AutoBanSwitchAction extends AutoSwitchAction {
+export class AutoBanSwitchAction extends FunctionSwitchAction {
     constructor(callback) {
         super(
             "Ban",
