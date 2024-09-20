@@ -57,7 +57,7 @@ export class ChampionSelect {
                 if (subAction.completed === false || subAction.actorCellId === this.session.localPlayerCellId) {
                     const config = subAction.type === "pick" ? pickConfig : banConfig;
 
-                    if (!config.status) {
+                    if (!config.enabled) {
                         continue;
                     }
 
@@ -161,7 +161,7 @@ export class Checkbox {
     setup() {
         this.config = DataStore.get(this.configKey) || defaultPluginConfig[this.configKey];
 
-        if (this.config.status) {
+        if (this.config.enabled) {
             this.element.setAttribute("selected", "true");
         }
 
@@ -170,10 +170,10 @@ export class Checkbox {
 
     toggle() {
         console.debug("auto-champion-select: Toggling", this.configKey);
-        this.config.status = !this.config.status;
+        this.config.enabled = !this.config.enabled;
         DataStore.set(this.configKey, this.config);
         this.element.toggleAttribute("selected");
-        return this.config.status;
+        return this.config.enabled;
     }
 }
 

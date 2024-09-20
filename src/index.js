@@ -49,7 +49,7 @@ async function getAllChampions() {
 }
 
 async function onReadyCheck() {
-    if (autoAcceptCheckbox.config.status === true) {
+    if (autoAcceptCheckbox.config.enabled === true) {
         console.debug("auto-champion-select(auto-accept): Ready check detected, accepting in 2 seconds...");
         await sleep(2000);
         await autoAccept();

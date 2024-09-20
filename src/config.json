@@ -1,16 +1,16 @@
 {
     "controladoAutoAccept": {
-        "status": false
+        "enabled": false
     },
     "controladoPick": {
-        "status": false,
+        "enabled": false,
         "champions": [
             21,
             21
         ]
     },
     "controladoBan": {
-        "status": false,
+        "enabled": false,
         "champions": [
             21,
             21
