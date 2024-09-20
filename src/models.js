@@ -105,7 +105,12 @@ export class Dropdown {
             DataStore.set(this.configKey, this.config);
         }
 
+        const alreadyAdded = [];
         for (const champion of this.champions) {
+            if (alreadyAdded.includes(champion.name)) {
+                continue;
+            }
+            alreadyAdded.push(champion.name);
             const option = this.getNewOption(champion);
             this.element.appendChild(option);
         }
