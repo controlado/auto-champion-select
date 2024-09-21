@@ -13,9 +13,19 @@ class Action {
     }
 
     perform() {
+        if (typeof this.callback.then === "function") {
+            return Toast.promise(
+                this.callback,
+                {
+                    loading: this.toasts.loading,
+                    success: this.toasts.success,
+                    error: this.toasts.error
+                }
+            )
+        }
         try {
-            const currentStatus = this.callback();
-            Toast.success(currentStatus ? this.toasts.on : this.toasts.off);
+            const possibleSwitch = this.callback();
+            Toast.success(this.toasts.success || (possibleSwitch ? this.toasts.on : this.toasts.off));
         } catch (error) {
             Toast.error(this.toasts.error);
             console.error(error);
