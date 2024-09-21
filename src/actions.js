@@ -76,6 +76,29 @@ class ForceSwitchAction extends Action {
     }
 }
 
+export class RefreshDropdownsAction extends Action {
+    constructor(dropdowns) {
+        super(
+            "RefreshDropdowns",
+            () => "Refresh Dropdowns",
+            () => "Normally dropdowns refresh automatically...",
+            [pluginGroup, "refresh"],
+            pluginGroup,
+            () => this.refreshDropdowns(dropdowns),
+            {
+                success: "Refreshed Dropdowns!",
+                error: "Failed to refresh Dropdowns. Check console."
+            }
+        )
+    }
+
+    refreshDropdowns(dropdowns) {
+        for (let dropdown of dropdowns) {
+            dropdown.refresh();
+        }
+    }
+}
+
 export class AutoPickSwitchAction extends FunctionSwitchAction {
     constructor(callback) {
         super(

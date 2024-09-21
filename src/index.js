@@ -1,6 +1,6 @@
 import { request, sleep, linkEndpoint } from "https://cdn.skypack.dev/balaclava-utils@latest";
 import { ChampionSelect, Dropdown, Checkbox, SocialSection } from "./models.js";
-import { AutoPickSwitchAction, AutoBanSwitchAction, ForcePickSwitchAction, ForceBanSwitchAction, addActions } from "./actions.js";
+import { AutoPickSwitchAction, AutoBanSwitchAction, ForcePickSwitchAction, ForceBanSwitchAction, RefreshDropdownsAction, addActions } from "./actions.js";
 
 import { version } from "../package.json";
 import "./assets/style.css";
@@ -88,7 +88,11 @@ window.addEventListener("load", async () => {
         new AutoPickSwitchAction(() => pickCheckbox.toggle()),
         new AutoBanSwitchAction(() => banCheckbox.toggle()),
         new ForcePickSwitchAction(),
-        new ForceBanSwitchAction()
+        new ForceBanSwitchAction(),
+        new RefreshDropdownsAction([
+            firstPlayableChampionsDropdown,
+            secondPlayableChampionsDropdown,
+        ]),
     ]);
 
     linkEndpoint("/lol-inventory/v1/wallet", parsedEvent => {
