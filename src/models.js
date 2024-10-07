@@ -95,7 +95,8 @@ export class ChampionSelect {
                 }
                 console.debug(`auto-champion-select: Trying to ${subAction.type} ${championId}...`);
                 const response = await this.selectChampion(subAction.id, championId);
-                if (response.ok) { console.debug("auto-champion-select: OK!"); return; }
+                if (!response.ok) { return; }
+                else { break; }
             }
         }
     }
@@ -104,6 +105,12 @@ export class ChampionSelect {
         return this.actions.flat().filter(subAction =>
             subAction.actorCellId === this.localPlayerCellId &&
             subAction.completed === false
+        ).sort(
+            (a, b) => {
+                const aPriority = a.type === "pick" ? 0 : 1;
+                const bPriority = b.type === "pick" ? 0 : 1;
+                return aPriority - bPriority;
+            }            
         );
     }
 
