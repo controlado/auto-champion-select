@@ -25,7 +25,7 @@ const firstAllChampionsDropdown = new Dropdown("1st ban", "controladoBan", 0, ge
 const secondAllChampionsDropdown = new Dropdown("2nd ban", "controladoBan", 1, getAllChampions);
 
 function getSocialContainer() {
-    return document.querySelector("lol-social-roster.roster");
+    return document.querySelector(".lol-social-roster");
 }
 
 async function getPlayableChampions() {
@@ -114,7 +114,7 @@ window.addEventListener("load", async () => {
     const dropdownsContainer = document.createElement("div");
     const checkboxesContainer = document.createElement("div");
     checkboxesContainer.classList.add("auto-select-checkboxes-div");
-    
+
     checkboxesContainer.append(autoAcceptCheckbox.element, pickCheckbox.element, banCheckbox.element);
     dropdownsContainer.append(firstPlayableChampionsDropdown.element, secondPlayableChampionsDropdown.element);
     dropdownsContainer.append(firstAllChampionsDropdown.element, secondAllChampionsDropdown.element);
