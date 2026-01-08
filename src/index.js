@@ -1,4 +1,4 @@
-import { request, sleep, linkEndpoint } from "https://cdn.skypack.dev/balaclava-utils@latest";
+import { request, sleep, linkEndpoint } from "https://cdn.jsdelivr.net/npm/balaclava-utils@1.2.1/src/controladoUtils.min.js";
 import { ChampionSelect, Dropdown, Checkbox, SocialSection } from "./models.js";
 import { AutoPickSwitchAction, AutoBanSwitchAction, ForcePickSwitchAction, ForceBanSwitchAction, RefreshDropdownsAction, addActions } from "./actions.js";
 
