@@ -1,26 +1,5 @@
 <div align="center">
-
-# `🐧` Auto Champion Select <br>
-
-[![wakatime](https://wakatime.com/badge/user/89c5e1c8-9e67-43ef-bd0e-3ff9a4fde5e2/project/31fa1001-e2a3-4631-ae24-be1ddc46f7a6.svg)](https://wakatime.com/89c5e1c8-9e67-43ef-bd0e-3ff9a4fde5e2)
-[![discord](https://img.shields.io/badge/Discord-%235865F2.svg?style=flat&logo=discord&logoColor=white&color=blue)](https://discordapp.com/users/854886148455399436) <br>
-![languages](https://img.shields.io/badge/Documentation-gray)
-[![english](https://img.shields.io/badge/-English-blue)](README.md)
-[![português](https://img.shields.io/badge/-Português%20Brasileiro-blue)](README.br.md)
-
-Accept queue, pick and ban champions automatically. <br>
-This is my first project using JavaScript :)
-
-<img src="https://i.imgur.com/Ovy1gGw.png" width="700" alt="Plugin preview">
-
-</div>
-<br>
-
-## 📍 What's new
-
-- Accept: automatically accepts matches (ready check)
-- CommandBar: use `CTRL + K` to turn auto pick/ban off/on
-
+    # I DID NOT MAKE THIS THIS IS STRICTLY A FORK, ALL RIGHTS TO THE ORIGINAL AUTHOR.
 ## Dependencies
 
 [Pengu Loader 1.0.5](https://github.com/PenguLoader/PenguLoader) (or any higher version) <br>

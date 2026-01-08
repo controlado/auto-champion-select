@@ -1,4 +1,4 @@
-import { request, sleep } from "https://cdn.skypack.dev/balaclava-utils@latest";
+import { request, sleep } from "./controladoUtils.js";
 import defaultPluginConfig from "./config.json";
 
 /**

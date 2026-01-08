@@ -5,4 +5,4 @@
  * @description Pick or ban automatically! 🐧
  */
 
-import "https://cdn.skypack.dev/auto-champion-select@latest?min";
+import "https://cdn.jsdelivr.net/npm/auto-champion-select-fork@0.0.5/dist/index.min.js";
