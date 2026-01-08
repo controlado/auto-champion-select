@@ -1,11 +1,11 @@
 {
-  "name": "auto-champion-select",
-  "version": "1.3.4",
+  "name": "auto-champion-select-fork",
+  "version": "0.0.5",
   "description": "Pick or ban automatically! 🐧",
   "author": "balaclava",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/controlado/auto-champion-select.git"
+    "url": "git+https://github.com/klwnny/auto-champion-select.git"
   },
   "license": "GPL-3.0-or-later",
   "main": "./dist/index.js",
@@ -29,7 +29,10 @@
   },
   "homepage": "https://github.com/controlado/auto-champion-select#readme",
   "devDependencies": {
-    "vite": "^4.4.6",
+    "vite": "^7.3.1",
     "vite-plugin-css-injected-by-js": "^3.2.1"
+  },
+  "dependencies": {
+    "axios": "^1.13.2"
   }
 }
