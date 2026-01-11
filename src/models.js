@@ -1,4 +1,4 @@
-import { request, sleep } from "https://cdn.skypack.dev/balaclava-utils@1.2.1";
+import { request, sleep } from "https://cdn.jsdelivr.net/npm/balaclava-utils@latest";
 import defaultPluginConfig from "./config.json";
 
 /**
