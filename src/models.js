@@ -1,4 +1,4 @@
-import { request, sleep } from "https://cdn.skypack.dev/balaclava-utils@latest";
+import { request, sleep } from "https://cdn.skypack.dev/balaclava-utils@1.2.1";
 import defaultPluginConfig from "./config.json";
 
 /**
@@ -110,7 +110,7 @@ export class ChampionSelect {
                 const aPriority = a.type === "pick" ? 0 : 1;
                 const bPriority = b.type === "pick" ? 0 : 1;
                 return aPriority - bPriority;
-            }            
+            }
         );
     }
 
