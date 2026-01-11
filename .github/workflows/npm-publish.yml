@@ -22,14 +22,17 @@ jobs:
       - name: Configurando o Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: 24
-          registry-url: https://registry.npmjs.org/
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
 
-      - name: Instalando dependências
-        run: npm install
+      - name: Rodando instalação limpa
+        run: npm ci
 
       - name: Buildando o plugin
         run: npm run build --if-present
+
+      - name: Rodando testes
+        run: npm test --if-present
 
       - name: Publicando o pacote
         run: npm publish
