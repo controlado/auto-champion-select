@@ -169,6 +169,11 @@ export class Dropdown {
         option.addEventListener("click", () => {
             this.config.champions[this.configIndex] = champion.id;
             DataStore.set(this.configKey, this.config);
+            const input = this.element.shadowRoot.querySelector("#controlado-search");
+            if (input) {
+                input.value = "";
+                this.filterOptions("");
+            }
         });
 
         if (this.config.champions[this.configIndex] === champion.id) {
@@ -182,10 +187,29 @@ export class Dropdown {
     getNewPlaceholder() {
         const placeholder = document.createElement("div");
         placeholder.classList.add("ui-dropdown-current-content");
-        placeholder.style = "width: unset; overflow: visible;";
+        placeholder.style = "writing-mode: tb-rl;";
         placeholder.id = "controlado-placeholder";
-        placeholder.innerText = this.text;
+
+        const input = document.createElement("input");
+        input.id = "controlado-search";
+        input.type = "text";
+        input.placeholder = this.text;
+        input.style = "color: inherit; background: transparent; border: none; text-align: right; outline: none; font-family: inherit; font-size: inherit; font-weight: inherit;";
+        input.addEventListener("input", (e) => this.filterOptions(e.target.value));
+
+        placeholder.appendChild(input);
         return placeholder;
+    }
+
+    filterOptions(query) {
+        const options = this.element.querySelectorAll("lol-uikit-dropdown-option");
+        options.forEach(option => {
+            if (option.innerText.toLowerCase().includes(query.toLowerCase())) {
+                option.style.display = "";
+            } else {
+                option.style.display = "none";
+            }
+        });
     }
 
     refresh() {
