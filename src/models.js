@@ -157,7 +157,8 @@ export class Dropdown {
 
         if (!this.element.shadowRoot.querySelector("#controlado-placeholder")) {
             const placeholderContainer = this.element.shadowRoot.querySelector(".ui-dropdown-current");
-            placeholderContainer.style = "display: flex; justify-content: space-between;";
+            placeholderContainer.innerHTML = ""; // Clear default content
+            placeholderContainer.style = "display: flex; justify-content: space-between; align-items: center;";
             const placeholder = this.getNewPlaceholder();
             placeholderContainer.appendChild(placeholder);
         }
@@ -174,6 +175,7 @@ export class Dropdown {
                 input.value = "";
                 this.filterOptions("");
             }
+            this.updatePlaceholder();
         });
 
         if (this.config.champions[this.configIndex] === champion.id) {
@@ -187,29 +189,95 @@ export class Dropdown {
     getNewPlaceholder() {
         const placeholder = document.createElement("div");
         placeholder.classList.add("ui-dropdown-current-content");
-        placeholder.style = "writing-mode: tb-rl;";
         placeholder.id = "controlado-placeholder";
+        placeholder.style = "display: flex; align-items: center; gap: 12px; width: 100%;";
+
+        // Get selected champion name and create label
+        const selectedId = this.config.champions[this.configIndex];
+        const selectedChampion = this.champions.find(c => c.id === selectedId);
+        const championName = selectedChampion ? selectedChampion.name : "Select Champion";
+        
+        // Determine if it's Pick or Ban and create ordinal label
+        const isPick = this.configKey.includes("Pick");
+        const action = isPick ? "Pick" : "Ban";
+        const ordinal = this.configIndex + 1; // Convert 0-indexed to 1-indexed
+
+        // Create left label container
+        const labelContainer = document.createElement("div");
+        labelContainer.id = "controlado-label-container";
+        labelContainer.style = "display: flex; flex-direction: column; gap: 2px; flex-shrink: 0;";
+
+        const actionLabel = document.createElement("div");
+        actionLabel.id = "controlado-action-label";
+        actionLabel.style = "color: #c89b3c; font-size: 12px; font-weight: 500;";
+        actionLabel.textContent = `${action} ${ordinal}`;
+
+        const championLabel = document.createElement("div");
+        championLabel.id = "controlado-champion-label";
+        championLabel.style = "color: inherit; font-size: 14px; font-weight: 500;";
+        championLabel.textContent = championName;
+
+        labelContainer.appendChild(actionLabel);
+        labelContainer.appendChild(championLabel);
 
         const input = document.createElement("input");
         input.id = "controlado-search";
         input.type = "text";
-        input.placeholder = this.text;
-        input.style = "color: inherit; background: transparent; border: none; text-align: right; outline: none; font-family: inherit; font-size: inherit; font-weight: inherit;";
+        input.placeholder = "Search...";
+        input.style = "flex: 1; padding: 4px 8px; color: inherit; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 4px; outline: none; font-family: inherit; font-size: inherit; font-weight: inherit; transition: all 0.2s ease;";
         input.addEventListener("input", (e) => this.filterOptions(e.target.value));
+        input.addEventListener("focus", (e) => {
+            e.target.style.background = "rgba(255, 255, 255, 0.15)";
+            e.target.style.borderColor = "rgba(255, 255, 255, 0.4)";
+        });
+        input.addEventListener("blur", (e) => {
+            e.target.style.background = "rgba(255, 255, 255, 0.1)";
+            e.target.style.borderColor = "rgba(255, 255, 255, 0.2)";
+        });
 
+        placeholder.appendChild(labelContainer);
         placeholder.appendChild(input);
         return placeholder;
     }
 
+    updatePlaceholder() {
+        const placeholderElement = this.element.shadowRoot.querySelector("#controlado-placeholder");
+        if (placeholderElement) {
+            const selectedId = this.config.champions[this.configIndex];
+            const selectedChampion = this.champions.find(c => c.id === selectedId);
+            const championName = selectedChampion ? selectedChampion.name : "Select Champion";
+            
+            const championLabel = placeholderElement.querySelector("#controlado-champion-label");
+            if (championLabel) {
+                championLabel.textContent = championName;
+            }
+        }
+    }
+
     filterOptions(query) {
         const options = this.element.querySelectorAll("lol-uikit-dropdown-option");
+        const normalizedQuery = query.toLowerCase().trim();
+
+        if (!normalizedQuery) {
+            options.forEach(option => option.style.display = "");
+            return options.length;
+        }
+
         options.forEach(option => {
-            if (option.innerText.toLowerCase().includes(query.toLowerCase())) {
+            const optionText = option.innerText.toLowerCase();
+            // Show option if query is empty or option text includes the query
+            const isMatch = optionText.includes(normalizedQuery);
+
+            if (isMatch) {
                 option.style.display = "";
+                visibleCount += 1;
             } else {
                 option.style.display = "none";
             }
+
         });
+
+        return visibleCount;
     }
 
     refresh() {

@@ -11,7 +11,7 @@
 Accept queue, pick and ban champions automatically. <br>
 This is my first project using JavaScript :)
 
-<img src="https://i.imgur.com/Ovy1gGw.png" width="700" alt="Plugin preview">
+<img src="https://i.imgur.com/c5hXnJM.png" width="700" alt="Plugin preview">
 
 </div>
 <br>

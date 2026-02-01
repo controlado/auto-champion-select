@@ -15,3 +15,36 @@
 .auto-select-checkbox:last-child {
     margin-right: 17px;
 }
+
+/* Champion Search Input Styling */
+#controlado-placeholder {
+    padding: 8px;
+}
+
+#controlado-search {
+    width: 100%;
+    padding: 6px 8px;
+    font-size: 14px;
+    color: #c89b3c;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 3px;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+#controlado-search::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+    opacity: 1;
+}
+
+#controlado-search:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.25);
+}
+
+#controlado-search:focus {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(200, 155, 60, 0.6);
+    box-shadow: 0 0 8px rgba(200, 155, 60, 0.3);
+}
