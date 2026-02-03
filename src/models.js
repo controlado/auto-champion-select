@@ -233,6 +233,14 @@ export class Dropdown {
         dropdownMenu.style.bottom = "100%";
         dropdownMenu.style.transformOrigin = "bottom";
         dropdownMenu.style.transform = "translateY(0)";
+
+        const scrollableOptions = dropdownMenu.querySelector("lol-uikit-scrollable");
+
+        if (!scrollableOptions) {
+            return;
+        }
+
+        scrollableOptions.style.maxHeight = "250px";
     }
 }
 
