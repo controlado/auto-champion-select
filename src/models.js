@@ -125,6 +125,7 @@ export class Dropdown {
     constructor(text, configKey, configIndex, championsFunction) {
         this.element = document.createElement("lol-uikit-framed-dropdown");
         this.element.classList.add("dropdown-champions-default");
+        this.element.classList.add("dropdown-drop-up");
 
         this.text = text;
 
@@ -161,6 +162,8 @@ export class Dropdown {
             const placeholder = this.getNewPlaceholder();
             placeholderContainer.appendChild(placeholder);
         }
+
+        this.applyDropdownStyles();
     }
 
     getNewOption(champion) {
@@ -215,6 +218,21 @@ export class Dropdown {
     refresh() {
         this.element.innerHTML = "";
         this.setup();
+    }
+
+    applyDropdownStyles() {
+        const dropdownMenu = this.element.shadowRoot?.querySelector(
+            ".ui-dropdown-options-container"
+        );
+
+        if (!dropdownMenu) {
+            return;
+        }
+
+        dropdownMenu.style.top = "auto";
+        dropdownMenu.style.bottom = "100%";
+        dropdownMenu.style.transformOrigin = "bottom";
+        dropdownMenu.style.transform = "translateY(0)";
     }
 }
 

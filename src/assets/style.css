@@ -3,6 +3,14 @@
     width: -webkit-fill-available;
 }
 
+.dropdown-champions-default.dropdown-drop-up::part(ui-dropdown-menu),
+.dropdown-champions-default.dropdown-drop-up::part(ui-dropdown-content),
+.dropdown-champions-default.dropdown-drop-up::part(ui-dropdown-options) {
+    top: auto;
+    bottom: 100%;
+    transform-origin: bottom;
+}
+
 .auto-select-checkboxes-div {
     display: flex;
     border-top: thin solid #1e282d;
