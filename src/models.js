@@ -156,14 +156,17 @@ export class Dropdown {
             this.element.appendChild(option);
         }
 
-        if (!this.element.shadowRoot.querySelector("#controlado-placeholder")) {
-            const placeholderContainer = this.element.shadowRoot.querySelector(".ui-dropdown-current");
-            placeholderContainer.style = "display: flex; justify-content: space-between;";
-            const placeholder = this.getNewPlaceholder();
-            placeholderContainer.appendChild(placeholder);
-        }
+        this.shadowRoot((root) => {
+            if (!root.querySelector("#controlado-placeholder")) {
+                const placeholderContainer = root.querySelector(".ui-dropdown-current");
+                placeholderContainer.style = "display: flex; justify-content: space-between;";
 
-        this.applyDropdownStyles();
+                const placeholder = this.getNewPlaceholder();
+                placeholderContainer.appendChild(placeholder);
+            }
+        });
+
+        this.applyShadowStyles();
     }
 
     getNewOption(champion) {
@@ -172,11 +175,20 @@ export class Dropdown {
         option.addEventListener("click", () => {
             this.config.champions[this.configIndex] = champion.id;
             DataStore.set(this.configKey, this.config);
-            const input = this.element.shadowRoot.querySelector("#controlado-search");
-            if (input) {
-                input.value = "";
-                this.filterOptions("");
-            }
+            console.debug(this.configKey, DataStore.get(this.configKey));
+
+            this.shadowRoot((root) => {
+                const input = root.querySelector("#controlado-search");
+                if (input) {
+                    input.value = "";
+                    this.filterOptions("");
+                }
+
+                const trashFilterIcon = root.querySelector(".controlado-filter-icon--trash");
+                if (trashFilterIcon) {
+                    trashFilterIcon.classList.remove("controlado-filter-icon--trash");
+                }
+            });
         });
 
         if (this.config.champions[this.configIndex] === champion.id) {
@@ -189,17 +201,45 @@ export class Dropdown {
 
     getNewPlaceholder() {
         const placeholder = document.createElement("div");
-        placeholder.classList.add("ui-dropdown-current-content");
-        placeholder.style = "writing-mode: tb-rl;";
+        placeholder.classList.add("controlado-tag", "controlado-tag--search");
         placeholder.id = "controlado-placeholder";
 
         const input = document.createElement("input");
+        input.classList.add("controlado-filter-input");
         input.id = "controlado-search";
         input.type = "text";
         input.placeholder = this.text;
-        input.style = "color: inherit; background: transparent; border: none; text-align: right; outline: none; font-family: inherit; font-size: inherit; font-weight: inherit;";
-        input.addEventListener("input", (e) => this.filterOptions(e.target.value));
 
+        const filterIcon = document.createElement("span");
+        filterIcon.classList.add("controlado-filter-icon");
+
+        filterIcon.addEventListener("click", (_) => {
+            const filterIconIsTrash = filterIcon.classList.contains("controlado-filter-icon--trash");
+            if (!filterIconIsTrash) {
+                return;
+            }
+
+            input.value = "";
+            this.filterOptions("");
+            filterIcon.classList.toggle("controlado-filter-icon--trash", false);
+        });
+
+        input.addEventListener("input", (e) => {
+            this.ensureIsOpened();
+            this.filterOptions(e.target.value);
+            filterIcon.classList.toggle("controlado-filter-icon--trash", Boolean(e.target.value));
+        });
+
+        ["pointerdown", "click"].forEach((type) => {
+            placeholder.addEventListener(type, (e) => e.stopPropagation());
+            filterIcon.addEventListener(type, (e) => e.stopPropagation());
+        });
+
+        ["pointerdown", "focusin"].forEach((type) => {
+            input.addEventListener(type, (e) => e.stopPropagation(), true);
+        });
+
+        placeholder.appendChild(filterIcon);
         placeholder.appendChild(input);
         return placeholder;
     }
@@ -220,27 +260,121 @@ export class Dropdown {
         this.setup();
     }
 
-    applyDropdownStyles() {
-        const dropdownMenu = this.element.shadowRoot?.querySelector(
-            ".ui-dropdown-options-container"
-        );
+    isOpen() {
+        return this.element.classList.contains("active");
+    }
 
-        if (!dropdownMenu) {
+    ensureIsOpened() {
+        if (this.isOpen()) {
             return;
         }
 
-        dropdownMenu.style.top = "auto";
-        dropdownMenu.style.bottom = "100%";
-        dropdownMenu.style.transformOrigin = "bottom";
-        dropdownMenu.style.transform = "translateY(0)";
+        this.shadowRoot((root) => {
+            const internalDropdown = root.querySelector(".ui-dropdown-current");
+            if (internalDropdown) {
+                internalDropdown.click();
+            }
+        });
+    }
 
-        const scrollableOptions = dropdownMenu.querySelector("lol-uikit-scrollable");
-
-        if (!scrollableOptions) {
+    /**
+     * @param {(root: ShadowRoot) => void} fn 
+     * @returns {void}
+     */
+    shadowRoot(fn) {
+        const root = this.element.shadowRoot;
+        if (!root) {
             return;
         }
+        fn(root);
+    }
 
-        scrollableOptions.style.maxHeight = "250px";
+    applyShadowStyles() {
+        this.shadowRoot((root) => {
+            this.injectTagStyles(root);
+
+            const currentDropdown = root.querySelector(".ui-dropdown-current");
+            if (currentDropdown) {
+                currentDropdown.style.paddingRight = "28px";
+            }
+
+            const dropdownMenu = root.querySelector(".ui-dropdown-options-container");
+            if (dropdownMenu) {
+                dropdownMenu.style.top = "auto";
+                dropdownMenu.style.bottom = "100%";
+                dropdownMenu.style.transformOrigin = "bottom";
+                dropdownMenu.style.transform = "translateY(0)";
+            }
+
+            const scrollableOptions = root.querySelector("lol-uikit-scrollable");
+            if (scrollableOptions) {
+                scrollableOptions.style.maxHeight = "250px";
+            }
+        });
+    }
+
+    injectTagStyles(element) {
+        const style = document.createElement("style");
+        style.dataset.controlado = "dropdown-tags";
+        style.textContent = `
+            .controlado-filter-icon {
+                cursor: default;
+                display: inline-block;
+                width: 18px;
+                height: 18px;
+                background-color: #c8aa6e;
+                -webkit-mask-image: url('/fe/lol-social/search_mask.png');
+                -webkit-mask-repeat: no-repeat;
+                -webkit-mask-position: center;
+                -webkit-mask-size: 18px 18px;
+            }
+
+            .controlado-filter-icon--trash {
+                cursor: pointer;
+                background-color: #c86e6e;
+                -webkit-mask-image: url('/fe/lol-uikit/images/icon_delete.png');
+                -webkit-mask-size: 12px 12px;
+            }
+
+            .controlado-filter-input {
+                color: inherit;
+                background: transparent;
+                border: none;
+                text-align: center;
+                outline: none;
+                font-family: inherit;
+                font-size: inherit;
+                font-weight: inherit;
+                width: 40px;
+            }
+
+            .controlado-tag {
+                cursor: default;
+                display: inline-flex;
+                align-items: center;
+                gap: 4px;
+                padding: 2px 10px;
+                border-radius: 999px;
+                border: 1px solid #c8aa6e;
+                background: linear-gradient(145deg, #0f1b2d, #0a121a);
+                color: #f3d7a5;
+                font-size: 11px;
+                font-weight: 600;
+                letter-spacing: 0.4px;
+                text-transform: uppercase;
+                white-space: nowrap;
+                box-shadow: inset 0 0 8px rgba(15, 30, 45, 0.6);
+            }
+
+            .controlado-tag--search {
+                border-color: #d7b46a;
+                color: #f6e1b2;
+                background: linear-gradient(145deg, #1a232f, #0f1722);
+                text-transform: none;
+                font-weight: 500;
+            }
+        `;
+        element.appendChild(style);
     }
 }
 
