@@ -11,15 +11,14 @@
 Accept queue, pick and ban champions automatically. <br>
 This is my first project using JavaScript :)
 
-<img src="https://i.imgur.com/Ovy1gGw.png" width="700" alt="Plugin preview">
+<img src="https://i.imgur.com/4jPzqIg.jpeg" width="700" alt="Plugin preview">
 
 </div>
 <br>
 
 ## 📍 What's new
 
-- Accept: automatically accepts matches (ready check)
-- CommandBar: use `CTRL + K` to turn auto pick/ban off/on
+- Filter champions
 
 ## Dependencies
 
