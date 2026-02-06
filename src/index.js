@@ -74,7 +74,18 @@ window.addEventListener("load", async () => {
         socialContainer = getSocialContainer();
     }
 
-    Promise.all([
+    const dropdownsContainer = document.createElement("div");
+    const checkboxesContainer = document.createElement("div");
+    checkboxesContainer.classList.add("auto-select-checkboxes-div");
+
+    checkboxesContainer.append(autoAcceptCheckbox.element, pickCheckbox.element, banCheckbox.element);
+    dropdownsContainer.append(firstPlayableChampionsDropdown.element, secondPlayableChampionsDropdown.element);
+    dropdownsContainer.append(firstAllChampionsDropdown.element, secondAllChampionsDropdown.element);
+
+    const pluginSection = new SocialSection("Auto champion select", dropdownsContainer, checkboxesContainer);
+    socialContainer.append(pluginSection.element, checkboxesContainer, dropdownsContainer);
+
+    await Promise.all([
         autoAcceptCheckbox.setup(),
         pickCheckbox.setup(),
         banCheckbox.setup(),
@@ -110,17 +121,6 @@ window.addEventListener("load", async () => {
         if (parsedEvent.data === "ChampSelect") { championSelect.mount(); }
         else { championSelect.unmount(); }
     });
-
-    const dropdownsContainer = document.createElement("div");
-    const checkboxesContainer = document.createElement("div");
-    checkboxesContainer.classList.add("auto-select-checkboxes-div");
-
-    checkboxesContainer.append(autoAcceptCheckbox.element, pickCheckbox.element, banCheckbox.element);
-    dropdownsContainer.append(firstPlayableChampionsDropdown.element, secondPlayableChampionsDropdown.element);
-    dropdownsContainer.append(firstAllChampionsDropdown.element, secondAllChampionsDropdown.element);
-
-    const pluginSection = new SocialSection("Auto champion select", dropdownsContainer, checkboxesContainer);
-    socialContainer.append(pluginSection.element, checkboxesContainer, dropdownsContainer);
 
     console.debug(`auto-champion-select(${version}): Report bugs to Balaclava#1912`);
 });
