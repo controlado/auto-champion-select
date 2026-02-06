@@ -106,10 +106,10 @@ window.addEventListener("load", async () => {
         ]),
     ]);
 
-    linkEndpoint("/lol-inventory/v1/wallet", parsedEvent => {
+    linkEndpoint("/lol-inventory/v1/wallet", async parsedEvent => {
         if (parsedEvent.eventType === "Update") {
             console.debug("auto-champion-select(wallet): Refreshing dropdowns...");
-            Promise.all([
+            await Promise.all([
                 firstPlayableChampionsDropdown.refresh(),
                 secondPlayableChampionsDropdown.refresh(),
             ]);

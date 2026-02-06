@@ -135,9 +135,36 @@ export class Dropdown {
 
         this.championsFunction = championsFunction;
         this.champions = null;
+        this.setupInFlight = null;
+        this.setupPending = false;
     }
 
     async setup() {
+        this.setupPending = true;
+
+        if (!this.setupInFlight) {
+            this.setupInFlight = this.runSetupLoop();
+        }
+
+        return this.setupInFlight;
+    }
+
+    async runSetupLoop() {
+        try {
+            while (this.setupPending) {
+                this.setupPending = false;
+                await this.performSetup();
+            }
+        } finally {
+            this.setupInFlight = null;
+        }
+
+        if (this.setupPending) {
+            return this.setup();
+        }
+    }
+
+    async performSetup() {
         this.champions = await this.championsFunction();
         this.config = DataStore.get(this.configKey) || defaultPluginConfig[this.configKey];
 
@@ -146,14 +173,16 @@ export class Dropdown {
             DataStore.set(this.configKey, this.config);
         }
 
-        const alreadyAdded = [];
+        this.element.replaceChildren();
+
+        const alreadyAdded = new Set();
         for (const champion of this.champions) {
-            if (alreadyAdded.includes(champion.name)) {
+            if (alreadyAdded.has(champion.name)) {
                 continue;
             }
-            alreadyAdded.push(champion.name);
             const option = this.getNewOption(champion);
             this.element.appendChild(option);
+            alreadyAdded.add(champion.name);
         }
 
         this.shadowRoot((root) => {
@@ -256,8 +285,7 @@ export class Dropdown {
     }
 
     refresh() {
-        this.element.innerHTML = "";
-        this.setup();
+        return this.setup();
     }
 
     isOpen() {
@@ -314,6 +342,10 @@ export class Dropdown {
     }
 
     injectTagStyles(element) {
+        if (element.querySelector("style[data-controlado='dropdown-tags']")) {
+            return;
+        }
+
         const style = document.createElement("style");
         style.dataset.controlado = "dropdown-tags";
         style.textContent = `
