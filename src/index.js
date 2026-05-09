@@ -69,9 +69,7 @@ async function autoAccept() {
 function createGameflowPhaseHandler({ championSelect, championSelectMenu, setupDropdowns }) {
     let gameflowPhaseVersion = 0;
 
-    return handleGameflowPhase;
-
-    function handleGameflowPhase(phase) {
+    return function handleGameflowPhase(phase) {
         const version = ++gameflowPhaseVersion;
 
         onGameflowPhase(phase, version)

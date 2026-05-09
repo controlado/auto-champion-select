@@ -497,7 +497,6 @@ export class ChampionSelectMenu {
         if (this.mounted) {
             return this.mountButton();
         }
-
         this.mounted = true;
 
         this.controlElements.forEach(element => {
@@ -509,6 +508,7 @@ export class ChampionSelectMenu {
         this.observeButtonContainer();
 
         document.addEventListener("pointerdown", this.boundCloseOnOutsideInteraction, true);
+
         return this.mountButton();
     }
 
@@ -516,7 +516,6 @@ export class ChampionSelectMenu {
         if (!this.mounted) {
             return this.restoreControls();
         }
-
         this.mounted = false;
 
         this.buttonObserver?.disconnect();
@@ -528,6 +527,7 @@ export class ChampionSelectMenu {
         this.setOpen(false);
         this.buttonWrapper.remove();
         this.restoreHiddenStates();
+
         return this.restoreControls();
     }
 
@@ -576,7 +576,6 @@ export class ChampionSelectMenu {
 
     async appendButtonToContainer() {
         let buttonContainer = document.querySelector(".bottom-right-buttons");
-
         while (this.mounted && !buttonContainer) {
             await sleep(200);
             buttonContainer = document.querySelector(".bottom-right-buttons");
