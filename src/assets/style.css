@@ -145,9 +145,17 @@
 }
 
 .auto-select-champ-select-menu .auto-select-checkboxes-div {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: center;
     border-top: 0;
     border-bottom: thin solid #1e282d;
     padding-bottom: 6px;
+}
+
+.auto-select-champ-select-menu .auto-select-checkbox {
+    justify-self: center;
+    margin: 0;
 }
 
 .auto-select-champ-select-menu .dropdown-champions-default {
