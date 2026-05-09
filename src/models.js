@@ -73,6 +73,10 @@ export class ChampionSelect {
         }
 
         for (const subAction of localPlayerSubActions) {
+            if (subAction.type !== "pick" && subAction.isInProgress !== true) {
+                continue;
+            }
+
             const config = subAction.type === "pick" ? pickConfig : banConfig;
 
             if (!config.enabled) {
