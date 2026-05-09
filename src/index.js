@@ -28,7 +28,21 @@ function getSocialContainer() {
     return document.querySelector(".lol-social-roster");
 }
 
-async function getPlayableChampions() {
+let playableChampionsTask = null;
+let allChampionsTask = null;
+
+function getPlayableChampions() {
+    if (!playableChampionsTask) {
+        playableChampionsTask = fetchPlayableChampions()
+            .finally(() => {
+                playableChampionsTask = null;
+            });
+    }
+
+    return playableChampionsTask;
+}
+
+async function fetchPlayableChampions() {
     let response = await request("GET", "/lol-champions/v1/owned-champions-minimal");
 
     while (!response.ok) {
@@ -42,7 +56,18 @@ async function getPlayableChampions() {
     return responseData;
 }
 
-async function getAllChampions() {
+function getAllChampions() {
+    if (!allChampionsTask) {
+        allChampionsTask = fetchAllChampions()
+            .finally(() => {
+                allChampionsTask = null;
+            });
+    }
+
+    return allChampionsTask;
+}
+
+async function fetchAllChampions() {
     const response = await request("GET", "/lol-game-data/assets/v1/champion-summary.json");
     const responseData = await response.json();
     responseData.sort((a, b) => a.name.localeCompare(b.name));
