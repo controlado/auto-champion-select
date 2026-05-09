@@ -5,4 +5,4 @@
  * @description Pick or ban automatically! 🐧
  */
 
-import "https://cdn.jsdelivr.net/npm/auto-champion-select@latest?min";
+export { load } from "https://cdn.jsdelivr.net/npm/auto-champion-select@latest?min";

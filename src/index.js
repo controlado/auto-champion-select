@@ -210,3 +210,9 @@ export function load() {
     initialized = true;
     main().catch(error => console.error("auto-champion-select: Failed to initialize", error));
 }
+
+if (document.readyState === "loading") {
+    window.addEventListener("load", load, { once: true });
+} else {
+    load();
+}
