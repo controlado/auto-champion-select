@@ -118,13 +118,22 @@ async function main() {
 
     let championSelectMenu;
     let restoreControlsTask = null;
+    let restoreControlsVersion = 0;
 
-    async function appendControlsToSocial() {
+    async function appendControlsToSocial(version) {
         let socialContainer = getSocialContainer();
 
-        while (!socialContainer || championSelectMenu.mounted) {
+        while (!socialContainer) {
+            if (championSelectMenu.mounted || version !== restoreControlsVersion) {
+                return;
+            }
+
             await sleep(200); // not available during startup or champion select reloads
             socialContainer = getSocialContainer();
+        }
+
+        if (championSelectMenu.mounted || version !== restoreControlsVersion) {
+            return;
         }
 
         socialContainer.append(pluginSection.element, checkboxesContainer, dropdownsContainer);
@@ -135,7 +144,8 @@ async function main() {
             return restoreControlsTask;
         }
 
-        restoreControlsTask = appendControlsToSocial()
+        const version = ++restoreControlsVersion;
+        restoreControlsTask = appendControlsToSocial(version)
             .catch(error => console.error("auto-champion-select: Failed to restore controls", error))
             .finally(() => {
                 restoreControlsTask = null;
