@@ -19,29 +19,72 @@ export class ChampionSelect {
         this.allBans = null;
 
         this.mounted = false;
-        this.watch();
+        this.watchTask = null;
+        this.watchVersion = 0;
     }
 
     mount() {
+        if (this.mounted) {
+            return;
+        }
+
         this.mounted = true;
+        this.watchVersion += 1;
+        if (!this.watchTask) {
+            this.watchTask = this.watch();
+        }
     }
 
     unmount() {
+        if (!this.mounted) {
+            return;
+        }
+
         this.mounted = false;
+        this.watchVersion += 1;
     }
 
     async watch() {
-        while (true) {
-            if (this.mounted) {
-                await this.updateProperties();
-                await this.task();
+        try {
+            while (this.mounted) {
+                const version = this.watchVersion;
+                let updated = false;
+
+                try {
+                    await this.updateProperties();
+                    updated = true;
+                } catch (error) {
+                    console.debug("auto-champion-select: Failed to update champion select", error);
+                }
+
+                if (!updated || !this.mounted || version !== this.watchVersion) {
+                    if (this.mounted && version === this.watchVersion) {
+                        await sleep(300);
+                    }
+                    continue;
+                }
+
+                try {
+                    await this.task();
+                } catch (error) {
+                    console.debug("auto-champion-select: Failed to run champion select task", error);
+                }
+
+                if (this.mounted && version === this.watchVersion) {
+                    await sleep(300);
+                }
             }
-            await sleep(300);
+        } finally {
+            this.watchTask = null;
         }
     }
 
     async updateProperties() {
         const sessionResponse = await request("GET", "/lol-champ-select/v1/session");
+        if (!sessionResponse.ok) {
+            throw new Error(`Session request failed with status ${sessionResponse.status}`);
+        }
+
         this.session = await sessionResponse.json();
         this.actions = this.session.actions;
         const completedActionBanChampionIds = this.actions.flat()
