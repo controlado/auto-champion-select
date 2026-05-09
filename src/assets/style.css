@@ -23,3 +23,131 @@
 .auto-select-checkbox:last-child {
     margin-right: 17px;
 }
+
+.auto-select-champ-select-menu {
+    position: absolute;
+    right: 0;
+    bottom: 36px;
+    z-index: 10000;
+    width: min(340px, calc(100vw - 32px));
+    pointer-events: none;
+}
+
+.auto-select-champ-select-menu-button-wrapper {
+    position: relative;
+    display: block;
+    width: 38px;
+    height: 32px;
+    z-index: 10000;
+    flex: 0 0 38px;
+    box-sizing: border-box;
+}
+
+.auto-select-champ-select-menu__header {
+    position: relative;
+    display: block;
+    width: 38px;
+    height: 32px;
+    border: none;
+    background-image:
+        linear-gradient(#1e2328, #1e2328),
+        url("/fe/lol-social/chat_button.png");
+    background-position: center, 0 0;
+    background-repeat: no-repeat;
+    background-size: 30px 24px, cover;
+    box-shadow: none;
+    cursor: pointer;
+    outline: none;
+    padding: 0;
+}
+
+.auto-select-champ-select-menu-button-wrapper::after {
+    content: "New";
+    position: absolute;
+    right: -17px;
+    top: -8px;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 16px;
+    min-width: 26px;
+    padding: 0 5px;
+    border-radius: 3px;
+    background-color: #c89b3c;
+    box-shadow: rgba(1, 10, 19, 0.5) 0 0 2px;
+    color: #010a13;
+    filter: brightness(1.5) saturate(1.5);
+    font-family: var(--font-body);
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 16px;
+    pointer-events: none;
+}
+
+.auto-select-champ-select-menu__header:hover {
+    background-position: center, 0 -32px;
+}
+
+.auto-select-champ-select-menu__header:active {
+    background-position: center, 0 -64px;
+}
+
+.auto-select-champ-select-menu-button-wrapper--open .auto-select-champ-select-menu__header {
+    background-position: center, 0 -96px;
+}
+
+.auto-select-champ-select-menu-button-wrapper--open .auto-select-champ-select-menu__header:hover {
+    background-position: center, 0 -128px;
+}
+
+.auto-select-champ-select-menu-button-wrapper--open .auto-select-champ-select-menu__header:active {
+    background-position: center, 0 -160px;
+}
+
+.auto-select-champ-select-menu__header::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 20px;
+    height: 20px;
+    background: #c8aa6e;
+    transform: translate(-50%, -50%);
+    -webkit-mask-image: url("/fe/lol-static-assets/images/nav-icon-collections.svg");
+    -webkit-mask-position: center;
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-size: 20px 20px;
+}
+
+.auto-select-champ-select-menu__header:hover::before,
+.auto-select-champ-select-menu-button-wrapper--open .auto-select-champ-select-menu__header::before {
+    background: #f0e6d2;
+}
+
+.auto-select-champ-select-menu__content {
+    display: grid;
+    gap: 4px;
+    width: 100%;
+    margin-bottom: 4px;
+    border: 1px solid #785a28;
+    background: rgba(1, 10, 19, 0.96);
+    box-shadow: 0 0 18px rgba(0, 0, 0, 0.65);
+    box-sizing: border-box;
+    pointer-events: auto;
+    padding: 8px;
+}
+
+.auto-select-champ-select-menu .auto-select-checkboxes-div {
+    border-top: 0;
+    border-bottom: thin solid #1e282d;
+    padding-bottom: 6px;
+}
+
+.auto-select-champ-select-menu .dropdown-champions-default {
+    min-height: 32px;
+}
+
+.auto-select-champ-select-menu--collapsed .auto-select-champ-select-menu__content {
+    display: none;
+}

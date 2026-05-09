@@ -185,16 +185,12 @@ export class Dropdown {
             alreadyAdded.add(champion.name);
         }
 
-        this.shadowRoot((root) => {
-            if (!root.querySelector("#controlado-placeholder")) {
-                const placeholderContainer = root.querySelector(".ui-dropdown-current");
-                placeholderContainer.style = "display: flex; justify-content: space-between;";
+        const root = await this.waitForDropdownRender();
+        if (!root) {
+            return;
+        }
 
-                const placeholder = this.getNewPlaceholder();
-                placeholderContainer.appendChild(placeholder);
-            }
-        });
-
+        this.ensureSearchPlaceholder(root);
         this.applyShadowStyles();
     }
 
@@ -271,6 +267,33 @@ export class Dropdown {
         placeholder.appendChild(filterIcon);
         placeholder.appendChild(input);
         return placeholder;
+    }
+
+    async waitForDropdownRender() {
+        for (let attempt = 0; attempt < 50; attempt++) {
+            const root = this.element.shadowRoot;
+            if (this.element.isConnected && root?.querySelector(".ui-dropdown-current")) {
+                return root;
+            }
+
+            await sleep(100);
+        }
+
+        return null;
+    }
+
+    ensureSearchPlaceholder(root) {
+        if (root.querySelector("#controlado-placeholder")) {
+            return;
+        }
+
+        const placeholderContainer = root.querySelector(".ui-dropdown-current");
+        if (!placeholderContainer) {
+            return;
+        }
+
+        placeholderContainer.style = "display: flex; justify-content: space-between;";
+        placeholderContainer.appendChild(this.getNewPlaceholder());
     }
 
     filterOptions(query) {
@@ -439,6 +462,153 @@ export class Checkbox {
     }
 }
 
+export class ChampionSelectMenu {
+    constructor(label, restoreControls, ...controlElements) {
+        this.element = document.createElement("div");
+        this.element.classList.add("auto-select-champ-select-menu", "auto-select-champ-select-menu--collapsed");
+
+        this.buttonWrapper = document.createElement("div");
+        this.buttonWrapper.classList.add("auto-select-champ-select-menu-button-wrapper");
+
+        this.headerElement = document.createElement("button");
+        this.headerElement.classList.add("auto-select-champ-select-menu__header");
+        this.headerElement.type = "button";
+        this.headerElement.title = label;
+        this.headerElement.setAttribute("aria-label", label);
+        this.headerElement.setAttribute("aria-expanded", "false");
+        this.headerElement.addEventListener("click", () => this.toggle());
+
+        this.contentElement = document.createElement("div");
+        this.contentElement.classList.add("auto-select-champ-select-menu__content");
+
+        this.buttonWrapper.append(this.headerElement, this.element);
+        this.element.appendChild(this.contentElement);
+
+        this.restoreControls = restoreControls;
+        this.controlElements = controlElements;
+        this.boundCloseOnOutsideInteraction = (event) => this.closeOnOutsideInteraction(event);
+        this.buttonObserver = null;
+        this.buttonMountTask = null;
+        this.hiddenStates = new WeakMap();
+        this.mounted = false;
+    }
+
+    async mount() {
+        if (this.mounted) {
+            return this.mountButton();
+        }
+
+        this.mounted = true;
+
+        this.controlElements.forEach(element => {
+            this.hiddenStates.set(element, element.classList.contains("hidden"));
+            element.classList.remove("hidden");
+            this.contentElement.appendChild(element);
+        });
+
+        this.observeButtonContainer();
+
+        document.addEventListener("pointerdown", this.boundCloseOnOutsideInteraction, true);
+        return this.mountButton();
+    }
+
+    unmount() {
+        if (!this.mounted) {
+            return this.restoreControls();
+        }
+
+        this.mounted = false;
+
+        this.buttonObserver?.disconnect();
+        this.buttonObserver = null;
+        this.buttonMountTask = null;
+
+        document.removeEventListener("pointerdown", this.boundCloseOnOutsideInteraction, true);
+
+        this.setOpen(false);
+        this.buttonWrapper.remove();
+        this.restoreHiddenStates();
+        return this.restoreControls();
+    }
+
+    isOpen() {
+        return !this.element.classList.contains("auto-select-champ-select-menu--collapsed");
+    }
+
+    setOpen(open) {
+        this.element.classList.toggle("auto-select-champ-select-menu--collapsed", !open);
+        this.buttonWrapper.classList.toggle("auto-select-champ-select-menu-button-wrapper--open", open);
+        this.headerElement.setAttribute("aria-expanded", String(open));
+    }
+
+    toggle() {
+        this.setOpen(!this.isOpen());
+    }
+
+    closeOnOutsideInteraction(event) {
+        if (!this.isOpen()) {
+            return;
+        }
+
+        const path = typeof event.composedPath === "function" ? event.composedPath() : [];
+        const clickedInsideMenu = path.includes(this.buttonWrapper) || this.buttonWrapper.contains(event.target);
+
+        if (!clickedInsideMenu) {
+            this.setOpen(false);
+        }
+    }
+
+    observeButtonContainer() {
+        this.buttonObserver = new MutationObserver(() => this.mountButton());
+        this.buttonObserver.observe(document.body, { childList: true, subtree: true });
+    }
+
+    mountButton() {
+        if (!this.buttonMountTask) {
+            this.buttonMountTask = this.appendButtonToContainer()
+                .finally(() => {
+                    this.buttonMountTask = null;
+                });
+        }
+
+        return this.buttonMountTask;
+    }
+
+    async appendButtonToContainer() {
+        let buttonContainer = document.querySelector(".bottom-right-buttons");
+
+        while (this.mounted && !buttonContainer) {
+            await sleep(200);
+            buttonContainer = document.querySelector(".bottom-right-buttons");
+        }
+
+        if (!this.mounted) {
+            return;
+        }
+
+        if (!buttonContainer) {
+            return;
+        }
+
+        const firstSquareButton = buttonContainer.querySelector(
+            "lol-social-chat-toggle-button, .missions-tracker-button-component, .champ-select-voice-button-wrapper"
+        );
+
+        if (this.buttonWrapper.parentNode === buttonContainer && this.buttonWrapper.nextSibling === firstSquareButton) {
+            return;
+        }
+
+        buttonContainer.insertBefore(this.buttonWrapper, firstSquareButton);
+    }
+
+    restoreHiddenStates() {
+        this.controlElements.forEach(element => {
+            element.classList.toggle("hidden", this.hiddenStates.get(element) === true);
+            this.hiddenStates.delete(element);
+        });
+    }
+}
+
 export class SocialSection {
     constructor(label, ...hiddableElements) {
         this.element = document.createElement("lol-social-roster-group");
@@ -468,7 +638,11 @@ export class SocialSection {
     }
 
     onClick() {
-        this.hiddableElements.forEach(element => element.classList.toggle("hidden"));
+        this.hiddableElements.forEach(element => {
+            if (!element.closest(".auto-select-champ-select-menu")) {
+                element.classList.toggle("hidden");
+            }
+        });
         this.element.querySelector(".arrow").toggleAttribute("open");
     }
 }

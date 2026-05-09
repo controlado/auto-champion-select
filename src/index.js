@@ -1,5 +1,5 @@
 import { request, sleep, linkEndpoint } from "https://cdn.jsdelivr.net/npm/balaclava-utils@latest";
-import { ChampionSelect, Dropdown, Checkbox, SocialSection } from "./models.js";
+import { ChampionSelect, ChampionSelectMenu, Dropdown, Checkbox, SocialSection } from "./models.js";
 import { AutoPickSwitchAction, AutoBanSwitchAction, ForcePickSwitchAction, ForceBanSwitchAction, RefreshDropdownsAction, addActions } from "./actions.js";
 
 import { version } from "../package.json";
@@ -50,7 +50,7 @@ async function getAllChampions() {
 }
 
 async function onReadyCheck() {
-    if (autoAcceptCheckbox.config.enabled === true) {
+    if (autoAcceptCheckbox.config?.enabled === true) {
         console.debug("auto-champion-select(auto-accept): Ready check detected, accepting in 2 seconds...");
         await sleep(2000);
         await autoAccept();
@@ -66,14 +66,42 @@ async function autoAccept() {
     }
 }
 
-window.addEventListener("load", async () => {
-    let socialContainer = getSocialContainer();
+function createGameflowPhaseHandler({ championSelect, championSelectMenu, setupDropdowns }) {
+    let gameflowPhaseVersion = 0;
 
-    while (!socialContainer) {
-        await sleep(200); // not available at startup
-        socialContainer = getSocialContainer();
+    return handleGameflowPhase;
+
+    function handleGameflowPhase(phase) {
+        const version = ++gameflowPhaseVersion;
+
+        onGameflowPhase(phase, version)
+            .catch(error => console.error("auto-champion-select: Failed to handle gameflow phase", error));
     }
 
+    async function onGameflowPhase(phase, version) {
+        if (phase === "ReadyCheck") { onReadyCheck(); }
+
+        await mountControlsForPhase(phase);
+
+        if (version !== gameflowPhaseVersion) {
+            return;
+        }
+
+        await setupDropdowns();
+    }
+
+    async function mountControlsForPhase(phase) {
+        if (phase === "ChampSelect") {
+            championSelect.mount();
+            await championSelectMenu.mount();
+        } else {
+            championSelect.unmount();
+            await championSelectMenu.unmount();
+        }
+    }
+}
+
+async function main() {
     const dropdownsContainer = document.createElement("div");
     const checkboxesContainer = document.createElement("div");
     checkboxesContainer.classList.add("auto-select-checkboxes-div");
@@ -83,17 +111,68 @@ window.addEventListener("load", async () => {
     dropdownsContainer.append(firstAllChampionsDropdown.element, secondAllChampionsDropdown.element);
 
     const pluginSection = new SocialSection("Auto champion select", dropdownsContainer, checkboxesContainer);
-    socialContainer.append(pluginSection.element, checkboxesContainer, dropdownsContainer);
+    const dropdowns = [
+        firstPlayableChampionsDropdown,
+        secondPlayableChampionsDropdown,
+        firstAllChampionsDropdown,
+        secondAllChampionsDropdown,
+    ];
 
-    await Promise.all([
-        autoAcceptCheckbox.setup(),
-        pickCheckbox.setup(),
-        banCheckbox.setup(),
-        firstPlayableChampionsDropdown.setup(),
-        secondPlayableChampionsDropdown.setup(),
-        firstAllChampionsDropdown.setup(),
-        secondAllChampionsDropdown.setup()
-    ]);
+    let championSelectMenu;
+    let restoreControlsTask = null;
+
+    async function appendControlsToSocial() {
+        let socialContainer = getSocialContainer();
+
+        while (!socialContainer || championSelectMenu.mounted) {
+            await sleep(200); // not available during startup or champion select reloads
+            socialContainer = getSocialContainer();
+        }
+
+        socialContainer.append(pluginSection.element, checkboxesContainer, dropdownsContainer);
+    }
+
+    function restoreControls() {
+        if (restoreControlsTask) {
+            return restoreControlsTask;
+        }
+
+        restoreControlsTask = appendControlsToSocial()
+            .catch(error => console.error("auto-champion-select: Failed to restore controls", error))
+            .finally(() => {
+                restoreControlsTask = null;
+            });
+
+        return restoreControlsTask;
+    }
+
+    championSelectMenu = new ChampionSelectMenu(
+        "Auto champion select",
+        restoreControls,
+        checkboxesContainer,
+        dropdownsContainer,
+    );
+
+    autoAcceptCheckbox.setup();
+    pickCheckbox.setup();
+    banCheckbox.setup();
+
+    const handleGameflowPhase = createGameflowPhaseHandler({
+        championSelect,
+        championSelectMenu,
+        setupDropdowns,
+    });
+
+    linkEndpoint("/lol-gameflow/v1/gameflow-phase", parsedEvent => {
+        handleGameflowPhase(parsedEvent.data);
+    });
+
+    const gameflowPhaseResponse = await request("GET", "/lol-gameflow/v1/gameflow-phase");
+    if (gameflowPhaseResponse.ok) {
+        handleGameflowPhase(await gameflowPhaseResponse.json());
+    } else {
+        handleGameflowPhase(null);
+    }
 
     addActions([
         new AutoPickSwitchAction(() => pickCheckbox.toggle()),
@@ -116,11 +195,20 @@ window.addEventListener("load", async () => {
         }
     });
 
-    linkEndpoint("/lol-gameflow/v1/gameflow-phase", parsedEvent => {
-        if (parsedEvent.data === "ReadyCheck") { onReadyCheck(); }
-        if (parsedEvent.data === "ChampSelect") { championSelect.mount(); }
-        else { championSelect.unmount(); }
-    });
-
     console.debug(`auto-champion-select(${version}): Report bugs to Balaclava#1912`);
-});
+
+    function setupDropdowns() {
+        return Promise.all(dropdowns.map(dropdown => dropdown.setup()));
+    }
+}
+
+let initialized = false;
+
+export function load() {
+    if (initialized) {
+        return;
+    }
+
+    initialized = true;
+    main().catch(error => console.error("auto-champion-select: Failed to initialize", error));
+}

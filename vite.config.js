@@ -16,6 +16,7 @@ export default defineConfig({
     build: {
         outDir: "dist",
         rollupOptions: {
+            preserveEntrySignatures: "strict",
             input: "src/index.js",
             output: {
                 entryFileNames: "index.js",
