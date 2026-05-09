@@ -583,11 +583,11 @@ export class ChampionSelectMenu {
         }
 
         if (!this.mounted) {
-            return;
+            return; // stop after champion select closes while waiting for native buttons
         }
 
         if (!buttonContainer) {
-            return;
+            return; // avoid querySelector when native buttons did not render
         }
 
         const firstSquareButton = buttonContainer.querySelector(
