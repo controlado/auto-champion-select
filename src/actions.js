@@ -13,18 +13,20 @@ class Action {
     }
 
     perform() {
-        if (typeof this.callback.then === "function") {
-            return Toast.promise(
-                this.callback,
-                {
-                    loading: this.toasts.loading,
-                    success: this.toasts.success,
-                    error: this.toasts.error
-                }
-            )
-        }
         try {
             const possibleSwitch = this.callback();
+
+            if (typeof possibleSwitch?.then === "function") {
+                return Toast.promise(
+                    possibleSwitch,
+                    {
+                        loading: this.toasts.loading,
+                        success: this.toasts.success,
+                        error: this.toasts.error
+                    }
+                );
+            }
+
             Toast.success(this.toasts.success || (possibleSwitch ? this.toasts.on : this.toasts.off));
         } catch (error) {
             Toast.error(this.toasts.error);
@@ -93,9 +95,7 @@ export class RefreshDropdownsAction extends Action {
     }
 
     refreshDropdowns(dropdowns) {
-        for (let dropdown of dropdowns) {
-            dropdown.refresh();
-        }
+        return Promise.all(dropdowns.map(dropdown => dropdown.refresh()));
     }
 }
 
