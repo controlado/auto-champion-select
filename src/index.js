@@ -145,7 +145,7 @@ async function main() {
     }
 
     championSelectMenu = new ChampionSelectMenu(
-        "Auto champion select",
+        "Auto Champion Select",
         restoreControls,
         checkboxesContainer,
         dropdownsContainer,

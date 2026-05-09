@@ -144,6 +144,20 @@
     padding: 8px;
 }
 
+.auto-select-champ-select-menu__title {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 24px;
+    padding-bottom: 4px;
+    border-bottom: thin solid #1e282d;
+    color: #f0e6d2;
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 700;
+    text-align: center;
+}
+
 .auto-select-champ-select-menu .auto-select-checkboxes-div {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));

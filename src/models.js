@@ -481,7 +481,12 @@ export class ChampionSelectMenu {
         this.contentElement = document.createElement("div");
         this.contentElement.classList.add("auto-select-champ-select-menu__content");
 
+        this.titleElement = document.createElement("div");
+        this.titleElement.classList.add("auto-select-champ-select-menu__title");
+        this.titleElement.textContent = label;
+
         this.buttonWrapper.append(this.headerElement, this.element);
+        this.contentElement.appendChild(this.titleElement);
         this.element.appendChild(this.contentElement);
 
         this.restoreControls = restoreControls;
