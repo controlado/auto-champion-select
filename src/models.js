@@ -44,9 +44,16 @@ export class ChampionSelect {
         const sessionResponse = await request("GET", "/lol-champ-select/v1/session");
         this.session = await sessionResponse.json();
         this.actions = this.session.actions;
+        const completedActionBanChampionIds = this.actions.flat()
+            .filter(action => action.type === "ban" && action.completed === true && action.championId > 0)
+            .map(action => action.championId);
         this.localPlayerCellId = this.session.localPlayerCellId;
         this.allPicks = [...this.session.myTeam, ...this.session.theirTeam];
-        this.allBans = [...this.session.bans.myTeamBans, ...this.session.bans.theirTeamBans];
+        this.allBans = [
+            ...this.session.bans.myTeamBans,
+            ...this.session.bans.theirTeamBans,
+            ...completedActionBanChampionIds
+        ];
         this.teamIntents = this.session.myTeam.map(player => player.championPickIntent);
     }
 
