@@ -551,6 +551,7 @@ export class ChampionSelectMenu {
         this.controlElements = controlElements;
         this.boundCloseOnOutsideInteraction = (event) => this.closeOnOutsideInteraction(event);
         this.buttonObserver = null;
+        this.buttonMountFrame = null;
         this.buttonMountTask = null;
         this.hiddenStates = new WeakMap();
         this.mounted = false;
@@ -583,6 +584,10 @@ export class ChampionSelectMenu {
 
         this.buttonObserver?.disconnect();
         this.buttonObserver = null;
+        if (this.buttonMountFrame !== null) {
+            cancelAnimationFrame(this.buttonMountFrame);
+            this.buttonMountFrame = null;
+        }
         this.buttonMountTask = null;
 
         document.removeEventListener("pointerdown", this.boundCloseOnOutsideInteraction, true);
@@ -622,8 +627,19 @@ export class ChampionSelectMenu {
     }
 
     observeButtonContainer() {
-        this.buttonObserver = new MutationObserver(() => this.mountButton());
+        this.buttonObserver = new MutationObserver(() => this.scheduleMountButton());
         this.buttonObserver.observe(document.body, { childList: true, subtree: true });
+    }
+
+    scheduleMountButton() {
+        if (this.buttonMountFrame !== null) {
+            return;
+        }
+
+        this.buttonMountFrame = requestAnimationFrame(() => {
+            this.buttonMountFrame = null;
+            this.mountButton();
+        });
     }
 
     mountButton() {
