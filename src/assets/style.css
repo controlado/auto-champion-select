@@ -68,7 +68,7 @@
 }
 
 .auto-select-champ-select-menu-button-wrapper::after {
-    content: "New";
+    content: "🐧 New";
     position: absolute;
     right: -17px;
     top: -8px;
@@ -77,7 +77,8 @@
     align-items: center;
     justify-content: center;
     height: 16px;
-    min-width: 26px;
+    box-sizing: border-box;
+    min-width: 44px;
     padding: 0 5px;
     border-radius: 3px;
     background-color: #c89b3c;
