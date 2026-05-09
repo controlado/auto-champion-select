@@ -18,6 +18,7 @@ This is my first project using JavaScript :)
 
 ## 📍 What's new
 
+- Champion select menu
 - Filter champions
 
 ## Dependencies

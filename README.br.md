@@ -18,8 +18,8 @@ Esse é o meu primeiro projeto utilizando JavaScript :)
 
 ## 📍 Novidades
 
-- Accept: aceita, automaticamente, as partidas
-- CommandBar: use `CTRL + K` para desligar/ligar o auto pick/ban
+- Menu na seleção de campeões
+- Filtrar campeões
 
 ## Dependências
 
