@@ -30,7 +30,13 @@
     bottom: 36px;
     z-index: 10000;
     width: min(340px, calc(100vw - 32px));
+    color: #a09b8c;
+    font-family: var(--font-body);
+    font-size: 12px;
+    font-weight: 400;
+    line-height: normal;
     pointer-events: none;
+    text-transform: none;
 }
 
 .auto-select-champ-select-menu-button-wrapper {
