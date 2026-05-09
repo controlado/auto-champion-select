@@ -149,8 +149,12 @@ export class ChampionSelect {
                 }
                 console.debug(`auto-champion-select: Trying to ${subAction.type} ${championId}...`);
                 const response = await this.selectChampion(subAction.id, championId);
-                if (!response.ok) { return; }
-                else { break; }
+                if (!response.ok) {
+                    console.debug(`auto-champion-select: Failed to ${subAction.type} ${championId}, trying next...`);
+                    continue;
+                }
+
+                break;
             }
         }
     }
