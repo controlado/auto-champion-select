@@ -355,9 +355,10 @@ export class Dropdown {
     }
 
     filterOptions(query) {
+        const normalizedQuery = query.toLowerCase();
         const options = this.element.querySelectorAll("lol-uikit-dropdown-option");
         options.forEach(option => {
-            if (option.innerText.toLowerCase().includes(query.toLowerCase())) {
+            if ((option.textContent ?? "").toLowerCase().includes(normalizedQuery)) {
                 option.style.display = "";
             } else {
                 option.style.display = "none";
