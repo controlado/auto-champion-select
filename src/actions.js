@@ -79,23 +79,23 @@ class ForceSwitchAction extends Action {
 }
 
 export class RefreshDropdownsAction extends Action {
-    constructor(dropdowns) {
+    constructor(selectors) {
         super(
             "RefreshDropdowns",
-            () => "Refresh Dropdowns",
-            () => "Normally dropdowns refresh automatically...",
+            () => "Refresh Champions",
+            () => "Normally champion selectors refresh automatically...",
             [pluginGroup, "refresh"],
             pluginGroup,
-            () => this.refreshDropdowns(dropdowns),
+            () => this.refreshSelectors(selectors),
             {
-                success: "Refreshed Dropdowns!",
-                error: "Failed to refresh Dropdowns. Check console."
+                success: "Refreshed Champions!",
+                error: "Failed to refresh Champions. Check console."
             }
         )
     }
 
-    refreshDropdowns(dropdowns) {
-        return Promise.all(dropdowns.map(dropdown => dropdown.refresh()));
+    refreshSelectors(selectors) {
+        return Promise.all(selectors.map(selector => selector.refresh()));
     }
 }
 

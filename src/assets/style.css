@@ -11,6 +11,127 @@
     transform-origin: bottom;
 }
 
+.champion-priority-selector {
+    display: grid;
+    gap: 0;
+    padding: 2px 0 3px;
+}
+
+.champion-priority-selector__scroll {
+    position: relative;
+    width: -webkit-fill-available;
+    height: 58px;
+    border: 1px solid rgba(120, 90, 40, 0.7);
+    border-top: 0;
+    background: rgba(30, 35, 40, 0.5);
+    box-sizing: border-box;
+}
+
+.champion-priority-selector__track {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: max-content;
+    min-height: 45px;
+    padding: 6px 8px 10px;
+    box-sizing: border-box;
+}
+
+.champion-priority-selector__empty {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    color: #5f5b4f;
+    font-family: var(--font-body);
+    font-size: 11px;
+    line-height: 13px;
+    text-align: center;
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+.champion-priority-selector__icon {
+    position: relative;
+    flex: 0 0 auto;
+    width: 34px;
+    height: 34px;
+    border: 1px solid #c8aa6e;
+    border-radius: 50%;
+    background: #1e2328;
+    box-shadow: 0 0 0 1px rgba(1, 10, 19, 0.9);
+    box-sizing: border-box;
+    cursor: grab;
+    outline: none;
+}
+
+.champion-priority-selector__icon:focus {
+    border-color: #f0e6d2;
+}
+
+.champion-priority-selector__icon--dragging {
+    cursor: grabbing;
+    filter: brightness(1.15);
+    z-index: 1;
+}
+
+.champion-priority-selector__icon::before {
+    content: attr(data-rank);
+    position: absolute;
+    left: -5px;
+    top: -6px;
+    width: 15px;
+    height: 15px;
+    border: 1px solid #c8aa6e;
+    border-radius: 50%;
+    background: #010a13;
+    box-sizing: border-box;
+    color: #f0e6d2;
+    font-family: var(--font-body);
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 13px;
+    text-align: center;
+    pointer-events: none;
+}
+
+.champion-priority-selector__icon img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    pointer-events: none;
+}
+
+.champion-priority-selector__remove {
+    position: absolute;
+    right: -5px;
+    bottom: -5px;
+    width: 16px;
+    height: 16px;
+    padding: 0;
+    border: 1px solid #785a28;
+    border-radius: 50%;
+    background: #1e2328;
+    box-sizing: border-box;
+    color: #c8aa6e;
+    cursor: pointer;
+    font-family: var(--font-body);
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 13px;
+    text-align: center;
+}
+
+.champion-priority-selector__remove:hover {
+    border-color: #c8aa6e;
+    color: #f0e6d2;
+}
+
 .auto-select-checkboxes-div {
     display: flex;
     border-top: thin solid #1e282d;
@@ -167,6 +288,10 @@
 
 .auto-select-champ-select-menu .dropdown-champions-default {
     min-height: 32px;
+}
+
+.auto-select-champ-select-menu .champion-priority-selector__scroll {
+    height: 56px;
 }
 
 .auto-select-champ-select-menu--collapsed .auto-select-champ-select-menu__content {

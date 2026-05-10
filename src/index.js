@@ -1,5 +1,5 @@
 import { request, sleep, linkEndpoint } from "https://cdn.jsdelivr.net/npm/balaclava-utils@latest";
-import { ChampionSelect, ChampionSelectMenu, Dropdown, Checkbox, SocialSection } from "./models.js";
+import { ChampionSelect, ChampionSelectMenu, ChampionPrioritySelector, Checkbox, SocialSection } from "./models.js";
 import { AutoPickSwitchAction, AutoBanSwitchAction, ForcePickSwitchAction, ForceBanSwitchAction, RefreshDropdownsAction, addActions } from "./actions.js";
 
 import { version } from "../package.json";
@@ -17,12 +17,10 @@ const championSelect = new ChampionSelect();
 const autoAcceptCheckbox = new Checkbox("Accept", "controladoAutoAccept");
 
 const pickCheckbox = new Checkbox("Pick", "controladoPick");
-const firstPlayableChampionsDropdown = new Dropdown("1st pick", "controladoPick", 0, getPlayableChampions);
-const secondPlayableChampionsDropdown = new Dropdown("2nd pick", "controladoPick", 1, getPlayableChampions);
+const pickChampionSelector = new ChampionPrioritySelector("Add pick", "controladoPick", getPlayableChampions);
 
 const banCheckbox = new Checkbox("Ban", "controladoBan");
-const firstAllChampionsDropdown = new Dropdown("1st ban", "controladoBan", 0, getAllChampions);
-const secondAllChampionsDropdown = new Dropdown("2nd ban", "controladoBan", 1, getAllChampions);
+const banChampionSelector = new ChampionPrioritySelector("Add ban", "controladoBan", getAllChampions);
 
 function getSocialContainer() {
     return document.querySelector(".lol-social-roster");
@@ -91,7 +89,7 @@ async function autoAccept() {
     }
 }
 
-function createGameflowPhaseHandler({ championSelect, championSelectMenu, setupDropdowns }) {
+function createGameflowPhaseHandler({ championSelect, championSelectMenu, setupChampionSelectors }) {
     let gameflowPhaseVersion = 0;
 
     return function handleGameflowPhase(phase) {
@@ -110,7 +108,7 @@ function createGameflowPhaseHandler({ championSelect, championSelectMenu, setupD
             return;
         }
 
-        await setupDropdowns();
+        await setupChampionSelectors();
     }
 
     async function mountControlsForPhase(phase) {
@@ -125,20 +123,17 @@ function createGameflowPhaseHandler({ championSelect, championSelectMenu, setupD
 }
 
 async function main() {
-    const dropdownsContainer = document.createElement("div");
+    const selectorsContainer = document.createElement("div");
     const checkboxesContainer = document.createElement("div");
     checkboxesContainer.classList.add("auto-select-checkboxes-div");
 
     checkboxesContainer.append(autoAcceptCheckbox.element, pickCheckbox.element, banCheckbox.element);
-    dropdownsContainer.append(firstPlayableChampionsDropdown.element, secondPlayableChampionsDropdown.element);
-    dropdownsContainer.append(firstAllChampionsDropdown.element, secondAllChampionsDropdown.element);
+    selectorsContainer.append(pickChampionSelector.element, banChampionSelector.element);
 
-    const pluginSection = new SocialSection("Auto champion select", dropdownsContainer, checkboxesContainer);
-    const dropdowns = [
-        firstPlayableChampionsDropdown,
-        secondPlayableChampionsDropdown,
-        firstAllChampionsDropdown,
-        secondAllChampionsDropdown,
+    const pluginSection = new SocialSection("Auto champion select", selectorsContainer, checkboxesContainer);
+    const championSelectors = [
+        pickChampionSelector,
+        banChampionSelector,
     ];
 
     let championSelectMenu;
@@ -161,7 +156,7 @@ async function main() {
             return;
         }
 
-        socialContainer.append(pluginSection.element, checkboxesContainer, dropdownsContainer);
+        socialContainer.append(pluginSection.element, checkboxesContainer, selectorsContainer);
     }
 
     function restoreControls() {
@@ -183,7 +178,7 @@ async function main() {
         "Auto Champion Select",
         restoreControls,
         checkboxesContainer,
-        dropdownsContainer,
+        selectorsContainer,
     );
 
     autoAcceptCheckbox.setup();
@@ -193,7 +188,7 @@ async function main() {
     const handleGameflowPhase = createGameflowPhaseHandler({
         championSelect,
         championSelectMenu,
-        setupDropdowns,
+        setupChampionSelectors,
     });
 
     linkEndpoint("/lol-gameflow/v1/gameflow-phase", parsedEvent => {
@@ -215,25 +210,22 @@ async function main() {
         new ForcePickSwitchAction(),
         new ForceBanSwitchAction(),
         new RefreshDropdownsAction([
-            firstPlayableChampionsDropdown,
-            secondPlayableChampionsDropdown,
+            pickChampionSelector,
+            banChampionSelector,
         ]),
     ]);
 
     linkEndpoint("/lol-inventory/v1/wallet", async parsedEvent => {
         if (parsedEvent.eventType === "Update") {
-            console.debug("auto-champion-select(wallet): Refreshing dropdowns...");
-            await Promise.all([
-                firstPlayableChampionsDropdown.refresh(),
-                secondPlayableChampionsDropdown.refresh(),
-            ]);
+            console.debug("auto-champion-select(wallet): Refreshing champion selectors...");
+            await pickChampionSelector.refresh();
         }
     });
 
     console.debug(`auto-champion-select(${version}): Report bugs to Balaclava#1912`);
 
-    function setupDropdowns() {
-        return Promise.all(dropdowns.map(dropdown => dropdown.setup()));
+    function setupChampionSelectors() {
+        return Promise.all(championSelectors.map(selector => selector.setup()));
     }
 
     function observeChampionSelectView() {

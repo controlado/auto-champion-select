@@ -214,20 +214,55 @@ export class ChampionSelect {
     }
 }
 
-export class Dropdown {
-    constructor(text, configKey, configIndex, championsFunction) {
-        this.element = document.createElement("lol-uikit-framed-dropdown");
-        this.element.classList.add("dropdown-champions-default");
-        this.element.classList.add("dropdown-drop-up");
+export class ChampionPrioritySelector {
+    constructor(placeholderText, configKey, championsFunction) {
+        this.element = document.createElement("div");
+        this.element.classList.add("champion-priority-selector");
 
-        this.text = text;
+        this.dropdownElement = document.createElement("lol-uikit-framed-dropdown");
+        this.dropdownElement.classList.add(
+            "dropdown-champions-default",
+            "dropdown-drop-up",
+            "champion-priority-selector__dropdown"
+        );
+
+        this.scrollElement = document.createElement("lol-uikit-scrollable");
+        this.scrollElement.classList.add("champion-priority-selector__scroll");
+        this.scrollElement.setAttribute("direction", "horizontal");
+        this.scrollElement.setAttribute("overflow-masks", "disabled");
+        this.scrollElement.setAttribute("side-scroll-wheel", "true");
+
+        this.trackElement = document.createElement("div");
+        this.trackElement.classList.add("champion-priority-selector__track");
+        this.scrollElement.appendChild(this.trackElement);
+
+        this.emptyElement = document.createElement("div");
+        this.emptyElement.classList.add("champion-priority-selector__empty");
+        const emptyTitle = document.createElement("span");
+        emptyTitle.innerText = "No champions";
+        const emptyHint = document.createElement("span");
+        const optionType = placeholderText.replace(/^Add\s+/i, "").toLowerCase();
+        emptyHint.innerText = `Use dropdown to add ${optionType} option`;
+        this.emptyElement.append(emptyTitle, emptyHint);
+
+        this.element.append(this.dropdownElement, this.scrollElement);
+
+        this.placeholderText = placeholderText;
+        this.placeholderOption = null;
 
         this.config = null;
         this.configKey = configKey;
-        this.configIndex = configIndex;
 
         this.championsFunction = championsFunction;
-        this.champions = null;
+        this.champions = [];
+        this.championById = new Map();
+        this.selectedChampionIds = [];
+        this.iconButtons = new Map();
+
+        this.dragState = null;
+        this.handleWindowPointerMove = event => this.moveDrag(event);
+        this.handleWindowPointerUp = event => this.finishDrag(event);
+        this.handleWindowPointerCancel = event => this.cancelDrag(event);
         this.setupInFlight = null;
         this.setupPending = false;
     }
@@ -258,25 +293,20 @@ export class Dropdown {
     }
 
     async performSetup() {
-        this.champions = await this.championsFunction();
-        this.config = DataStore.get(this.configKey) || defaultPluginConfig[this.configKey];
+        this.champions = this.normalizeChampions(await this.championsFunction());
+        this.championById = new Map(this.champions.map(champion => [champion.id, champion]));
+        this.config = this.getConfig();
 
-        if (!this.champions.some(champion => this.config.champions[this.configIndex] === champion.id)) {
-            this.config.champions[this.configIndex] = this.champions[0].id;
-            DataStore.set(this.configKey, this.config);
+        const normalizedChampionIds = this.normalizeChampionIds(this.config.champions);
+        const configChanged = !this.areChampionIdsEqual(this.config.champions, normalizedChampionIds);
+        this.selectedChampionIds = normalizedChampionIds;
+        this.config.champions = [...this.selectedChampionIds];
+        if (configChanged) {
+            this.saveConfig();
         }
 
-        this.element.replaceChildren();
-
-        const alreadyAdded = new Set();
-        for (const champion of this.champions) {
-            if (alreadyAdded.has(champion.name)) {
-                continue;
-            }
-            const option = this.getNewOption(champion);
-            this.element.appendChild(option);
-            alreadyAdded.add(champion.name);
-        }
+        this.renderDropdownOptions();
+        this.renderSelectedChampions();
 
         const root = await this.waitForDropdownRender();
         if (!root) {
@@ -287,34 +317,388 @@ export class Dropdown {
         this.applyShadowStyles();
     }
 
+    getConfig() {
+        const defaultConfig = defaultPluginConfig[this.configKey];
+        const config = DataStore.get(this.configKey) || defaultConfig;
+        return {
+            ...config,
+            champions: Array.isArray(config.champions) ? [...config.champions] : []
+        };
+    }
+
+    normalizeChampions(champions) {
+        const normalizedChampions = [];
+        const alreadyAdded = new Set();
+
+        for (const champion of champions) {
+            const championId = Number(champion.id);
+            if (!Number.isFinite(championId) || championId <= 0 || !champion.name) {
+                continue;
+            }
+
+            if (alreadyAdded.has(champion.name)) {
+                continue;
+            }
+
+            normalizedChampions.push({
+                ...champion,
+                id: championId,
+                squarePortraitPath: champion.squarePortraitPath || `/lol-game-data/assets/v1/champion-icons/${championId}.png`
+            });
+            alreadyAdded.add(champion.name);
+        }
+
+        return normalizedChampions;
+    }
+
+    normalizeChampionIds(championIds) {
+        const normalizedChampionIds = [];
+        const alreadyAdded = new Set();
+
+        if (!Array.isArray(championIds)) {
+            return normalizedChampionIds;
+        }
+
+        for (const championId of championIds) {
+            const normalizedChampionId = Number(championId);
+            if (
+                !Number.isFinite(normalizedChampionId) ||
+                alreadyAdded.has(normalizedChampionId) ||
+                !this.championById.has(normalizedChampionId)
+            ) {
+                continue;
+            }
+
+            normalizedChampionIds.push(normalizedChampionId);
+            alreadyAdded.add(normalizedChampionId);
+        }
+
+        return normalizedChampionIds;
+    }
+
+    areChampionIdsEqual(currentChampionIds, normalizedChampionIds) {
+        if (!Array.isArray(currentChampionIds) || currentChampionIds.length !== normalizedChampionIds.length) {
+            return false;
+        }
+
+        return currentChampionIds.every((championId, index) => Number(championId) === normalizedChampionIds[index]);
+    }
+
+    renderDropdownOptions() {
+        this.dropdownElement.replaceChildren();
+
+        this.placeholderOption = document.createElement("lol-uikit-dropdown-option");
+        this.placeholderOption.setAttribute("slot", "lol-uikit-dropdown-option");
+        this.placeholderOption.setAttribute("selected", "true");
+        this.placeholderOption.innerText = this.placeholderText;
+        this.dropdownElement.appendChild(this.placeholderOption);
+
+        for (const champion of this.champions) {
+            const option = this.getNewOption(champion);
+            this.dropdownElement.appendChild(option);
+        }
+    }
+
     getNewOption(champion) {
         const option = document.createElement("lol-uikit-dropdown-option");
         option.setAttribute("slot", "lol-uikit-dropdown-option");
         option.addEventListener("click", () => {
-            this.config.champions[this.configIndex] = champion.id;
-            DataStore.set(this.configKey, this.config);
-            console.debug(this.configKey, DataStore.get(this.configKey));
-
-            this.shadowRoot((root) => {
-                const input = root.querySelector("#controlado-search");
-                if (input) {
-                    input.value = "";
-                    this.filterOptions("");
-                }
-
-                const trashFilterIcon = root.querySelector(".controlado-filter-icon--trash");
-                if (trashFilterIcon) {
-                    trashFilterIcon.classList.remove("controlado-filter-icon--trash");
-                }
-            });
+            this.addChampion(champion.id);
+            requestAnimationFrame(() => this.resetDropdown());
         });
-
-        if (this.config.champions[this.configIndex] === champion.id) {
-            option.setAttribute("selected", "true");
-        }
 
         option.innerText = champion.name;
         return option;
+    }
+
+    addChampion(championId) {
+        const normalizedChampionId = Number(championId);
+        if (!this.championById.has(normalizedChampionId) || this.selectedChampionIds.includes(normalizedChampionId)) {
+            return;
+        }
+
+        this.selectedChampionIds.push(normalizedChampionId);
+        this.renderSelectedChampions();
+        this.saveConfig();
+    }
+
+    removeChampion(championId) {
+        const normalizedChampionId = Number(championId);
+        const championIndex = this.selectedChampionIds.indexOf(normalizedChampionId);
+        if (championIndex === -1) {
+            return;
+        }
+
+        this.selectedChampionIds.splice(championIndex, 1);
+        this.renderSelectedChampions();
+        this.saveConfig();
+    }
+
+    moveChampionToIndex(championId, dropIndex) {
+        const normalizedChampionId = Number(championId);
+        const currentIndex = this.selectedChampionIds.indexOf(normalizedChampionId);
+        if (currentIndex === -1) {
+            return false;
+        }
+
+        const [movedChampionId] = this.selectedChampionIds.splice(currentIndex, 1);
+        const boundedDropIndex = Math.max(0, Math.min(dropIndex, this.selectedChampionIds.length));
+        this.selectedChampionIds.splice(boundedDropIndex, 0, movedChampionId);
+        return currentIndex !== boundedDropIndex;
+    }
+
+    saveConfig() {
+        this.config.champions = [...this.selectedChampionIds];
+        DataStore.set(this.configKey, this.config);
+        console.debug(this.configKey, DataStore.get(this.configKey));
+    }
+
+    renderSelectedChampions(previousPositions = null, draggedChampionId = null) {
+        const activeChampionIds = new Set(this.selectedChampionIds);
+
+        for (const [championId, button] of this.iconButtons) {
+            if (!activeChampionIds.has(championId)) {
+                button.remove();
+                this.iconButtons.delete(championId);
+            }
+        }
+
+        if (this.selectedChampionIds.length === 0) {
+            this.trackElement.replaceChildren(this.emptyElement);
+            return;
+        }
+
+        this.emptyElement.remove();
+
+        const orderedButtons = this.selectedChampionIds
+            .map((championId, index) => this.getIconButton(championId, index))
+            .filter(Boolean);
+
+        this.trackElement.append(...orderedButtons);
+
+        if (previousPositions) {
+            this.animateReorder(previousPositions, draggedChampionId);
+        }
+    }
+
+    getIconButton(championId, index) {
+        const champion = this.championById.get(championId);
+        if (!champion) {
+            return null;
+        }
+
+        let button = this.iconButtons.get(championId);
+        if (!button) {
+            button = this.createIconButton(champion);
+            this.iconButtons.set(championId, button);
+        }
+
+        button.dataset.rank = String(index + 1);
+        button.title = `${index + 1}. ${champion.name}`;
+        button.setAttribute("aria-label", `${index + 1}. ${champion.name}`);
+
+        const image = button.querySelector("img");
+        image.src = champion.squarePortraitPath;
+        image.alt = champion.name;
+
+        const removeButton = button.querySelector(".champion-priority-selector__remove");
+        removeButton.setAttribute("aria-label", `Remove ${champion.name}`);
+        removeButton.title = `Remove ${champion.name}`;
+
+        return button;
+    }
+
+    createIconButton(champion) {
+        const button = document.createElement("div");
+        button.classList.add("champion-priority-selector__icon");
+        button.dataset.championId = String(champion.id);
+        button.setAttribute("role", "button");
+        button.tabIndex = 0;
+
+        const image = document.createElement("img");
+        image.draggable = false;
+
+        const removeButton = document.createElement("button");
+        removeButton.classList.add("champion-priority-selector__remove");
+        removeButton.type = "button";
+        removeButton.innerText = "x";
+        removeButton.addEventListener("pointerdown", event => event.stopPropagation());
+        removeButton.addEventListener("click", event => {
+            event.stopPropagation();
+            this.removeChampion(champion.id);
+        });
+
+        button.addEventListener("pointerdown", event => this.startDrag(event, champion.id));
+
+        button.append(image, removeButton);
+        return button;
+    }
+
+    startDrag(event, championId) {
+        if (event.button !== 0) {
+            return;
+        }
+
+        if (this.dragState) {
+            this.clearDragState();
+        }
+
+        const iconButton = this.iconButtons.get(championId);
+        if (!iconButton) {
+            return;
+        }
+
+        this.dragState = {
+            championId,
+            pointerId: event.pointerId,
+            startX: event.clientX,
+            startY: event.clientY,
+            active: false,
+            moved: false
+        };
+
+        try {
+            iconButton.setPointerCapture?.(event.pointerId);
+        } catch {}
+
+        window.addEventListener("pointermove", this.handleWindowPointerMove);
+        window.addEventListener("pointerup", this.handleWindowPointerUp);
+        window.addEventListener("pointercancel", this.handleWindowPointerCancel);
+    }
+
+    moveDrag(event) {
+        if (!this.dragState || this.dragState.pointerId !== event.pointerId) {
+            return;
+        }
+
+        const championId = this.dragState.championId;
+        const deltaX = event.clientX - this.dragState.startX;
+        const deltaY = event.clientY - this.dragState.startY;
+        const movement = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
+        if (!this.dragState.active) {
+            if (movement < 5) {
+                return;
+            }
+
+            this.dragState.active = true;
+            this.iconButtons.get(championId)?.classList.add("champion-priority-selector__icon--dragging");
+        }
+
+        event.preventDefault();
+
+        const dropIndex = this.getDropIndex(event.clientX, championId);
+        const currentIndex = this.selectedChampionIds.indexOf(championId);
+        if (dropIndex === currentIndex || dropIndex === -1) {
+            return;
+        }
+
+        const previousPositions = this.getIconPositions();
+        if (this.moveChampionToIndex(championId, dropIndex)) {
+            this.dragState.moved = true;
+            this.renderSelectedChampions(previousPositions, championId);
+        }
+    }
+
+    finishDrag(event) {
+        if (!this.dragState || this.dragState.pointerId !== event.pointerId) {
+            return;
+        }
+
+        const dragWasActive = this.dragState.active;
+        const dragMoved = this.dragState.moved;
+        this.clearDragState();
+
+        if (dragWasActive && dragMoved) {
+            this.saveConfig();
+        }
+    }
+
+    cancelDrag(event) {
+        if (!this.dragState || this.dragState.pointerId !== event.pointerId) {
+            return;
+        }
+
+        this.clearDragState();
+    }
+
+    clearDragState() {
+        if (!this.dragState) {
+            return;
+        }
+
+        const { championId, pointerId } = this.dragState;
+        const iconButton = this.iconButtons.get(championId);
+        iconButton?.classList.remove("champion-priority-selector__icon--dragging");
+        try {
+            iconButton?.releasePointerCapture?.(pointerId);
+        } catch {}
+        window.removeEventListener("pointermove", this.handleWindowPointerMove);
+        window.removeEventListener("pointerup", this.handleWindowPointerUp);
+        window.removeEventListener("pointercancel", this.handleWindowPointerCancel);
+        this.dragState = null;
+    }
+
+    getDropIndex(clientX, draggedChampionId) {
+        const championIdsWithoutDragged = this.selectedChampionIds.filter(championId => championId !== draggedChampionId);
+
+        for (let index = 0; index < championIdsWithoutDragged.length; index++) {
+            const iconButton = this.iconButtons.get(championIdsWithoutDragged[index]);
+            if (!iconButton) {
+                continue;
+            }
+
+            const rect = iconButton.getBoundingClientRect();
+            if (clientX < rect.left + rect.width / 2) {
+                return index;
+            }
+        }
+
+        return championIdsWithoutDragged.length;
+    }
+
+    getIconPositions() {
+        const positions = new Map();
+        for (const championId of this.selectedChampionIds) {
+            const iconButton = this.iconButtons.get(championId);
+            if (iconButton) {
+                positions.set(championId, iconButton.getBoundingClientRect());
+            }
+        }
+
+        return positions;
+    }
+
+    animateReorder(previousPositions, draggedChampionId) {
+        for (const championId of this.selectedChampionIds) {
+            if (championId === draggedChampionId) {
+                continue;
+            }
+
+            const iconButton = this.iconButtons.get(championId);
+            const previousPosition = previousPositions.get(championId);
+            if (!iconButton || !previousPosition || typeof iconButton.animate !== "function") {
+                continue;
+            }
+
+            const currentPosition = iconButton.getBoundingClientRect();
+            const deltaX = previousPosition.left - currentPosition.left;
+            const deltaY = previousPosition.top - currentPosition.top;
+            if (deltaX === 0 && deltaY === 0) {
+                continue;
+            }
+
+            iconButton.animate(
+                [
+                    { transform: `translate(${deltaX}px, ${deltaY}px)` },
+                    { transform: "translate(0, 0)" }
+                ],
+                {
+                    duration: 150,
+                    easing: "cubic-bezier(0.2, 0, 0, 1)"
+                }
+            );
+        }
     }
 
     getNewPlaceholder() {
@@ -326,7 +710,7 @@ export class Dropdown {
         input.classList.add("controlado-filter-input");
         input.id = "controlado-search";
         input.type = "text";
-        input.placeholder = this.text;
+        input.placeholder = "Search";
 
         const filterIcon = document.createElement("span");
         filterIcon.classList.add("controlado-filter-icon");
@@ -364,8 +748,8 @@ export class Dropdown {
 
     async waitForDropdownRender() {
         for (let attempt = 0; attempt < 50; attempt++) {
-            const root = this.element.shadowRoot;
-            if (this.element.isConnected && root?.querySelector(".ui-dropdown-current")) {
+            const root = this.dropdownElement.shadowRoot;
+            if (this.dropdownElement.isConnected && root?.querySelector(".ui-dropdown-current")) {
                 return root;
             }
 
@@ -389,9 +773,33 @@ export class Dropdown {
         placeholderContainer.appendChild(this.getNewPlaceholder());
     }
 
+    resetDropdown() {
+        this.dropdownElement.querySelectorAll("lol-uikit-dropdown-option[selected]").forEach(option => {
+            option.removeAttribute("selected");
+        });
+        this.placeholderOption?.setAttribute("selected", "true");
+
+        this.shadowRoot((root) => {
+            const input = root.querySelector("#controlado-search");
+            if (input) {
+                input.value = "";
+                this.filterOptions("");
+            }
+
+            const trashFilterIcon = root.querySelector(".controlado-filter-icon--trash");
+            if (trashFilterIcon) {
+                trashFilterIcon.classList.remove("controlado-filter-icon--trash");
+            }
+
+            if (this.isOpen()) {
+                root.querySelector(".ui-dropdown-current")?.click();
+            }
+        });
+    }
+
     filterOptions(query) {
         const normalizedQuery = query.toLowerCase();
-        const options = this.element.querySelectorAll("lol-uikit-dropdown-option");
+        const options = this.dropdownElement.querySelectorAll("lol-uikit-dropdown-option");
         options.forEach(option => {
             if ((option.textContent ?? "").toLowerCase().includes(normalizedQuery)) {
                 option.style.display = "";
@@ -406,7 +814,7 @@ export class Dropdown {
     }
 
     isOpen() {
-        return this.element.classList.contains("active");
+        return this.dropdownElement.classList.contains("active");
     }
 
     ensureIsOpened() {
@@ -423,11 +831,11 @@ export class Dropdown {
     }
 
     /**
-     * @param {(root: ShadowRoot) => void} fn 
+     * @param {(root: ShadowRoot) => void} fn
      * @returns {void}
      */
     shadowRoot(fn) {
-        const root = this.element.shadowRoot;
+        const root = this.dropdownElement.shadowRoot;
         if (!root) {
             return;
         }
@@ -489,12 +897,12 @@ export class Dropdown {
                 color: inherit;
                 background: transparent;
                 border: none;
-                text-align: center;
+                text-align: left;
                 outline: none;
                 font-family: inherit;
                 font-size: inherit;
                 font-weight: inherit;
-                width: 40px;
+                width: 64px;
             }
 
             .controlado-tag {
@@ -505,7 +913,7 @@ export class Dropdown {
                 padding: 2px 10px;
                 border-radius: 999px;
                 border: 1px solid #c8aa6e;
-                background: linear-gradient(145deg, #0f1b2d, #0a121a);
+                background: #0f1b2d;
                 color: #f3d7a5;
                 font-size: 11px;
                 font-weight: 600;
@@ -518,7 +926,7 @@ export class Dropdown {
             .controlado-tag--search {
                 border-color: #d7b46a;
                 color: #f6e1b2;
-                background: linear-gradient(145deg, #1a232f, #0f1722);
+                background: #1a232f;
                 text-transform: none;
                 font-weight: 500;
             }
