@@ -531,7 +531,6 @@ export class ChampionSelectMenu {
         this.headerElement = document.createElement("button");
         this.headerElement.classList.add("auto-select-champ-select-menu__header");
         this.headerElement.type = "button";
-        this.headerElement.title = label;
         this.headerElement.setAttribute("aria-label", label);
         this.headerElement.setAttribute("aria-expanded", "false");
         this.headerElement.addEventListener("click", () => this.toggle());
