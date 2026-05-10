@@ -207,6 +207,8 @@ async function main() {
         handleGameflowPhase(null);
     }
 
+    observeChampionSelectView();
+
     addActions([
         new AutoPickSwitchAction(() => pickCheckbox.toggle()),
         new AutoBanSwitchAction(() => banCheckbox.toggle()),
@@ -232,6 +234,55 @@ async function main() {
 
     function setupDropdowns() {
         return Promise.all(dropdowns.map(dropdown => dropdown.setup()));
+    }
+
+    function observeChampionSelectView() {
+        const championSelectObserverTimeout = 60000;
+        let syncFrame = null;
+        let observer = null;
+
+        function stopObservingChampionSelectView() {
+            observer?.disconnect();
+            observer = null;
+
+            if (syncFrame !== null) {
+                cancelAnimationFrame(syncFrame);
+                syncFrame = null;
+            }
+        }
+
+        const observerTimeoutId = setTimeout(() => {
+            stopObservingChampionSelectView();
+        }, championSelectObserverTimeout);
+
+        function reconcileChampionSelectView() {
+            const hasChampionSelectButtons = document.querySelector(".bottom-right-buttons") !== null;
+            if (!hasChampionSelectButtons) {
+                return;
+            }
+
+            clearTimeout(observerTimeoutId);
+            stopObservingChampionSelectView();
+
+            const hasPluginButton = document.querySelector(".auto-select-champ-select-menu__header") !== null;
+            if (!hasPluginButton) {
+                handleGameflowPhase("ChampSelect");
+            }
+        }
+
+        observer = new MutationObserver(() => {
+            if (syncFrame !== null) {
+                return;
+            }
+
+            syncFrame = requestAnimationFrame(() => {
+                syncFrame = null;
+                reconcileChampionSelectView();
+            });
+        });
+
+        observer.observe(document.body, { childList: true, subtree: true });
+        reconcileChampionSelectView();
     }
 }
 
