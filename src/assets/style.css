@@ -56,12 +56,12 @@
     height: 32px;
     border: none;
     background-image: url("/fe/lol-social/chat_button.png");
+    background-color: transparent;
     background-position: 0 0;
     background-repeat: no-repeat;
     background-size: cover;
     box-shadow: none;
     cursor: pointer;
-    filter: brightness(1.5) saturate(1.5);
     outline: none;
     padding: 0;
 }
@@ -80,10 +80,9 @@
     min-width: 44px;
     padding: 0 5px;
     border-radius: 3px;
-    background-color: #c89b3c;
+    background-color: #ffe610;
     box-shadow: rgba(1, 10, 19, 0.5) 0 0 2px;
     color: #010a13;
-    filter: brightness(1.5) saturate(1.5);
     font-family: var(--font-body);
     font-size: 12px;
     font-weight: 700;
@@ -98,9 +97,9 @@
     position: absolute;
     left: 50%;
     top: 50%;
-    width: 22px;
-    height: 22px;
-    background: url("/fe/lol-static-assets/images/nav-icon-collections.svg") center / 22px 22px no-repeat;
+    width: 20px;
+    height: 20px;
+    background: url("/fe/lol-static-assets/images/nav-icon-collections.svg") center / 20px 20px no-repeat;
     filter: drop-shadow(0 0 1px #010a13);
     transform: translate(-50%, -50%);
 }
