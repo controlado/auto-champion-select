@@ -128,36 +128,70 @@ export class ChampionSelect {
             }
 
             for (const championId of config.champions) {
-                if (this.allBans.some(bannedChampionId => bannedChampionId == championId)) {
-                    console.debug(`auto-champion-select: Banning ${championId} but it's already banned, skipping...`);
+                if (this.shouldSkipChampion(subAction, championId, config)) {
                     continue;
                 }
-                if (subAction.type === "ban" && this.teamIntents.some(playerIntent => playerIntent == championId)) {
-                    if (config.force === true) {
-                        console.debug(`auto-champion-select: Banning ${championId} but it's already picked, forcing...`);
-                    } else {
-                        console.debug(`auto-champion-select: Banning ${championId} but it's already picked, skipping...`);
-                        continue;
-                    }
-                }
-                if (subAction.type === "pick" && this.allPicks.some(player => player.championId == championId)) {
-                    if (config.force === true) {
-                        console.debug(`auto-champion-select: Picking ${championId} but it's already picked, forcing...`);
-                    } else {
-                        console.debug(`auto-champion-select: Picking ${championId} but it's already picked, skipping...`);
-                        continue;
-                    }
-                }
+
                 console.debug(`auto-champion-select: Trying to ${subAction.type} ${championId}...`);
                 const response = await this.selectChampion(subAction.id, championId);
                 if (!response.ok) {
-                    console.debug(`auto-champion-select: Failed to ${subAction.type} ${championId}, trying next...`);
+                    console.debug(`auto-champion-select: Failed to ${subAction.type} ${championId}, refreshing champ select state...`);
+
+                    try {
+                        await this.updateProperties();
+                    } catch (error) {
+                        console.debug("auto-champion-select: Failed to refresh champion select after select failure", error);
+                        return;
+                    }
+
+                    const updatedSubAction = this.actions.flat().find(action =>
+                        action.id === subAction.id &&
+                        action.actorCellId === subAction.actorCellId &&
+                        action.type === subAction.type &&
+                        action.completed === false
+                    );
+
+                    // picks can run outside progress to set champion intent; other actions must be active.
+                    if (!updatedSubAction || (updatedSubAction.type !== "pick" && updatedSubAction.isInProgress !== true)) {
+                        return;
+                    }
+
+                    if (!this.shouldSkipChampion(updatedSubAction, championId, config)) {
+                        return;
+                    }
+
+                    console.debug(`auto-champion-select: ${championId} is unavailable after refresh, trying next ${subAction.type}...`);
                     continue;
                 }
 
                 break;
             }
         }
+    }
+
+    shouldSkipChampion(subAction, championId, config) {
+        if (this.allBans.some(bannedChampionId => bannedChampionId == championId)) {
+            console.debug(`auto-champion-select: Banning ${championId} but it's already banned, skipping...`);
+            return true;
+        }
+        if (subAction.type === "ban" && this.teamIntents.some(playerIntent => playerIntent == championId)) {
+            if (config.force === true) {
+                console.debug(`auto-champion-select: Banning ${championId} but it's already picked, forcing...`);
+            } else {
+                console.debug(`auto-champion-select: Banning ${championId} but it's already picked, skipping...`);
+                return true;
+            }
+        }
+        if (subAction.type === "pick" && this.allPicks.some(player => player.championId == championId)) {
+            if (config.force === true) {
+                console.debug(`auto-champion-select: Picking ${championId} but it's already picked, forcing...`);
+            } else {
+                console.debug(`auto-champion-select: Picking ${championId} but it's already picked, skipping...`);
+                return true;
+            }
+        }
+
+        return false;
     }
 
     getLocalPlayerSubActions() {
