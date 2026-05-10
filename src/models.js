@@ -27,9 +27,9 @@ export class ChampionSelect {
         if (this.mounted) {
             return;
         }
-
         this.mounted = true;
         this.watchVersion += 1;
+
         if (!this.watchTask) {
             this.watchTask = this.watch();
         }
@@ -39,7 +39,6 @@ export class ChampionSelect {
         if (!this.mounted) {
             return;
         }
-
         this.mounted = false;
         this.watchVersion += 1;
     }
@@ -87,9 +86,11 @@ export class ChampionSelect {
 
         this.session = await sessionResponse.json();
         this.actions = this.session.actions;
+
         const completedActionBanChampionIds = this.actions.flat()
             .filter(action => action.type === "ban" && action.completed === true && action.championId > 0)
             .map(action => action.championId);
+
         this.localPlayerCellId = this.session.localPlayerCellId;
         this.allPicks = [...this.session.myTeam, ...this.session.theirTeam];
         this.allBans = [
