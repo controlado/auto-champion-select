@@ -132,6 +132,93 @@
     color: #f0e6d2;
 }
 
+.champion-priority-selector__position-badge {
+    position: absolute;
+    left: -5px;
+    bottom: -5px;
+    display: grid;
+    place-items: center;
+    width: 16px;
+    height: 16px;
+    border: 1px solid #785a28;
+    border-radius: 50%;
+    background: #010a13;
+    box-sizing: border-box;
+    pointer-events: none;
+}
+
+.champion-priority-selector__position-badge img {
+    display: block;
+    width: 10px;
+    height: 10px;
+    object-fit: contain;
+}
+
+.champion-priority-selector__position-badge::after {
+    content: attr(data-count);
+    position: absolute;
+    right: -4px;
+    top: -5px;
+    display: none;
+    min-width: 10px;
+    height: 10px;
+    border: 1px solid #785a28;
+    border-radius: 50%;
+    background: #010a13;
+    box-sizing: border-box;
+    color: #f0e6d2;
+    font-family: var(--font-body);
+    font-size: 7px;
+    font-weight: 700;
+    line-height: 8px;
+    text-align: center;
+}
+
+.champion-priority-selector__position-badge[data-count]::after {
+    display: block;
+}
+
+.champion-priority-selector__position-menu {
+    position: fixed;
+    z-index: 10002;
+    display: flex;
+    gap: 4px;
+    padding: 5px;
+    border: 1px solid #785a28;
+    background: #010a13;
+    box-shadow: 0 0 0 1px rgba(1, 10, 19, 0.85), 0 4px 16px rgba(0, 0, 0, 0.55);
+    box-sizing: border-box;
+}
+
+.champion-priority-selector__position-menu[hidden] {
+    display: none;
+}
+
+.champion-priority-selector__position-option {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 1px solid #463714;
+    background: #1e2328;
+    box-sizing: border-box;
+    cursor: pointer;
+}
+
+.champion-priority-selector__position-option:hover,
+.champion-priority-selector__position-option--selected {
+    border-color: #c8aa6e;
+    background: #0f1b2d;
+}
+
+.champion-priority-selector__position-option img {
+    display: block;
+    width: 18px;
+    height: 18px;
+    pointer-events: none;
+}
+
 .auto-select-checkboxes-div {
     display: flex;
     border-top: thin solid #1e282d;

@@ -17,7 +17,7 @@ const championSelect = new ChampionSelect();
 const autoAcceptCheckbox = new Checkbox("Accept", "controladoAutoAccept");
 
 const pickCheckbox = new Checkbox("Pick", "controladoPick");
-const pickChampionSelector = new ChampionPrioritySelector("Add pick", "controladoPick", getPlayableChampions);
+const pickChampionSelector = new ChampionPrioritySelector("Add pick", "controladoPick", getPlayableChampions, { enablePositionRestrictions: true });
 
 const banCheckbox = new Checkbox("Ban", "controladoBan");
 const banChampionSelector = new ChampionPrioritySelector("Add ban", "controladoBan", getAllChampions);

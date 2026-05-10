@@ -1,6 +1,138 @@
 import { request, sleep } from "https://cdn.jsdelivr.net/npm/balaclava-utils@latest";
 import defaultPluginConfig from "./config.json";
 
+const CHAMPION_SELECT_POSITIONS = [
+    { value: "TOP", label: "Top", iconPath: "/fe/lol-parties/icon-position-top.png" },
+    { value: "JUNGLE", label: "Jungle", iconPath: "/fe/lol-parties/icon-position-jungle.png" },
+    { value: "MIDDLE", label: "Mid", iconPath: "/fe/lol-parties/icon-position-middle.png" },
+    { value: "BOTTOM", label: "ADC", iconPath: "/fe/lol-parties/icon-position-bottom.png" },
+    { value: "UTILITY", label: "Support", iconPath: "/fe/lol-parties/icon-position-utility.png" }
+];
+const CHAMPION_SELECT_POSITION_VALUES = new Set(CHAMPION_SELECT_POSITIONS.map(position => position.value));
+
+function normalizeAssignedPosition(position) {
+    const normalizedPosition = String(position ?? "").toUpperCase();
+    return CHAMPION_SELECT_POSITION_VALUES.has(normalizedPosition) ? normalizedPosition : null;
+}
+
+function clonePositionsByChampionId(positionsByChampionId) {
+    if (!positionsByChampionId || typeof positionsByChampionId !== "object" || Array.isArray(positionsByChampionId)) {
+        return positionsByChampionId;
+    }
+
+    const clonedPositionsByChampionId = {};
+    for (const [championId, allowedPositions] of Object.entries(positionsByChampionId)) {
+        clonedPositionsByChampionId[championId] = Array.isArray(allowedPositions) ? [...allowedPositions] : allowedPositions;
+    }
+
+    return clonedPositionsByChampionId;
+}
+
+function cloneNormalizedPositionsByChampionId(positionsByChampionId) {
+    const clonedPositionsByChampionId = {};
+
+    for (const [championId, allowedPositions] of Object.entries(positionsByChampionId)) {
+        clonedPositionsByChampionId[championId] = [...allowedPositions];
+    }
+
+    return clonedPositionsByChampionId;
+}
+
+function normalizePositionsByChampionId(positionsByChampionId, selectedChampionIds = null) {
+    const normalizedPositionsByChampionId = {};
+
+    if (!positionsByChampionId || typeof positionsByChampionId !== "object" || Array.isArray(positionsByChampionId)) {
+        return normalizedPositionsByChampionId;
+    }
+
+    const selectedChampionIdKeys = selectedChampionIds
+        ? new Set(selectedChampionIds.map(championId => String(championId)))
+        : null;
+
+    for (const [championIdKey, allowedPositions] of Object.entries(positionsByChampionId)) {
+        const championId = Number(championIdKey);
+        const normalizedChampionIdKey = String(championId);
+        if (
+            !Number.isFinite(championId) ||
+            championId <= 0 ||
+            (selectedChampionIdKeys && !selectedChampionIdKeys.has(normalizedChampionIdKey)) ||
+            !Array.isArray(allowedPositions)
+        ) {
+            continue;
+        }
+
+        const normalizedAllowedPositions = [];
+        const addedPositions = new Set();
+        for (const position of allowedPositions) {
+            const normalizedPosition = normalizeAssignedPosition(position);
+            if (!normalizedPosition || addedPositions.has(normalizedPosition)) {
+                continue;
+            }
+
+            normalizedAllowedPositions.push(normalizedPosition);
+            addedPositions.add(normalizedPosition);
+        }
+
+        if (normalizedAllowedPositions.length > 0) {
+            normalizedPositionsByChampionId[normalizedChampionIdKey] = normalizedAllowedPositions;
+        }
+    }
+
+    return normalizedPositionsByChampionId;
+}
+
+function arePositionArraysEqual(currentPositions, normalizedPositions) {
+    if (!Array.isArray(currentPositions) || !Array.isArray(normalizedPositions) || currentPositions.length !== normalizedPositions.length) {
+        return false;
+    }
+
+    return currentPositions.every((position, index) => normalizeAssignedPosition(position) === normalizedPositions[index]);
+}
+
+function arePositionsByChampionIdEqual(currentPositionsByChampionId, normalizedPositionsByChampionId) {
+    if (!currentPositionsByChampionId || typeof currentPositionsByChampionId !== "object" || Array.isArray(currentPositionsByChampionId)) {
+        return Object.keys(normalizedPositionsByChampionId).length === 0;
+    }
+
+    const currentChampionIdKeys = Object.keys(currentPositionsByChampionId);
+    const normalizedChampionIdKeys = Object.keys(normalizedPositionsByChampionId);
+    if (currentChampionIdKeys.length !== normalizedChampionIdKeys.length) {
+        return false;
+    }
+
+    return currentChampionIdKeys.every(championIdKey => {
+        const championId = Number(championIdKey);
+        const normalizedChampionIdKey = String(championId);
+        return (
+            normalizedChampionIdKey === championIdKey &&
+            arePositionArraysEqual(
+                currentPositionsByChampionId[championIdKey],
+                normalizedPositionsByChampionId[normalizedChampionIdKey]
+            )
+        );
+    });
+}
+
+function getAllowedPositionsForChampion(config, championId) {
+    const normalizedChampionIdKey = String(Number(championId));
+    const positionsByChampionId = normalizePositionsByChampionId(config?.positionsByChampionId);
+    return positionsByChampionId[normalizedChampionIdKey] || [];
+}
+
+function isChampionAllowedForAssignedPosition(config, championId, assignedPosition) {
+    const allowedPositions = getAllowedPositionsForChampion(config, championId);
+    if (allowedPositions.length === 0) {
+        return true;
+    }
+
+    const normalizedAssignedPosition = normalizeAssignedPosition(assignedPosition);
+    return normalizedAssignedPosition !== null && allowedPositions.includes(normalizedAssignedPosition);
+}
+
+function getPositionMetadata(position) {
+    return CHAMPION_SELECT_POSITIONS.find(positionMetadata => positionMetadata.value === position);
+}
+
 /**
  * @author balaclava
  * @name auto-champion-select
@@ -17,6 +149,7 @@ export class ChampionSelect {
         this.teamIntents = null;
         this.allPicks = null;
         this.allBans = null;
+        this.localPlayerAssignedPosition = null;
 
         this.mounted = false;
         this.watchTask = null;
@@ -92,6 +225,9 @@ export class ChampionSelect {
             .map(action => action.championId);
 
         this.localPlayerCellId = this.session.localPlayerCellId;
+        const localPlayer = this.session.myTeam.find(player => player.cellId === this.localPlayerCellId);
+        this.localPlayerAssignedPosition = normalizeAssignedPosition(localPlayer?.assignedPosition);
+
         this.allPicks = [...this.session.myTeam, ...this.session.theirTeam];
         this.allBans = [
             ...this.session.bans.myTeamBans,
@@ -127,7 +263,8 @@ export class ChampionSelect {
                 continue;
             }
 
-            for (const championId of config.champions) {
+            const championIds = Array.isArray(config.champions) ? config.champions : [];
+            for (const championId of championIds) {
                 if (this.shouldSkipChampion(subAction, championId, config)) {
                     continue;
                 }
@@ -170,6 +307,16 @@ export class ChampionSelect {
     }
 
     shouldSkipChampion(subAction, championId, config) {
+        if (subAction.type === "pick" && !isChampionAllowedForAssignedPosition(config, championId, this.localPlayerAssignedPosition)) {
+            const allowedPositions = getAllowedPositionsForChampion(config, championId);
+            if (this.localPlayerAssignedPosition) {
+                console.debug(`auto-champion-select: Picking ${championId} but assigned position ${this.localPlayerAssignedPosition} is not in ${allowedPositions.join(", ")}, skipping...`);
+            } else {
+                console.debug(`auto-champion-select: Picking ${championId} but no assigned position is available for ${allowedPositions.join(", ")} restriction, skipping...`);
+            }
+            return true;
+        }
+
         if (this.allBans.some(bannedChampionId => bannedChampionId == championId)) {
             console.debug(`auto-champion-select: Banning ${championId} but it's already banned, skipping...`);
             return true;
@@ -215,7 +362,7 @@ export class ChampionSelect {
 }
 
 export class ChampionPrioritySelector {
-    constructor(placeholderText, configKey, championsFunction) {
+    constructor(placeholderText, configKey, championsFunction, options = {}) {
         this.element = document.createElement("div");
         this.element.classList.add("champion-priority-selector");
 
@@ -236,6 +383,12 @@ export class ChampionPrioritySelector {
         this.trackElement.classList.add("champion-priority-selector__track");
         this.scrollElement.appendChild(this.trackElement);
 
+        this.enablePositionRestrictions = options.enablePositionRestrictions === true;
+        this.positionMenuElement = this.enablePositionRestrictions ? this.createPositionMenu() : null;
+        this.positionMenuChampionId = null;
+        this.positionsByChampionId = {};
+        this.persistPositionRestrictions = false;
+
         this.emptyElement = document.createElement("div");
         this.emptyElement.classList.add("champion-priority-selector__empty");
         const emptyTitle = document.createElement("span");
@@ -246,6 +399,9 @@ export class ChampionPrioritySelector {
         this.emptyElement.append(emptyTitle, emptyHint);
 
         this.element.append(this.dropdownElement, this.scrollElement);
+        if (this.positionMenuElement) {
+            this.element.appendChild(this.positionMenuElement);
+        }
 
         this.placeholderText = placeholderText;
         this.placeholderOption = null;
@@ -263,6 +419,8 @@ export class ChampionPrioritySelector {
         this.handleWindowPointerMove = event => this.moveDrag(event);
         this.handleWindowPointerUp = event => this.finishDrag(event);
         this.handleWindowPointerCancel = event => this.cancelDrag(event);
+        this.handlePositionMenuOutsidePointerDown = event => this.closePositionMenuOnOutsidePointerDown(event);
+        this.handlePositionMenuKeyDown = event => this.closePositionMenuOnKeyDown(event);
         this.setupInFlight = null;
         this.setupPending = false;
     }
@@ -301,7 +459,21 @@ export class ChampionPrioritySelector {
         const configChanged = !this.areChampionIdsEqual(this.config.champions, normalizedChampionIds);
         this.selectedChampionIds = normalizedChampionIds;
         this.config.champions = [...this.selectedChampionIds];
-        if (configChanged) {
+
+        let positionConfigChanged = false;
+        if (this.enablePositionRestrictions) {
+            this.persistPositionRestrictions = Object.prototype.hasOwnProperty.call(this.config, "positionsByChampionId");
+            const normalizedPositionsByChampionId = normalizePositionsByChampionId(
+                this.config.positionsByChampionId,
+                this.selectedChampionIds
+            );
+            positionConfigChanged = this.persistPositionRestrictions &&
+                !arePositionsByChampionIdEqual(this.config.positionsByChampionId, normalizedPositionsByChampionId);
+            this.positionsByChampionId = normalizedPositionsByChampionId;
+            this.syncConfigPositionsByChampionId();
+        }
+
+        if (configChanged || positionConfigChanged) {
             this.saveConfig();
         }
 
@@ -320,10 +492,16 @@ export class ChampionPrioritySelector {
     getConfig() {
         const defaultConfig = defaultPluginConfig[this.configKey];
         const config = DataStore.get(this.configKey) || defaultConfig;
-        return {
+        const clonedConfig = {
             ...config,
             champions: Array.isArray(config.champions) ? [...config.champions] : []
         };
+
+        if (this.enablePositionRestrictions && Object.prototype.hasOwnProperty.call(config, "positionsByChampionId")) {
+            clonedConfig.positionsByChampionId = clonePositionsByChampionId(config.positionsByChampionId);
+        }
+
+        return clonedConfig;
     }
 
     normalizeChampions(champions) {
@@ -430,6 +608,15 @@ export class ChampionPrioritySelector {
         }
 
         this.selectedChampionIds.splice(championIndex, 1);
+        if (this.positionMenuChampionId === normalizedChampionId) {
+            this.closePositionMenu();
+        }
+
+        if (this.enablePositionRestrictions && this.positionsByChampionId[String(normalizedChampionId)]) {
+            delete this.positionsByChampionId[String(normalizedChampionId)];
+            this.persistPositionRestrictions = true;
+        }
+
         this.renderSelectedChampions();
         this.saveConfig();
     }
@@ -447,13 +634,35 @@ export class ChampionPrioritySelector {
         return currentIndex !== boundedDropIndex;
     }
 
+    syncConfigPositionsByChampionId() {
+        if (!this.enablePositionRestrictions) {
+            return;
+        }
+
+        this.positionsByChampionId = normalizePositionsByChampionId(this.positionsByChampionId, this.selectedChampionIds);
+        if (Object.keys(this.positionsByChampionId).length > 0) {
+            this.persistPositionRestrictions = true;
+        }
+
+        if (this.persistPositionRestrictions) {
+            this.config.positionsByChampionId = cloneNormalizedPositionsByChampionId(this.positionsByChampionId);
+        } else {
+            delete this.config.positionsByChampionId;
+        }
+    }
+
     saveConfig() {
         this.config.champions = [...this.selectedChampionIds];
+        this.syncConfigPositionsByChampionId();
         DataStore.set(this.configKey, this.config);
         console.debug(this.configKey, DataStore.get(this.configKey));
     }
 
     renderSelectedChampions(previousPositions = null, draggedChampionId = null) {
+        if (this.positionMenuChampionId !== null) {
+            this.closePositionMenu();
+        }
+
         const activeChampionIds = new Set(this.selectedChampionIds);
 
         for (const [championId, button] of this.iconButtons) {
@@ -494,8 +703,10 @@ export class ChampionPrioritySelector {
         }
 
         button.dataset.rank = String(index + 1);
-        button.title = `${index + 1}. ${champion.name}`;
-        button.setAttribute("aria-label", `${index + 1}. ${champion.name}`);
+        const allowedPositionLabels = this.getChampionAllowedPositionLabels(championId);
+        const positionText = allowedPositionLabels.length > 0 ? ` (${allowedPositionLabels.join(", ")})` : "";
+        button.title = `${index + 1}. ${champion.name}${positionText}`;
+        button.setAttribute("aria-label", `${index + 1}. ${champion.name}${positionText}`);
 
         const image = button.querySelector("img");
         image.src = champion.squarePortraitPath;
@@ -504,6 +715,8 @@ export class ChampionPrioritySelector {
         const removeButton = button.querySelector(".champion-priority-selector__remove");
         removeButton.setAttribute("aria-label", `Remove ${champion.name}`);
         removeButton.title = `Remove ${champion.name}`;
+
+        this.renderPositionBadge(button, championId);
 
         return button;
     }
@@ -529,9 +742,200 @@ export class ChampionPrioritySelector {
         });
 
         button.addEventListener("pointerdown", event => this.startDrag(event, champion.id));
+        if (this.enablePositionRestrictions) {
+            button.addEventListener("contextmenu", event => this.openPositionMenu(event, champion.id));
+        }
 
         button.append(image, removeButton);
         return button;
+    }
+
+    createPositionMenu() {
+        const menu = document.createElement("div");
+        menu.classList.add("champion-priority-selector__position-menu");
+        menu.hidden = true;
+
+        for (const position of CHAMPION_SELECT_POSITIONS) {
+            const button = document.createElement("button");
+            button.classList.add("champion-priority-selector__position-option");
+            button.type = "button";
+            button.dataset.position = position.value;
+            button.title = position.label;
+            button.setAttribute("aria-label", position.label);
+            button.setAttribute("aria-pressed", "false");
+            button.addEventListener("pointerdown", event => event.stopPropagation());
+            button.addEventListener("click", event => {
+                event.stopPropagation();
+                this.toggleChampionPosition(position.value);
+            });
+
+            const image = document.createElement("img");
+            image.src = position.iconPath;
+            image.alt = position.label;
+            image.draggable = false;
+
+            button.appendChild(image);
+            menu.appendChild(button);
+        }
+
+        return menu;
+    }
+
+    getChampionAllowedPositions(championId) {
+        return this.positionsByChampionId[String(Number(championId))] || [];
+    }
+
+    getChampionAllowedPositionLabels(championId) {
+        return this.getChampionAllowedPositions(championId)
+            .map(position => getPositionMetadata(position)?.label)
+            .filter(Boolean);
+    }
+
+    renderPositionBadge(button, championId) {
+        button.querySelector(".champion-priority-selector__position-badge")?.remove();
+        if (!this.enablePositionRestrictions) {
+            return;
+        }
+
+        const allowedPositions = this.getChampionAllowedPositions(championId);
+        if (allowedPositions.length === 0) {
+            return;
+        }
+
+        const firstPosition = getPositionMetadata(allowedPositions[0]);
+        if (!firstPosition) {
+            return;
+        }
+
+        const badge = document.createElement("span");
+        badge.classList.add("champion-priority-selector__position-badge");
+        badge.dataset.position = firstPosition.value;
+        badge.title = this.getChampionAllowedPositionLabels(championId).join(", ");
+        if (allowedPositions.length > 1) {
+            badge.dataset.count = String(allowedPositions.length);
+        }
+
+        const image = document.createElement("img");
+        image.src = firstPosition.iconPath;
+        image.alt = firstPosition.label;
+        image.draggable = false;
+
+        badge.appendChild(image);
+        button.appendChild(badge);
+    }
+
+    openPositionMenu(event, championId) {
+        if (!this.enablePositionRestrictions || !this.positionMenuElement) {
+            return;
+        }
+
+        const normalizedChampionId = Number(championId);
+        if (!this.selectedChampionIds.includes(normalizedChampionId)) {
+            return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        this.positionMenuChampionId = normalizedChampionId;
+        this.renderPositionMenu();
+        this.positionMenuElement.hidden = false;
+        this.positionMenuElement.style.left = "0px";
+        this.positionMenuElement.style.top = "0px";
+
+        const menuRect = this.positionMenuElement.getBoundingClientRect();
+        const margin = 8;
+        const left = Math.min(
+            Math.max(event.clientX, margin),
+            window.innerWidth - menuRect.width - margin
+        );
+        const top = Math.min(
+            Math.max(event.clientY, margin),
+            window.innerHeight - menuRect.height - margin
+        );
+
+        this.positionMenuElement.style.left = `${left}px`;
+        this.positionMenuElement.style.top = `${top}px`;
+        document.addEventListener("pointerdown", this.handlePositionMenuOutsidePointerDown, true);
+        document.addEventListener("keydown", this.handlePositionMenuKeyDown, true);
+    }
+
+    renderPositionMenu() {
+        if (!this.positionMenuElement || this.positionMenuChampionId === null) {
+            return;
+        }
+
+        const allowedPositions = new Set(this.getChampionAllowedPositions(this.positionMenuChampionId));
+        this.positionMenuElement.querySelectorAll(".champion-priority-selector__position-option").forEach(button => {
+            const selected = allowedPositions.has(button.dataset.position);
+            button.classList.toggle("champion-priority-selector__position-option--selected", selected);
+            button.setAttribute("aria-pressed", String(selected));
+        });
+    }
+
+    toggleChampionPosition(position) {
+        if (!this.enablePositionRestrictions || this.positionMenuChampionId === null) {
+            return;
+        }
+
+        const normalizedPosition = normalizeAssignedPosition(position);
+        if (!normalizedPosition) {
+            return;
+        }
+
+        const championIdKey = String(this.positionMenuChampionId);
+        const allowedPositions = new Set(this.positionsByChampionId[championIdKey] || []);
+        if (allowedPositions.has(normalizedPosition)) {
+            allowedPositions.delete(normalizedPosition);
+        } else {
+            allowedPositions.add(normalizedPosition);
+        }
+
+        const orderedAllowedPositions = CHAMPION_SELECT_POSITIONS
+            .map(positionMetadata => positionMetadata.value)
+            .filter(positionValue => allowedPositions.has(positionValue));
+
+        if (orderedAllowedPositions.length > 0) {
+            this.positionsByChampionId[championIdKey] = orderedAllowedPositions;
+        } else {
+            delete this.positionsByChampionId[championIdKey];
+        }
+
+        this.persistPositionRestrictions = true;
+        this.renderPositionMenu();
+
+        const iconButton = this.iconButtons.get(this.positionMenuChampionId);
+        const iconIndex = this.selectedChampionIds.indexOf(this.positionMenuChampionId);
+        if (iconButton && iconIndex !== -1) {
+            this.getIconButton(this.positionMenuChampionId, iconIndex);
+        }
+
+        this.saveConfig();
+    }
+
+    closePositionMenuOnOutsidePointerDown(event) {
+        if (this.positionMenuElement?.contains(event.target)) {
+            return;
+        }
+
+        this.closePositionMenu();
+    }
+
+    closePositionMenuOnKeyDown(event) {
+        if (event.key === "Escape") {
+            this.closePositionMenu();
+        }
+    }
+
+    closePositionMenu() {
+        if (!this.positionMenuElement) {
+            return;
+        }
+
+        this.positionMenuElement.hidden = true;
+        this.positionMenuChampionId = null;
+        document.removeEventListener("pointerdown", this.handlePositionMenuOutsidePointerDown, true);
+        document.removeEventListener("keydown", this.handlePositionMenuKeyDown, true);
     }
 
     startDrag(event, championId) {
@@ -559,7 +963,7 @@ export class ChampionPrioritySelector {
 
         try {
             iconButton.setPointerCapture?.(event.pointerId);
-        } catch {}
+        } catch { }
 
         window.addEventListener("pointermove", this.handleWindowPointerMove);
         window.addEventListener("pointerup", this.handleWindowPointerUp);
@@ -630,9 +1034,7 @@ export class ChampionPrioritySelector {
         const { championId, pointerId } = this.dragState;
         const iconButton = this.iconButtons.get(championId);
         iconButton?.classList.remove("champion-priority-selector__icon--dragging");
-        try {
-            iconButton?.releasePointerCapture?.(pointerId);
-        } catch {}
+        try { iconButton?.releasePointerCapture?.(pointerId); } catch { }
         window.removeEventListener("pointermove", this.handleWindowPointerMove);
         window.removeEventListener("pointerup", this.handleWindowPointerUp);
         window.removeEventListener("pointercancel", this.handleWindowPointerCancel);
@@ -917,7 +1319,7 @@ export class ChampionPrioritySelector {
                 color: #f3d7a5;
                 font-size: 11px;
                 font-weight: 600;
-                letter-spacing: 0.4px;
+                letter-spacing: 0;
                 text-transform: uppercase;
                 white-space: nowrap;
                 box-shadow: inset 0 0 8px rgba(15, 30, 45, 0.6);
