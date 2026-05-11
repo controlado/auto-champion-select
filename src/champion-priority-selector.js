@@ -498,19 +498,41 @@ export class ChampionPrioritySelector {
             return;
         }
 
+        const badge = this.createPositionBadge(championId);
+        if (badge) {
+            button.appendChild(badge);
+        }
+    }
+
+    /**
+     * @param {number} championId
+     * @returns {HTMLButtonElement | null}
+     */
+    createPositionBadge(championId) {
         const allowedPositions = this.getChampionAllowedPositions(championId);
+        const allowedPositionLabels = this.getChampionAllowedPositionLabels(championId);
+
+        const badge = document.createElement("button");
+        badge.classList.add("champion-priority-selector__position-badge");
+        badge.type = "button";
+        badge.title = allowedPositionLabels.length > 0
+            ? `${allowedPositionLabels.join(", ")}. Click to edit positions.`
+            : "Any position. Click to restrict positions.";
+        badge.setAttribute("aria-label", badge.title);
+        badge.addEventListener("pointerdown", event => event.stopPropagation());
+        badge.addEventListener("click", event => this.openPositionMenu(event, championId, badge));
+
         if (allowedPositions.length === 0) {
-            return;
+            badge.classList.add("champion-priority-selector__position-badge--empty");
+            badge.innerText = "+";
+            return badge;
         }
 
         const firstPosition = getPositionMetadata(allowedPositions[0]);
         if (!firstPosition) {
-            return;
+            return null;
         }
 
-        const badge = document.createElement("span");
-        badge.classList.add("champion-priority-selector__position-badge");
-        badge.title = this.getChampionAllowedPositionLabels(championId).join(", ");
         if (allowedPositions.length > 1) {
             badge.dataset.count = String(allowedPositions.length);
         }
@@ -521,15 +543,16 @@ export class ChampionPrioritySelector {
         image.draggable = false;
 
         badge.appendChild(image);
-        button.appendChild(badge);
+        return badge;
     }
 
     /**
      * @param {MouseEvent} event
      * @param {unknown} championId
+     * @param {HTMLElement | null} [anchorElement]
      * @returns {void}
      */
-    openPositionMenu(event, championId) {
+    openPositionMenu(event, championId, anchorElement = null) {
         if (!this.enablePositionRestrictions || !this.positionMenuElement) {
             return;
         }
@@ -548,7 +571,7 @@ export class ChampionPrioritySelector {
         this.positionMenuElement.style.left = "0px";
         this.positionMenuElement.style.top = "0px";
 
-        const { left, top } = this.getPositionMenuCoordinates(event);
+        const { left, top } = this.getPositionMenuCoordinates(event, anchorElement);
         this.positionMenuElement.style.left = `${left}px`;
         this.positionMenuElement.style.top = `${top}px`;
         document.addEventListener("pointerdown", this.handlePositionMenuOutsidePointerDown, true);
@@ -557,16 +580,26 @@ export class ChampionPrioritySelector {
 
     /**
      * @param {MouseEvent} event
+     * @param {HTMLElement | null} [anchorElement]
      * @returns {{left: number, top: number}}
      */
-    getPositionMenuCoordinates(event) {
+    getPositionMenuCoordinates(event, anchorElement = null) {
         const menuRect = this.positionMenuElement.getBoundingClientRect();
+        let clientX = event.clientX;
+        let clientY = event.clientY;
+
+        if (anchorElement && event.type === "click" && event.detail === 0) {
+            const anchorRect = anchorElement.getBoundingClientRect();
+            clientX = anchorRect.left + anchorRect.width / 2;
+            clientY = anchorRect.bottom;
+        }
+
         const left = Math.min(
-            Math.max(event.clientX, POSITION_MENU_VIEWPORT_MARGIN_PX),
+            Math.max(clientX, POSITION_MENU_VIEWPORT_MARGIN_PX),
             window.innerWidth - menuRect.width - POSITION_MENU_VIEWPORT_MARGIN_PX
         );
         const top = Math.min(
-            Math.max(event.clientY, POSITION_MENU_VIEWPORT_MARGIN_PX),
+            Math.max(clientY, POSITION_MENU_VIEWPORT_MARGIN_PX),
             window.innerHeight - menuRect.height - POSITION_MENU_VIEWPORT_MARGIN_PX
         );
 

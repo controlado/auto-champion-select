@@ -140,11 +140,29 @@
     place-items: center;
     width: 16px;
     height: 16px;
+    appearance: none;
+    padding: 0;
     border: 1px solid #785a28;
     border-radius: 50%;
     background: #010a13;
     box-sizing: border-box;
-    pointer-events: none;
+    color: #c8aa6e;
+    cursor: pointer;
+    font-family: var(--font-body);
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 14px;
+}
+
+.champion-priority-selector__position-badge:hover,
+.champion-priority-selector__position-badge:focus {
+    border-color: #c8aa6e;
+    color: #f0e6d2;
+    outline: none;
+}
+
+.champion-priority-selector__position-badge--empty {
+    background: #1e2328;
 }
 
 .champion-priority-selector__position-badge img {
