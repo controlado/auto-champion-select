@@ -116,6 +116,8 @@ export class ChampionSelect {
         this.localPlayerCellId = null;
         /** @type {Set<number>} */
         this.teammateIntentChampionIds = new Set();
+        /** @type {number | null} */
+        this.localPlayerIntentChampionId = null;
         /** @type {Set<number>} */
         this.pickedChampionIds = new Set();
         /** @type {Set<number>} */
@@ -198,6 +200,7 @@ export class ChampionSelect {
         const opposingTeam = getTeamPlayers(this.session.theirTeam);
         const localPlayer = alliedTeam.find(player => player.cellId === this.localPlayerCellId);
         this.localPlayerAssignedPosition = normalizePosition(localPlayer?.assignedPosition);
+        this.localPlayerIntentChampionId = toChampionId(localPlayer?.championPickIntent);
 
         this.pickedChampionIds = championIdSetFromValues([...alliedTeam, ...opposingTeam].map(player => player.championId));
         this.bannedChampionIds = championIdSetFromValues([
@@ -293,6 +296,10 @@ export class ChampionSelect {
             return ACTION_ATTEMPT_RESULT.TRY_NEXT_CHAMPION;
         }
 
+        if (this.isPickIntentAlreadyApplied(action, normalizedChampionId)) {
+            return ACTION_ATTEMPT_RESULT.APPLIED;
+        }
+
         console.debug(`auto-champion-select: Trying to ${action.type} ${normalizedChampionId}...`);
         const response = await this.selectChampion(action.id, normalizedChampionId);
         if (response.ok) {
@@ -311,6 +318,17 @@ export class ChampionSelect {
 
         console.debug(`auto-champion-select: ${normalizedChampionId} is unavailable after refresh, trying next ${action.type}...`);
         return ACTION_ATTEMPT_RESULT.TRY_NEXT_CHAMPION;
+    }
+
+    /**
+     * @param {ChampSelectAction} action
+     * @param {number} championId
+     * @returns {boolean}
+     */
+    isPickIntentAlreadyApplied(action, championId) {
+        return action.type === "pick" &&
+            action.isInProgress !== true &&
+            (this.localPlayerIntentChampionId === championId || toChampionId(action.championId) === championId);
     }
 
     /**
