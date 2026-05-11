@@ -1,9 +1,59 @@
 import { request, sleep, linkEndpoint } from "https://cdn.jsdelivr.net/npm/balaclava-utils@latest";
-import { ChampionSelect, ChampionSelectMenu, ChampionPrioritySelector, Checkbox, SocialSection } from "./models.js";
-import { AutoPickSwitchAction, AutoBanSwitchAction, ForcePickSwitchAction, ForceBanSwitchAction, RefreshDropdownsAction, addActions } from "./actions.js";
-
 import { version } from "../package.json";
+import { readConfig } from "./config-store.js";
+import { getPlayableChampions, getAllChampions } from "./champion-data.js";
+import { ChampionSelect } from "./champion-select.js";
+import { ChampionPrioritySelector } from "./champion-priority-selector.js";
+import { ChampSelectControlsMenu, ConfigToggle, SocialRosterSection } from "./ui.js";
+import { AutoPickSwitchAction, AutoBanSwitchAction, ForcePickSwitchAction, ForceBanSwitchAction, RefreshDropdownsAction, addActions } from "./actions.js";
+import { LEAGUE_CLIENT_ENDPOINTS } from "./league-client-endpoints.js";
+import { getChampSelectButtonsContainer, getSocialRosterContainer } from "./league-client-dom.js";
 import "./assets/style.css";
+
+/**
+ * @typedef {"ReadyCheck" | "ChampSelect" | string | null} GameflowPhase
+ *
+ * @typedef {Object} LeagueEndpointEvent
+ * @property {unknown} data
+ * @property {string} [eventType]
+ *
+ * @typedef {Object} GameflowPhaseEvent
+ * @property {GameflowPhase} data
+ *
+ * @typedef {Object} SharedControls
+ * @property {ChampionSelect} championSelect
+ * @property {ConfigToggle} autoAcceptToggle
+ * @property {ConfigToggle} pickToggle
+ * @property {ConfigToggle} banToggle
+ * @property {ChampionPrioritySelector} pickChampionSelector
+ * @property {ChampionPrioritySelector} banChampionSelector
+ * @property {HTMLDivElement} selectorsContainer
+ * @property {HTMLDivElement} checkboxesContainer
+ * @property {SocialRosterSection} pluginSection
+ * @property {ChampionPrioritySelector[]} championSelectors
+ *
+ * @typedef {Object} PluginRuntime
+ * @property {ChampionSelect} championSelect
+ * @property {ConfigToggle} autoAcceptToggle
+ * @property {ConfigToggle} pickToggle
+ * @property {ConfigToggle} banToggle
+ * @property {ChampionPrioritySelector} pickChampionSelector
+ * @property {ChampionPrioritySelector} banChampionSelector
+ * @property {HTMLDivElement} selectorsContainer
+ * @property {HTMLDivElement} checkboxesContainer
+ * @property {SocialRosterSection} pluginSection
+ * @property {ChampionPrioritySelector[]} championSelectors
+ * @property {ChampSelectControlsMenu} champSelectControlsMenu
+ * @property {() => void} setupToggles
+ * @property {() => Promise<void>} setupChampionSelectors
+ * @property {() => Promise<void>} refreshChampionSelectors
+ * @property {() => Promise<void>} refreshPickChampionSelector
+ * @property {(phase: GameflowPhase) => Promise<void>} handleGameflowPhase
+ *
+ * @typedef {Object} ControlsPlacementManager
+ * @property {(callback: () => boolean) => void} setIsChampSelectControlsMounted
+ * @property {() => Promise<void>} returnControlsToSocialRoster
+ */
 
 /**
  * @author balaclava
@@ -12,76 +62,28 @@ import "./assets/style.css";
  * @description Pick or ban automatically! 🐧
  */
 
-const championSelect = new ChampionSelect();
+const READY_CHECK_ACCEPT_DELAY_MS = 2000;
+const SOCIAL_ROSTER_RETRY_DELAY_MS = 200;
+const CHAMP_SELECT_RECOVERY_OBSERVER_TIMEOUT_MS = 60000;
 
-const autoAcceptCheckbox = new Checkbox("Accept", "controladoAutoAccept");
+const PLUGIN_CHAMP_SELECT_MENU_HEADER_SELECTOR = ".auto-select-champ-select-menu__header";
 
-const pickCheckbox = new Checkbox("Pick", "controladoPick");
-const pickChampionSelector = new ChampionPrioritySelector("Add pick", "controladoPick", getPlayableChampions, { enablePositionRestrictions: true });
-
-const banCheckbox = new Checkbox("Ban", "controladoBan");
-const banChampionSelector = new ChampionPrioritySelector("Add ban", "controladoBan", getAllChampions);
-
-function getSocialContainer() {
-    return document.querySelector(".lol-social-roster");
-}
-
-let playableChampionsTask = null;
-let allChampionsTask = null;
-
-function getPlayableChampions() {
-    if (!playableChampionsTask) {
-        playableChampionsTask = fetchPlayableChampions()
-            .finally(() => {
-                playableChampionsTask = null;
-            });
-    }
-
-    return playableChampionsTask;
-}
-
-async function fetchPlayableChampions() {
-    let response = await request("GET", "/lol-champions/v1/owned-champions-minimal");
-
-    while (!response.ok) {
-        console.debug("auto-champion-select(owned-champions-minimal): Retrying...");
-        response = await request("GET", "/lol-champions/v1/owned-champions-minimal");
-        await sleep(1000); // endpoint /lol-champions/v1/owned-champions-minimal returns 404 at startup
-    }
-
-    const responseData = await response.json();
-    responseData.sort((a, b) => a.name.localeCompare(b.name));
-    return responseData;
-}
-
-function getAllChampions() {
-    if (!allChampionsTask) {
-        allChampionsTask = fetchAllChampions()
-            .finally(() => {
-                allChampionsTask = null;
-            });
-    }
-
-    return allChampionsTask;
-}
-
-async function fetchAllChampions() {
-    const response = await request("GET", "/lol-game-data/assets/v1/champion-summary.json");
-    const responseData = await response.json();
-    responseData.sort((a, b) => a.name.localeCompare(b.name));
-    return responseData;
-}
+const CONFIG_KEYS = Object.freeze({
+    autoAccept: "controladoAutoAccept",
+    pick: "controladoPick",
+    ban: "controladoBan"
+});
 
 async function onReadyCheck() {
-    if (autoAcceptCheckbox.config?.enabled === true) {
+    if (readConfig(CONFIG_KEYS.autoAccept).enabled === true) {
         console.debug("auto-champion-select(auto-accept): Ready check detected, accepting in 2 seconds...");
-        await sleep(2000);
+        await sleep(READY_CHECK_ACCEPT_DELAY_MS);
         await autoAccept();
     }
 }
 
 async function autoAccept() {
-    const response = await request("POST", "/lol-matchmaking/v1/ready-check/accept");
+    const response = await request("POST", LEAGUE_CLIENT_ENDPOINTS.readyCheckAccept);
     if (response.ok) {
         console.debug("auto-champion-select(auto-accept): Accepted ready check");
     } else {
@@ -89,197 +91,346 @@ async function autoAccept() {
     }
 }
 
-function createGameflowPhaseHandler({ championSelect, championSelectMenu, setupChampionSelectors }) {
+/**
+ * @param {PluginRuntime} runtime
+ * @returns {Promise<void>}
+ */
+async function syncInitialGameflowPhase(runtime) {
+    const response = await request("GET", LEAGUE_CLIENT_ENDPOINTS.gameflowPhase);
+    const phase = response.ok ? await response.json() : null;
+    void runtime.handleGameflowPhase(phase);
+}
+
+/**
+ * @param {{championSelect: ChampionSelect, champSelectControlsMenu: ChampSelectControlsMenu, setupChampionSelectors: () => Promise<void>}} runtime
+ * @returns {(phase: GameflowPhase) => Promise<void>}
+ */
+function createGameflowPhaseHandler({ championSelect, champSelectControlsMenu, setupChampionSelectors }) {
     let gameflowPhaseVersion = 0;
 
-    return function handleGameflowPhase(phase) {
-        const version = ++gameflowPhaseVersion;
+    return async function handleGameflowPhase(phase) {
+        const phaseVersion = ++gameflowPhaseVersion;
+        try {
+            await onGameflowPhase(phase, phaseVersion);
+        } catch (error) {
+            console.error("auto-champion-select: Failed to handle gameflow phase", error);
+        }
+    };
 
-        onGameflowPhase(phase, version)
-            .catch(error => console.error("auto-champion-select: Failed to handle gameflow phase", error));
-    }
-
-    async function onGameflowPhase(phase, version) {
-        if (phase === "ReadyCheck") { onReadyCheck(); }
+    /**
+     * @param {GameflowPhase} phase
+     * @param {number} phaseVersion
+     * @returns {Promise<void>}
+     */
+    async function onGameflowPhase(phase, phaseVersion) {
+        if (phase === "ReadyCheck") {
+            void onReadyCheck().catch(error => console.error("auto-champion-select(auto-accept): Failed to handle ready check", error));
+        }
 
         await mountControlsForPhase(phase);
 
-        if (version !== gameflowPhaseVersion) {
-            return;
+        if (phaseVersion === gameflowPhaseVersion) {
+            await setupChampionSelectors();
         }
-
-        await setupChampionSelectors();
     }
 
+    /**
+     * @param {GameflowPhase} phase
+     * @returns {Promise<void>}
+     */
     async function mountControlsForPhase(phase) {
         if (phase === "ChampSelect") {
             championSelect.mount();
-            await championSelectMenu.mount();
+            await champSelectControlsMenu.mount();
         } else {
             championSelect.unmount();
-            await championSelectMenu.unmount();
+            await champSelectControlsMenu.unmount();
         }
     }
 }
 
-async function main() {
-    const selectorsContainer = document.createElement("div");
-    const checkboxesContainer = document.createElement("div");
-    checkboxesContainer.classList.add("auto-select-checkboxes-div");
+/**
+ * @returns {SharedControls}
+ */
+function createSharedControls() {
+    const championSelect = new ChampionSelect();
 
-    checkboxesContainer.append(autoAcceptCheckbox.element, pickCheckbox.element, banCheckbox.element);
-    selectorsContainer.append(pickChampionSelector.element, banChampionSelector.element);
+    const autoAcceptToggle = new ConfigToggle("Accept", CONFIG_KEYS.autoAccept);
+    const pickToggle = new ConfigToggle("Pick", CONFIG_KEYS.pick);
+    const pickChampionSelector = new ChampionPrioritySelector(
+        "Add pick",
+        CONFIG_KEYS.pick,
+        getPlayableChampions,
+        { enablePositionRestrictions: true }
+    );
 
-    const pluginSection = new SocialSection("Auto champion select", selectorsContainer, checkboxesContainer);
-    const championSelectors = [
+    const banToggle = new ConfigToggle("Ban", CONFIG_KEYS.ban);
+    const banChampionSelector = new ChampionPrioritySelector(
+        "Add ban",
+        CONFIG_KEYS.ban,
+        getAllChampions
+    );
+
+    const selectorsContainer = createSelectorsContainer(pickChampionSelector, banChampionSelector);
+    const checkboxesContainer = createCheckboxesContainer(autoAcceptToggle, pickToggle, banToggle);
+
+    const pluginSection = new SocialRosterSection("Auto champion select", selectorsContainer, checkboxesContainer);
+    const championSelectors = [pickChampionSelector, banChampionSelector];
+
+    return {
+        championSelect,
+        autoAcceptToggle,
+        pickToggle,
+        banToggle,
         pickChampionSelector,
         banChampionSelector,
-    ];
+        selectorsContainer,
+        checkboxesContainer,
+        pluginSection,
+        championSelectors
+    };
+}
 
-    let championSelectMenu;
-    let restoreControlsTask = null;
-    let restoreControlsVersion = 0;
+/**
+ * @param {...ChampionPrioritySelector} selectors
+ * @returns {HTMLDivElement}
+ */
+function createSelectorsContainer(...selectors) {
+    const container = document.createElement("div");
+    container.append(...selectors.map(selector => selector.element));
+    return container;
+}
 
-    async function appendControlsToSocial(version) {
-        let socialContainer = getSocialContainer();
+/**
+ * @param {...ConfigToggle} toggles
+ * @returns {HTMLDivElement}
+ */
+function createCheckboxesContainer(...toggles) {
+    const container = document.createElement("div");
+    container.classList.add("auto-select-checkboxes-div");
+    container.append(...toggles.map(toggle => toggle.element));
+    return container;
+}
+
+/**
+ * @param {{pluginSection: SocialRosterSection, checkboxesContainer: HTMLDivElement, selectorsContainer: HTMLDivElement}} controls
+ * @returns {ControlsPlacementManager}
+ */
+function createControlsPlacementManager({ pluginSection, checkboxesContainer, selectorsContainer }) {
+    let returnControlsTask = null;
+    let controlsPlacementVersion = 0;
+    let isChampSelectControlsMounted = () => false;
+
+    /**
+     * @param {number} version
+     * @returns {Promise<void>}
+     */
+    async function appendControlsToSocialRoster(version) {
+        let socialContainer = getSocialRosterContainer();
 
         while (!socialContainer) {
-            if (championSelectMenu.mounted || version !== restoreControlsVersion) {
+            if (isChampSelectControlsMounted() || version !== controlsPlacementVersion) {
                 return;
             }
 
-            await sleep(200); // not available during startup or champion select reloads
-            socialContainer = getSocialContainer();
+            await sleep(SOCIAL_ROSTER_RETRY_DELAY_MS); // not available during startup or champion select reloads
+            socialContainer = getSocialRosterContainer();
         }
 
-        if (championSelectMenu.mounted || version !== restoreControlsVersion) {
+        if (isChampSelectControlsMounted() || version !== controlsPlacementVersion) {
             return;
         }
 
         socialContainer.append(pluginSection.element, checkboxesContainer, selectorsContainer);
     }
 
-    function restoreControls() {
-        if (restoreControlsTask) {
-            return restoreControlsTask;
+    return {
+        setIsChampSelectControlsMounted(callback) {
+            isChampSelectControlsMounted = callback;
+        },
+
+        returnControlsToSocialRoster() {
+            if (returnControlsTask) {
+                return returnControlsTask;
+            }
+
+            const version = ++controlsPlacementVersion;
+            returnControlsTask = appendControlsToSocialRoster(version)
+                .catch(error => console.error("auto-champion-select: Failed to return controls to social roster", error))
+                .finally(() => {
+                    returnControlsTask = null;
+                });
+
+            return returnControlsTask;
         }
+    };
+}
 
-        const version = ++restoreControlsVersion;
-        restoreControlsTask = appendControlsToSocial(version)
-            .catch(error => console.error("auto-champion-select: Failed to restore controls", error))
-            .finally(() => {
-                restoreControlsTask = null;
-            });
+/**
+ * @param {{autoAcceptToggle: ConfigToggle, pickToggle: ConfigToggle, banToggle: ConfigToggle}} controls
+ * @returns {void}
+ */
+function setupConfigToggles({ autoAcceptToggle, pickToggle, banToggle }) {
+    autoAcceptToggle.setup();
+    pickToggle.setup();
+    banToggle.setup();
+}
 
-        return restoreControlsTask;
-    }
+/**
+ * @param {ChampionPrioritySelector[]} championSelectors
+ * @returns {Promise<void>}
+ */
+async function setupChampionSelectors(championSelectors) {
+    await Promise.all(championSelectors.map(selector => selector.setup()));
+}
 
-    championSelectMenu = new ChampionSelectMenu(
+/**
+ * @param {ChampionPrioritySelector[]} championSelectors
+ * @returns {Promise<void>}
+ */
+async function refreshChampionSelectors(championSelectors) {
+    await Promise.all(championSelectors.map(selector => selector.refresh()));
+}
+
+/**
+ * @returns {PluginRuntime}
+ */
+function createPluginRuntime() {
+    const controls = createSharedControls();
+    const controlsPlacementManager = createControlsPlacementManager(controls);
+    const champSelectControlsMenu = new ChampSelectControlsMenu(
         "Auto Champion Select",
-        restoreControls,
-        checkboxesContainer,
-        selectorsContainer,
+        controlsPlacementManager.returnControlsToSocialRoster,
+        [controls.checkboxesContainer, controls.selectorsContainer]
     );
+    controlsPlacementManager.setIsChampSelectControlsMounted(() => champSelectControlsMenu.mounted);
 
-    autoAcceptCheckbox.setup();
-    pickCheckbox.setup();
-    banCheckbox.setup();
+    const runtime = {
+        ...controls,
+        champSelectControlsMenu,
+        setupToggles: () => setupConfigToggles(controls),
+        setupChampionSelectors: () => setupChampionSelectors(controls.championSelectors),
+        refreshChampionSelectors: () => refreshChampionSelectors(controls.championSelectors),
+        refreshPickChampionSelector: async () => {
+            await controls.pickChampionSelector.refresh();
+        }
+    };
 
-    const handleGameflowPhase = createGameflowPhaseHandler({
-        championSelect,
-        championSelectMenu,
-        setupChampionSelectors,
+    runtime.handleGameflowPhase = createGameflowPhaseHandler(runtime);
+    return runtime;
+}
+
+/**
+ * @param {PluginRuntime} runtime
+ * @returns {void}
+ */
+function registerLeagueClientSubscriptions(runtime) {
+    linkEndpoint(LEAGUE_CLIENT_ENDPOINTS.gameflowPhase, /** @param {GameflowPhaseEvent} parsedEvent */ parsedEvent => {
+        runtime.handleGameflowPhase(parsedEvent.data);
     });
 
-    linkEndpoint("/lol-gameflow/v1/gameflow-phase", parsedEvent => {
-        handleGameflowPhase(parsedEvent.data);
-    });
-
-    const gameflowPhaseResponse = await request("GET", "/lol-gameflow/v1/gameflow-phase");
-    if (gameflowPhaseResponse.ok) {
-        handleGameflowPhase(await gameflowPhaseResponse.json());
-    } else {
-        handleGameflowPhase(null);
-    }
-
-    observeChampionSelectView();
-
-    addActions([
-        new AutoPickSwitchAction(() => pickCheckbox.toggle()),
-        new AutoBanSwitchAction(() => banCheckbox.toggle()),
-        new ForcePickSwitchAction(),
-        new ForceBanSwitchAction(),
-        new RefreshDropdownsAction([
-            pickChampionSelector,
-            banChampionSelector,
-        ]),
-    ]);
-
-    linkEndpoint("/lol-inventory/v1/wallet", async parsedEvent => {
+    linkEndpoint(LEAGUE_CLIENT_ENDPOINTS.wallet, /** @param {LeagueEndpointEvent} parsedEvent */ async parsedEvent => {
         if (parsedEvent.eventType === "Update") {
             console.debug("auto-champion-select(wallet): Refreshing champion selectors...");
-            await pickChampionSelector.refresh();
+            try {
+                await runtime.refreshPickChampionSelector();
+            } catch (error) {
+                console.error("auto-champion-select(wallet): Failed to refresh champion selectors", error);
+            }
         }
     });
+}
+
+/**
+ * @param {{pickToggle: ConfigToggle, banToggle: ConfigToggle, refreshChampionSelectors: () => Promise<void>}} runtime
+ * @returns {void}
+ */
+function registerCommandActions({ pickToggle, banToggle, refreshChampionSelectors }) {
+    addActions([
+        new AutoPickSwitchAction(() => pickToggle.toggle()),
+        new AutoBanSwitchAction(() => banToggle.toggle()),
+        new ForcePickSwitchAction(),
+        new ForceBanSwitchAction(),
+        new RefreshDropdownsAction(refreshChampionSelectors)
+    ]);
+}
+
+/**
+ * @param {PluginRuntime} runtime
+ * @returns {void}
+ */
+function observeInitialChampSelectRecovery(runtime) {
+    let syncFrame = null;
+    let observer = null;
+
+    function stopObservingChampionSelectView() {
+        observer?.disconnect();
+        observer = null;
+
+        if (syncFrame !== null) {
+            cancelAnimationFrame(syncFrame);
+            syncFrame = null;
+        }
+    }
+
+    const observerTimeoutId = setTimeout(() => {
+        stopObservingChampionSelectView();
+    }, CHAMP_SELECT_RECOVERY_OBSERVER_TIMEOUT_MS);
+
+    function reconcileChampionSelectView() {
+        const hasChampionSelectButtons = getChampSelectButtonsContainer() !== null;
+        if (!hasChampionSelectButtons) {
+            return;
+        }
+
+        clearTimeout(observerTimeoutId);
+        stopObservingChampionSelectView();
+
+        const hasPluginButton = document.querySelector(PLUGIN_CHAMP_SELECT_MENU_HEADER_SELECTOR) !== null;
+        if (!hasPluginButton) {
+            runtime.handleGameflowPhase("ChampSelect");
+        }
+    }
+
+    observer = new MutationObserver(() => {
+        if (syncFrame !== null) {
+            return;
+        }
+
+        syncFrame = requestAnimationFrame(() => {
+            syncFrame = null;
+            reconcileChampionSelectView();
+        });
+    });
+
+    observer.observe(document.body, { childList: true, subtree: true });
+    reconcileChampionSelectView();
+}
+
+/**
+ * @returns {Promise<void>}
+ */
+async function main() {
+    const runtime = createPluginRuntime();
+
+    runtime.setupToggles();
+
+    registerCommandActions(runtime);
+    registerLeagueClientSubscriptions(runtime);
+
+    await syncInitialGameflowPhase(runtime);
+    observeInitialChampSelectRecovery(runtime);
 
     console.debug(`auto-champion-select(${version}): Report bugs to Balaclava#1912`);
-
-    function setupChampionSelectors() {
-        return Promise.all(championSelectors.map(selector => selector.setup()));
-    }
-
-    function observeChampionSelectView() {
-        const championSelectObserverTimeout = 60000;
-        let syncFrame = null;
-        let observer = null;
-
-        function stopObservingChampionSelectView() {
-            observer?.disconnect();
-            observer = null;
-
-            if (syncFrame !== null) {
-                cancelAnimationFrame(syncFrame);
-                syncFrame = null;
-            }
-        }
-
-        const observerTimeoutId = setTimeout(() => {
-            stopObservingChampionSelectView();
-        }, championSelectObserverTimeout);
-
-        function reconcileChampionSelectView() {
-            const hasChampionSelectButtons = document.querySelector(".bottom-right-buttons") !== null;
-            if (!hasChampionSelectButtons) {
-                return;
-            }
-
-            clearTimeout(observerTimeoutId);
-            stopObservingChampionSelectView();
-
-            const hasPluginButton = document.querySelector(".auto-select-champ-select-menu__header") !== null;
-            if (!hasPluginButton) {
-                handleGameflowPhase("ChampSelect");
-            }
-        }
-
-        observer = new MutationObserver(() => {
-            if (syncFrame !== null) {
-                return;
-            }
-
-            syncFrame = requestAnimationFrame(() => {
-                syncFrame = null;
-                reconcileChampionSelectView();
-            });
-        });
-
-        observer.observe(document.body, { childList: true, subtree: true });
-        reconcileChampionSelectView();
-    }
 }
 
 let initialized = false;
 
+/**
+ * Pengu Loader entrypoint.
+ *
+ * @returns {void}
+ */
 export function load() {
     if (initialized) {
         return;
@@ -289,6 +440,9 @@ export function load() {
     main().catch(error => console.error("auto-champion-select: Failed to initialize", error));
 }
 
+// support both Pengu's exported load entrypoint and
+// direct import-only installs; initialized prevents
+// double startup.
 if (document.readyState === "loading") {
     window.addEventListener("load", load, { once: true });
 } else {

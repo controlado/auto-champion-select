@@ -6,17 +6,27 @@
         "enabled": false,
         "force": false,
         "champions": [
-            21,
-            21
+            432,
+            235
         ],
-        "positionsByChampionId": {}
+        "positionsByChampionId": {
+            "432": [
+                "UTILITY"
+            ],
+            "235": [
+                "BOTTOM",
+                "UTILITY"
+            ]
+        }
     },
     "controladoBan": {
         "enabled": false,
         "force": false,
         "champions": [
-            21,
-            21
+            157,
+            777,
+            238,
+            38
         ]
     }
 }

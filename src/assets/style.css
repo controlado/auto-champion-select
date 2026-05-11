@@ -1,6 +1,6 @@
 .dropdown-champions-default {
     position: inherit;
-    width: -webkit-fill-available;
+    inline-size: 100%;
 }
 
 .dropdown-champions-default.dropdown-drop-up::part(ui-dropdown-menu),
@@ -19,7 +19,7 @@
 
 .champion-priority-selector__scroll {
     position: relative;
-    width: -webkit-fill-available;
+    inline-size: 100%;
     height: 58px;
     border: 1px solid rgba(120, 90, 40, 0.7);
     border-top: 0;
