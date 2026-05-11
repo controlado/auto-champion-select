@@ -34,6 +34,10 @@ const DROPDOWN_SEARCH_SHADOW_STYLES = `
         padding-right: 28px;
     }
 
+    ${LEAGUE_CLIENT_SELECTORS.dropdownCurrent}::after {
+        display: none;
+    }
+
     ${LEAGUE_CLIENT_SELECTORS.dropdownOptionsContainer} {
         position: absolute;
         top: auto;
