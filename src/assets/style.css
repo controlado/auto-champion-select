@@ -270,7 +270,6 @@
     display: block;
     width: 38px;
     height: 32px;
-    z-index: 10000;
     flex: 0 0 38px;
     box-sizing: border-box;
 }
@@ -292,32 +291,6 @@
     padding: 0;
 }
 
-.auto-select-champ-select-menu-button-wrapper::after {
-    content: "🐧 New";
-    position: absolute;
-    left: 50%;
-    top: -8px;
-    z-index: 2;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 16px;
-    box-sizing: border-box;
-    min-width: 44px;
-    padding: 0 5px;
-    border-radius: 3px;
-    background-color: #ffe610;
-    box-shadow: rgba(1, 10, 19, 0.5) 0 0 2px;
-    color: #010a13;
-    font-family: var(--font-body);
-    font-size: 12px;
-    font-weight: 700;
-    line-height: 16px;
-    pointer-events: none;
-    transform: translateX(-50%);
-    white-space: nowrap;
-}
-
 .auto-select-champ-select-menu__header::before {
     content: "";
     position: absolute;
@@ -330,6 +303,38 @@
     transform: translate(-50%, -50%);
 }
 
+@keyframes auto-select-champ-select-menu-mark-pulse {
+    0% {
+        filter: brightness(1);
+        box-shadow: #c89b3c 0 0 0 0;
+    }
+
+    15% {
+        filter: brightness(1);
+        box-shadow: #c89b3c 0 0 0 0;
+    }
+
+    100% {
+        filter: brightness(2);
+        box-shadow: #c89b3c 0 0 12px 2px;
+    }
+}
+
+.auto-select-champ-select-menu__header::after {
+    content: "";
+    position: absolute;
+    right: 5px;
+    top: 5px;
+    width: 6px;
+    height: 6px;
+    border: 0;
+    border-radius: 50%;
+    background: #c89b3c;
+    box-sizing: border-box;
+    pointer-events: none;
+    animation: auto-select-champ-select-menu-mark-pulse 0.9s ease-in-out infinite alternate;
+}
+
 .auto-select-champ-select-menu__header:hover {
     background-position: 0 -32px;
 }
@@ -340,6 +345,10 @@
 
 .auto-select-champ-select-menu-button-wrapper--open .auto-select-champ-select-menu__header {
     background-position: 0 -96px;
+}
+
+.auto-select-champ-select-menu-button-wrapper--open {
+    z-index: 10000;
 }
 
 .auto-select-champ-select-menu-button-wrapper--open .auto-select-champ-select-menu__header:hover {
