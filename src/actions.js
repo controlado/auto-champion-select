@@ -1,7 +1,34 @@
-const pluginGroup = "Balaclava: Auto Champion Select";
+import { patchConfig, readConfig } from "./config-store.js";
 
-class Action {
-    constructor(id, name, legend, tags, group, callback, toasts) {
+const PLUGIN_COMMAND_GROUP = "Balaclava: Auto Champion Select";
+
+/**
+ * @typedef {Object} CommandActionToasts
+ * @property {string} [loading]
+ * @property {string} [success]
+ * @property {string} [on]
+ * @property {string} [off]
+ * @property {string} error
+ *
+ * @typedef {Object} CommandActionDefinition
+ * @property {string} id
+ * @property {() => string} name
+ * @property {() => string} legend
+ * @property {string[]} tags
+ * @property {string} group
+ * @property {() => unknown | Promise<unknown>} callback
+ * @property {CommandActionToasts} toasts
+ */
+
+function isPromiseLike(value) {
+    return typeof value?.then === "function";
+}
+
+class CommandAction {
+    /**
+     * @param {CommandActionDefinition} definition
+     */
+    constructor({ id, name, legend, tags, group, callback, toasts }) {
         this.id = id;
         this.name = name;
         this.legend = legend;
@@ -12,13 +39,18 @@ class Action {
         this.toasts = toasts;
     }
 
+    /**
+     * CommandBar entrypoint. Returns Toast.promise for async callbacks and shows a success toast immediately for sync callbacks.
+     *
+     * @returns {unknown}
+     */
     perform() {
         try {
-            const possibleSwitch = this.callback();
+            const result = this.callback();
 
-            if (typeof possibleSwitch?.then === "function") {
+            if (isPromiseLike(result)) {
                 return Toast.promise(
-                    possibleSwitch,
+                    result,
                     {
                         loading: this.toasts.loading,
                         success: this.toasts.success,
@@ -27,7 +59,8 @@ class Action {
                 );
             }
 
-            Toast.success(this.toasts.success || (possibleSwitch ? this.toasts.on : this.toasts.off));
+            const successToast = this.toasts.success || (result ? this.toasts.on : this.toasts.off);
+            Toast.success(successToast);
         } catch (error) {
             Toast.error(this.toasts.error);
             console.error(error);
@@ -35,104 +68,120 @@ class Action {
     }
 }
 
-class FunctionSwitchAction extends Action {
+class ConfigSwitchAction extends CommandAction {
+    /**
+     * @param {string} name
+     * @param {"controladoPick" | "controladoBan"} configKey
+     * @param {() => boolean} callback
+     */
     constructor(name, configKey, callback) {
-        super(
-            `${configKey}Switch`,
-            () => `Auto ${name} [${DataStore.get(configKey)?.enabled ? "ON" : "OFF"}]`,
-            () => DataStore.get(configKey)?.enabled ? `Turn OFF` : `Turn ON`,
-            [pluginGroup, configKey, "switch"],
-            pluginGroup,
+        super({
+            id: `${configKey}Switch`,
+            name: () => `Auto ${name} [${readConfig(configKey).enabled ? "ON" : "OFF"}]`,
+            legend: () => readConfig(configKey).enabled ? "Turn OFF" : "Turn ON",
+            tags: [PLUGIN_COMMAND_GROUP, configKey, "switch"],
+            group: PLUGIN_COMMAND_GROUP,
             callback,
-            {
+            toasts: {
                 on: `Auto ${name} is ON!`,
                 off: `Auto ${name} is OFF!`,
                 error: `Failed to toggle Auto ${name}. Check console.`
             }
-        )
+        });
     }
 }
 
-class ForceSwitchAction extends Action {
+/**
+ * @param {"controladoPick" | "controladoBan"} configKey
+ * @returns {boolean}
+ */
+function toggleForceConfig(configKey) {
+    const config = patchConfig(configKey, currentConfig => {
+        currentConfig.force = !currentConfig.force;
+        return currentConfig;
+    });
+
+    return config.force;
+}
+
+class ForceConfigSwitchAction extends CommandAction {
+    /**
+     * @param {string} name
+     * @param {"controladoPick" | "controladoBan"} configKey
+     */
     constructor(name, configKey) {
-        super(
-            `${configKey}ForceSwitch`,
-            () => `Force ${name} [${DataStore.get(configKey)?.force ? "ON" : "OFF"}]`,
-            () => `Ignore team intent and force ${name} the selected champion`,
-            [pluginGroup, configKey, "force", "switch"],
-            pluginGroup,
-            () => this.switchDataStore(configKey),
-            {
+        super({
+            id: `${configKey}ForceSwitch`,
+            name: () => `Force ${name} [${readConfig(configKey).force ? "ON" : "OFF"}]`,
+            legend: () => `Ignore team intent and force ${name} the selected champion`,
+            tags: [PLUGIN_COMMAND_GROUP, configKey, "force", "switch"],
+            group: PLUGIN_COMMAND_GROUP,
+            callback: () => toggleForceConfig(configKey),
+            toasts: {
                 on: `Force ${name} is ON!`,
                 off: `Force ${name} is OFF!`,
                 error: `Failed to toggle Force ${name}. Check console.`
             }
-        );
-    }
-
-    switchDataStore(configKey) {
-        const config = DataStore.get(configKey);
-        config.force = !config.force;
-        DataStore.set(configKey, config);
-        return config.force;
+        });
     }
 }
 
-export class RefreshDropdownsAction extends Action {
-    constructor(dropdowns) {
-        super(
-            "RefreshDropdowns",
-            () => "Refresh Dropdowns",
-            () => "Normally dropdowns refresh automatically...",
-            [pluginGroup, "refresh"],
-            pluginGroup,
-            () => this.refreshDropdowns(dropdowns),
-            {
-                success: "Refreshed Dropdowns!",
-                error: "Failed to refresh Dropdowns. Check console."
+export class RefreshDropdownsAction extends CommandAction {
+    /**
+     * @param {() => Promise<void>} refreshSelectors
+     */
+    constructor(refreshSelectors) {
+        super({
+            id: "RefreshDropdowns",
+            name: () => "Refresh Champions",
+            legend: () => "Normally champion selectors refresh automatically...",
+            tags: [PLUGIN_COMMAND_GROUP, "refresh"],
+            group: PLUGIN_COMMAND_GROUP,
+            callback: refreshSelectors,
+            toasts: {
+                success: "Refreshed Champions!",
+                error: "Failed to refresh Champions. Check console."
             }
-        )
-    }
-
-    refreshDropdowns(dropdowns) {
-        return Promise.all(dropdowns.map(dropdown => dropdown.refresh()));
+        });
     }
 }
 
-export class AutoPickSwitchAction extends FunctionSwitchAction {
+export class AutoPickSwitchAction extends ConfigSwitchAction {
+    /**
+     * @param {() => boolean} callback
+     */
     constructor(callback) {
-        super(
-            "Pick",
-            "controladoPick",
-            callback
-        )
+        super("Pick", "controladoPick", callback);
     }
 }
 
-export class AutoBanSwitchAction extends FunctionSwitchAction {
+export class AutoBanSwitchAction extends ConfigSwitchAction {
+    /**
+     * @param {() => boolean} callback
+     */
     constructor(callback) {
-        super(
-            "Ban",
-            "controladoBan",
-            callback
-        );
+        super("Ban", "controladoBan", callback);
     }
 }
 
-export class ForcePickSwitchAction extends ForceSwitchAction {
+export class ForcePickSwitchAction extends ForceConfigSwitchAction {
     constructor() {
         super("Pick", "controladoPick");
     }
 }
 
-export class ForceBanSwitchAction extends ForceSwitchAction {
+export class ForceBanSwitchAction extends ForceConfigSwitchAction {
     constructor() {
         super("Ban", "controladoBan");
     }
 }
 
+/**
+ * @param {CommandAction[]} actions
+ * @returns {void}
+ */
 export function addActions(actions) {
-    for (let action of actions) {
+    for (const action of actions) {
         CommandBar.addAction(action);
     }
 }
