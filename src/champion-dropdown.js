@@ -316,8 +316,17 @@ export class ChampionDropdown {
 
     patchDropdownShadowDom() {
         this.withShadowRoot(root => {
+            this.ensureDropdownOpensUpward(root);
             this.injectDropdownSearchStyles(root);
         });
+    }
+
+    /**
+     * @param {ShadowRoot | Element} element
+     * @returns {void}
+     */
+    ensureDropdownOpensUpward(element) {
+        element.querySelector(LEAGUE_CLIENT_SELECTORS.dropdownRoot)?.classList.add("opens-upward");
     }
 
     /**
