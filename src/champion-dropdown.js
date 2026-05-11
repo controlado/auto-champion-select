@@ -6,10 +6,14 @@ import { LEAGUE_CLIENT_ELEMENTS, LEAGUE_CLIENT_SELECTORS } from "./league-client
  * @callback ChampionSelectedCallback
  * @param {number} championId
  * @returns {void}
+ *
+ * @typedef {Object} ChampionDropdownOptions
+ * @property {string} [searchPlaceholderText]
  */
 
 const DROPDOWN_RENDER_ATTEMPTS = 50;
 const DROPDOWN_RENDER_RETRY_DELAY_MS = 100;
+const DROPDOWN_OPTIONS_HEIGHT_PX = 210;
 
 const SEARCH_PLACEHOLDER_ID = "controlado-placeholder";
 const SEARCH_INPUT_ID = "controlado-search";
@@ -28,22 +32,33 @@ const DROPDOWN_SEARCH_SHADOW_STYLES = `
         position: relative;
     }
 
-    ${LEAGUE_CLIENT_SELECTORS.dropdownCurrent} {
-        display: flex;
-        justify-content: space-between;
-        padding-right: 28px;
+    :host {
+        --framed-dropdown-scrollable-max-height: ${DROPDOWN_OPTIONS_HEIGHT_PX}px;
     }
 
-    ${LEAGUE_CLIENT_SELECTORS.dropdownCurrent}::after {
+    :host ${LEAGUE_CLIENT_SELECTORS.dropdownRoot} dt${LEAGUE_CLIENT_SELECTORS.dropdownCurrent} {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) max-content;
+        align-items: center;
+        column-gap: 8px;
+        padding: 7px 8px 7px 10px;
+    }
+
+    :host ${LEAGUE_CLIENT_SELECTORS.dropdownRoot} dt${LEAGUE_CLIENT_SELECTORS.dropdownCurrent}::after {
         display: none;
+    }
+
+    :host ${LEAGUE_CLIENT_SELECTORS.dropdownRoot} dt${LEAGUE_CLIENT_SELECTORS.dropdownCurrent} ${LEAGUE_CLIENT_SELECTORS.dropdownCurrentContent} {
+        min-width: 0;
+        padding: 0;
+        text-align: left;
     }
 
     ${LEAGUE_CLIENT_SELECTORS.dropdownOptionsContainer} {
         position: absolute;
         top: auto;
         bottom: 100%;
-        height: 150px;
-        max-height: 250px;
+        height: ${DROPDOWN_OPTIONS_HEIGHT_PX}px;
         overflow: hidden;
         transform-origin: bottom;
         transform: translateY(0);
@@ -51,13 +66,13 @@ const DROPDOWN_SEARCH_SHADOW_STYLES = `
 
     ${LEAGUE_CLIENT_SELECTORS.dropdownOptions},
     ${LEAGUE_CLIENT_SELECTORS.dropdownScrollable} {
-        height: 150px;
-        max-height: 250px;
+        height: ${DROPDOWN_OPTIONS_HEIGHT_PX}px;
     }
 
     .${FILTER_ICON_CLASS} {
         cursor: default;
         display: inline-block;
+        flex: 0 0 auto;
         width: 18px;
         height: 18px;
         background-color: #c8aa6e;
@@ -75,6 +90,9 @@ const DROPDOWN_SEARCH_SHADOW_STYLES = `
     }
 
     .${SEARCH_INPUT_CLASS} {
+        flex: 0 0 auto;
+        min-width: 0;
+        width: auto;
         color: inherit;
         background: transparent;
         border: none;
@@ -83,7 +101,6 @@ const DROPDOWN_SEARCH_SHADOW_STYLES = `
         font-family: inherit;
         font-size: inherit;
         font-weight: inherit;
-        width: 64px;
     }
 
     .${TAG_CLASS} {
@@ -108,6 +125,11 @@ const DROPDOWN_SEARCH_SHADOW_STYLES = `
         border-color: #d7b46a;
         color: #f6e1b2;
         background: #1a232f;
+        width: auto;
+        min-width: 0;
+        box-sizing: border-box;
+        justify-content: flex-start;
+        justify-self: end;
         text-transform: none;
         font-weight: 500;
     }
@@ -129,10 +151,12 @@ export class ChampionDropdown {
      * @param {HTMLElement} dropdownElement League client UI framed dropdown custom element.
      * @param {string} placeholderText Text for the reset/placeholder option.
      * @param {ChampionSelectedCallback} onChampionSelected
+     * @param {ChampionDropdownOptions} [options]
      */
-    constructor(dropdownElement, placeholderText, onChampionSelected) {
+    constructor(dropdownElement, placeholderText, onChampionSelected, options = {}) {
         this.dropdownElement = dropdownElement;
         this.placeholderText = placeholderText;
+        this.searchPlaceholderText = options.searchPlaceholderText || "Search";
         this.onChampionSelected = onChampionSelected;
         this.placeholderOption = null;
     }
@@ -146,6 +170,7 @@ export class ChampionDropdown {
 
         this.placeholderOption = createDropdownOption(this.placeholderText);
         this.placeholderOption.setAttribute("selected", "true");
+        this.hidePlaceholderOption();
         this.dropdownElement.appendChild(this.placeholderOption);
 
         for (const champion of champions) {
@@ -213,7 +238,9 @@ export class ChampionDropdown {
         input.classList.add(SEARCH_INPUT_CLASS);
         input.id = SEARCH_INPUT_ID;
         input.type = "text";
-        input.placeholder = "Search";
+        input.placeholder = this.searchPlaceholderText;
+        input.setAttribute("aria-label", this.searchPlaceholderText);
+        input.size = Math.max(this.searchPlaceholderText.length, 1);
 
         const filterIcon = document.createElement("span");
         filterIcon.classList.add(FILTER_ICON_CLASS);
@@ -265,12 +292,23 @@ export class ChampionDropdown {
         const normalizedQuery = query.toLowerCase();
         const options = this.dropdownElement.querySelectorAll(LEAGUE_CLIENT_SELECTORS.dropdownOption);
         options.forEach(option => {
+            if (option === this.placeholderOption) {
+                this.hidePlaceholderOption();
+                return;
+            }
+
             if ((option.textContent ?? "").toLowerCase().includes(normalizedQuery)) {
                 option.style.display = "";
             } else {
                 option.style.display = "none";
             }
         });
+    }
+
+    hidePlaceholderOption() {
+        if (this.placeholderOption) {
+            this.placeholderOption.style.display = "none";
+        }
     }
 
     reset() {

@@ -12,6 +12,7 @@ export const LEAGUE_CLIENT_SELECTORS = Object.freeze({
     firstChampSelectSquareButton: "lol-social-chat-toggle-button, .missions-tracker-button-component, .champ-select-voice-button-wrapper",
     dropdownRoot: ".ui-dropdown",
     dropdownCurrent: ".ui-dropdown-current",
+    dropdownCurrentContent: ".ui-dropdown-current-content",
     dropdownOption: LEAGUE_CLIENT_ELEMENTS.dropdownOption,
     dropdownOptionSelected: `${LEAGUE_CLIENT_ELEMENTS.dropdownOption}[selected]`,
     dropdownOptionsContainer: ".ui-dropdown-options-container",

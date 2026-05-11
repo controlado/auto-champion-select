@@ -9,6 +9,7 @@ import { LEAGUE_CLIENT_ELEMENTS } from "./league-client-dom.js";
  *
  * @typedef {Object} ChampionPrioritySelectorOptions
  * @property {boolean} [enablePositionRestrictions] Enables the right-click per-position restriction menu.
+ * @property {string} [searchPlaceholderText] Search input placeholder shown inside the dropdown control.
  *
  * @typedef {Object} SelectedChampionsScrollElements
  * @property {HTMLElement} scrollElement League client UI horizontal scrollable custom element.
@@ -51,7 +52,8 @@ export class ChampionPrioritySelector {
         this.championDropdown = new ChampionDropdown(
             this.dropdownElement,
             placeholderText,
-            championId => this.addChampion(championId)
+            championId => this.addChampion(championId),
+            { searchPlaceholderText: options.searchPlaceholderText }
         );
 
         const { scrollElement, trackElement } = this.createSelectedChampionsScroll();
