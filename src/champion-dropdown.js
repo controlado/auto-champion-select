@@ -24,6 +24,10 @@ const SEARCH_TAG_CLASS = "controlado-tag--search";
 // inside Shadow DOM, so search styles must be
 // injected there.
 const DROPDOWN_SEARCH_SHADOW_STYLES = `
+    ${LEAGUE_CLIENT_SELECTORS.dropdownRoot} {
+        position: relative;
+    }
+
     ${LEAGUE_CLIENT_SELECTORS.dropdownCurrent} {
         display: flex;
         justify-content: space-between;
@@ -31,13 +35,19 @@ const DROPDOWN_SEARCH_SHADOW_STYLES = `
     }
 
     ${LEAGUE_CLIENT_SELECTORS.dropdownOptionsContainer} {
+        position: absolute;
         top: auto;
         bottom: 100%;
+        height: 150px;
+        max-height: 250px;
+        overflow: hidden;
         transform-origin: bottom;
         transform: translateY(0);
     }
 
+    ${LEAGUE_CLIENT_SELECTORS.dropdownOptions},
     ${LEAGUE_CLIENT_SELECTORS.dropdownScrollable} {
+        height: 150px;
         max-height: 250px;
     }
 
