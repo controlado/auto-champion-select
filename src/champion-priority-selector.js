@@ -27,6 +27,8 @@ const POSITION_BADGE_SELECTOR = ".champion-priority-selector__position-badge";
 const POSITION_OPTION_SELECTOR = ".champion-priority-selector__position-option";
 const REMOVE_BUTTON_SELECTOR = ".champion-priority-selector__remove";
 
+const REMOVE_ICON_TEXT = "\u2715";
+
 const POSITION_MENU_VIEWPORT_MARGIN_PX = 8;
 
 const DRAG_ACTIVATION_DISTANCE_PX = 5;
@@ -443,7 +445,7 @@ export class ChampionPrioritySelector {
         const removeButton = document.createElement("button");
         removeButton.classList.add("champion-priority-selector__remove");
         removeButton.type = "button";
-        removeButton.innerText = "x";
+        removeButton.dataset.icon = REMOVE_ICON_TEXT;
         removeButton.addEventListener("pointerdown", event => event.stopPropagation());
         removeButton.addEventListener("click", event => {
             event.stopPropagation();
