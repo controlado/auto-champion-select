@@ -29,6 +29,9 @@ const REMOVE_BUTTON_SELECTOR = ".champion-priority-selector__remove";
 
 const REMOVE_ICON_TEXT = "\u2715";
 
+const PRIMARY_MOUSE_BUTTON = 0;
+const MIDDLE_MOUSE_BUTTON = 1;
+
 const POSITION_MENU_VIEWPORT_MARGIN_PX = 8;
 
 const DRAG_ACTIVATION_DISTANCE_PX = 5;
@@ -453,6 +456,7 @@ export class ChampionPrioritySelector {
         });
 
         button.addEventListener("pointerdown", event => this.startDrag(event, champion.id));
+        button.addEventListener("auxclick", event => this.removeChampionOnMiddleClick(event, champion.id));
         if (this.enablePositionRestrictions) {
             button.addEventListener("contextmenu", event => this.openPositionMenu(event, champion.id));
         }
@@ -703,7 +707,12 @@ export class ChampionPrioritySelector {
      * @returns {void}
      */
     startDrag(event, championId) {
-        if (event.button !== 0) {
+        if (event.button === MIDDLE_MOUSE_BUTTON) {
+            event.preventDefault();
+            return;
+        }
+
+        if (event.button !== PRIMARY_MOUSE_BUTTON) {
             return;
         }
 
@@ -732,6 +741,21 @@ export class ChampionPrioritySelector {
         window.addEventListener("pointermove", this.handleWindowPointerMove);
         window.addEventListener("pointerup", this.handleWindowPointerUp);
         window.addEventListener("pointercancel", this.handleWindowPointerCancel);
+    }
+
+    /**
+     * @param {MouseEvent} event
+     * @param {number} championId
+     * @returns {void}
+     */
+    removeChampionOnMiddleClick(event, championId) {
+        if (event.button !== MIDDLE_MOUSE_BUTTON) {
+            return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+        this.removeChampion(championId);
     }
 
     /**
