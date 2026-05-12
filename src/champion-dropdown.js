@@ -29,6 +29,10 @@ const QUICK_ACTION_TOGGLE_CLASS = "controlado-quick-action-toggle";
 const QUICK_ACTION_TOGGLE_ACTIVE_CLASS = "controlado-quick-action-toggle--active";
 const TAG_CLASS = "controlado-tag";
 const SEARCH_TAG_CLASS = "controlado-tag--search";
+const CHAMPION_OPTION_CLASS = "controlado-champion-option";
+const CHAMPION_OPTION_CONTENT_CLASS = "controlado-champion-option__content";
+const CHAMPION_OPTION_ICON_CLASS = "controlado-champion-option__icon";
+const CHAMPION_OPTION_NAME_CLASS = "controlado-champion-option__name";
 
 const QUICK_ACTION_ICON_MASK = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M13.1 2 4 13.2h6.7L9.9 22 20 9.8h-6.9L13.1 2z'/%3E%3C/svg%3E\")";
 
@@ -235,13 +239,39 @@ export class ChampionDropdown {
      * @returns {HTMLElement}
      */
     createChampionOption(champion) {
-        const option = createDropdownOption(champion.name);
+        const option = createDropdownOption("");
+        option.classList.add(CHAMPION_OPTION_CLASS);
+        option.title = champion.name;
+        option.appendChild(this.createChampionOptionContent(champion));
         option.addEventListener("click", () => {
             this.onChampionSelected(champion.id);
             requestAnimationFrame(() => this.reset());
         });
 
         return option;
+    }
+
+    /**
+     * @param {Champion} champion
+     * @returns {HTMLSpanElement}
+     */
+    createChampionOptionContent(champion) {
+        const content = document.createElement("span");
+        content.classList.add(CHAMPION_OPTION_CONTENT_CLASS);
+
+        const icon = document.createElement("img");
+        icon.classList.add(CHAMPION_OPTION_ICON_CLASS);
+        icon.src = champion.squarePortraitPath;
+        icon.alt = "";
+        icon.draggable = false;
+        icon.loading = "lazy";
+
+        const name = document.createElement("span");
+        name.classList.add(CHAMPION_OPTION_NAME_CLASS);
+        name.innerText = champion.name;
+
+        content.append(icon, name);
+        return content;
     }
 
     /**
