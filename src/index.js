@@ -8,6 +8,7 @@ import { ChampSelectControlsMenu, ConfigToggle, SocialRosterSection } from "./ui
 import { AutoPickSwitchAction, AutoBanSwitchAction, ForcePickSwitchAction, ForceBanSwitchAction, RefreshDropdownsAction, addActions } from "./actions.js";
 import { LEAGUE_CLIENT_ENDPOINTS } from "./league-client-endpoints.js";
 import { getChampSelectButtonsContainer, getSocialRosterContainer } from "./league-client-dom.js";
+import { showErrorToast, showSuccessToast } from "./toast.js";
 import "./assets/style.css";
 
 /**
@@ -37,6 +38,7 @@ import "./assets/style.css";
  * @property {ConfigToggle} autoAcceptToggle
  * @property {ConfigToggle} pickToggle
  * @property {ConfigToggle} banToggle
+ * @property {ReadyCheckModalSuppressor} readyCheckModalSuppressor
  * @property {ChampionPrioritySelector} pickChampionSelector
  * @property {ChampionPrioritySelector} banChampionSelector
  * @property {HTMLDivElement} selectorsContainer
@@ -62,9 +64,14 @@ import "./assets/style.css";
  * @description Pick or ban automatically! 🐧
  */
 
-const READY_CHECK_ACCEPT_DELAY_MS = 2000;
 const SOCIAL_ROSTER_RETRY_DELAY_MS = 200;
 const CHAMP_SELECT_RECOVERY_OBSERVER_TIMEOUT_MS = 60000;
+
+const READY_CHECK_ACCEPT_DELAY_MS = 2000;
+const READY_CHECK_ROOT_SELECTOR = ".ready-check-root-element";
+const READY_CHECK_MODAL_SELECTOR = "#lol-uikit-layer-manager-wrapper > .modal";
+const READY_CHECK_ACCEPT_SUCCESS_TOAST = "Accepted ready check!";
+const READY_CHECK_ACCEPT_ERROR_TOAST = "Failed to accept ready check. Check console.";
 
 const PLUGIN_CHAMP_SELECT_MENU_HEADER_SELECTOR = ".auto-select-champ-select-menu__header";
 
@@ -74,20 +81,175 @@ const CONFIG_KEYS = Object.freeze({
     ban: "controladoBan"
 });
 
-async function onReadyCheck() {
-    if (readConfig(CONFIG_KEYS.autoAccept).enabled === true) {
-        console.debug("auto-champion-select(auto-accept): Ready check detected, accepting in 2 seconds...");
-        await sleep(READY_CHECK_ACCEPT_DELAY_MS);
-        await autoAccept();
+/**
+ * @returns {boolean}
+ */
+function isAutoAcceptEnabled() {
+    return readConfig(CONFIG_KEYS.autoAccept).enabled === true;
+}
+
+class ReadyCheckModalSuppressor {
+    /**
+     * @param {() => boolean} isEnabled
+     */
+    constructor(isEnabled) {
+        this.isEnabled = isEnabled;
+        this.observer = null;
+        this.hiddenModal = null;
+        this.hiddenModalStyles = new WeakMap();
+
+        this.sync = this.sync.bind(this);
+    }
+
+    /**
+     * @returns {void}
+     */
+    start() {
+        if (this.observer) {
+            return;
+        }
+
+        this.observer = new MutationObserver(() => this.sync());
+        this.observer.observe(document.body, { childList: true, subtree: true });
+        this.sync();
+    }
+
+    /**
+     * @returns {void}
+     */
+    sync() {
+        const readyCheckModal = getReadyCheckModal();
+        if (!readyCheckModal) {
+            this.restore();
+            return;
+        }
+
+        if (!this.isEnabled()) {
+            this.restore();
+            return;
+        }
+
+        this.hide(readyCheckModal);
+    }
+
+    /**
+     * @param {HTMLElement} modal
+     * @returns {void}
+     */
+    hide(modal) {
+        if (this.hiddenModal === modal) {
+            return;
+        }
+
+        this.restore();
+
+        this.hiddenModal = modal;
+        this.hiddenModalStyles.set(modal, {
+            display: modal.style.getPropertyValue("display"),
+            displayPriority: modal.style.getPropertyPriority("display"),
+            pointerEvents: modal.style.getPropertyValue("pointer-events"),
+            pointerEventsPriority: modal.style.getPropertyPriority("pointer-events")
+        });
+
+        modal.style.setProperty("display", "none", "important");
+        modal.style.setProperty("pointer-events", "none", "important");
+    }
+
+    /**
+     * @returns {void}
+     */
+    restore() {
+        if (!this.hiddenModal) {
+            return;
+        }
+
+        const modal = this.hiddenModal;
+        const styles = this.hiddenModalStyles.get(modal);
+
+        restoreStyleProperty(modal, "display", styles?.display, styles?.displayPriority);
+        restoreStyleProperty(modal, "pointer-events", styles?.pointerEvents, styles?.pointerEventsPriority);
+
+        this.hiddenModalStyles.delete(modal);
+        this.hiddenModal = null;
     }
 }
 
+/**
+ * @returns {HTMLElement | null}
+ */
+function getReadyCheckModal() {
+    const readyCheckRoot = document.querySelector(READY_CHECK_ROOT_SELECTOR);
+    return readyCheckRoot?.closest(READY_CHECK_MODAL_SELECTOR) || null;
+}
+
+/**
+ * @param {HTMLElement} element
+ * @param {string} property
+ * @param {string | undefined} value
+ * @param {string | undefined} priority
+ * @returns {void}
+ */
+function restoreStyleProperty(element, property, value, priority) {
+    if (value) {
+        element.style.setProperty(property, value, priority || "");
+    } else {
+        element.style.removeProperty(property);
+    }
+}
+
+/**
+ * @param {ReadyCheckModalSuppressor} readyCheckModalSuppressor
+ * @returns {Promise<void>}
+ */
+async function onReadyCheck(readyCheckModalSuppressor) {
+    function restoreIfAutoAcceptDisabled() {
+        if (isAutoAcceptEnabled()) {
+            return false;
+        }
+
+        readyCheckModalSuppressor.restore();
+        return true;
+    }
+
+    if (restoreIfAutoAcceptDisabled()) {
+        return;
+    }
+
+    console.debug(`auto-champion-select(auto-accept): Ready check detected, accepting in ${READY_CHECK_ACCEPT_DELAY_MS}ms...`);
+    await sleep(READY_CHECK_ACCEPT_DELAY_MS);
+
+    if (restoreIfAutoAcceptDisabled()) {
+        return;
+    }
+
+    let accepted = false;
+    try {
+        accepted = await autoAccept();
+    } catch (error) {
+        readyCheckModalSuppressor.restore();
+        showErrorToast(READY_CHECK_ACCEPT_ERROR_TOAST);
+        throw error;
+    }
+
+    if (accepted) {
+        showSuccessToast(READY_CHECK_ACCEPT_SUCCESS_TOAST);
+    } else {
+        readyCheckModalSuppressor.restore();
+        showErrorToast(READY_CHECK_ACCEPT_ERROR_TOAST);
+    }
+}
+
+/**
+ * @returns {Promise<boolean>}
+ */
 async function autoAccept() {
     const response = await request("POST", LEAGUE_CLIENT_ENDPOINTS.readyCheckAccept);
     if (response.ok) {
         console.debug("auto-champion-select(auto-accept): Accepted ready check");
+        return true;
     } else {
         console.error("auto-champion-select(auto-accept): Failed to accept ready check", response);
+        return false;
     }
 }
 
@@ -102,10 +264,10 @@ async function syncInitialGameflowPhase(runtime) {
 }
 
 /**
- * @param {{championSelect: ChampionSelect, champSelectControlsMenu: ChampSelectControlsMenu, setupChampionSelectors: () => Promise<void>}} runtime
+ * @param {{championSelect: ChampionSelect, champSelectControlsMenu: ChampSelectControlsMenu, readyCheckModalSuppressor: ReadyCheckModalSuppressor, setupChampionSelectors: () => Promise<void>}} runtime
  * @returns {(phase: GameflowPhase) => Promise<void>}
  */
-function createGameflowPhaseHandler({ championSelect, champSelectControlsMenu, setupChampionSelectors }) {
+function createGameflowPhaseHandler({ championSelect, champSelectControlsMenu, readyCheckModalSuppressor, setupChampionSelectors }) {
     let gameflowPhaseVersion = 0;
 
     return async function handleGameflowPhase(phase) {
@@ -124,7 +286,11 @@ function createGameflowPhaseHandler({ championSelect, champSelectControlsMenu, s
      */
     async function onGameflowPhase(phase, phaseVersion) {
         if (phase === "ReadyCheck") {
-            void onReadyCheck().catch(error => console.error("auto-champion-select(auto-accept): Failed to handle ready check", error));
+            void onReadyCheck(readyCheckModalSuppressor).catch(error => {
+                console.error("auto-champion-select(auto-accept): Failed to handle ready check", error);
+            });
+        } else {
+            readyCheckModalSuppressor.restore();
         }
 
         await mountControlsForPhase(phase);
@@ -267,11 +433,12 @@ function createControlsPlacementManager({ pluginSection, checkboxesContainer, se
 }
 
 /**
- * @param {{autoAcceptToggle: ConfigToggle, pickToggle: ConfigToggle, banToggle: ConfigToggle}} controls
+ * @param {{autoAcceptToggle: ConfigToggle, pickToggle: ConfigToggle, banToggle: ConfigToggle, readyCheckModalSuppressor: ReadyCheckModalSuppressor}} controls
  * @returns {void}
  */
-function setupConfigToggles({ autoAcceptToggle, pickToggle, banToggle }) {
+function setupConfigToggles({ autoAcceptToggle, pickToggle, banToggle, readyCheckModalSuppressor }) {
     autoAcceptToggle.setup();
+    autoAcceptToggle.element.addEventListener("click", () => readyCheckModalSuppressor.sync());
     pickToggle.setup();
     banToggle.setup();
 }
@@ -297,6 +464,7 @@ async function refreshChampionSelectors(championSelectors) {
  */
 function createPluginRuntime() {
     const controls = createSharedControls();
+    const readyCheckModalSuppressor = new ReadyCheckModalSuppressor(isAutoAcceptEnabled);
     const controlsPlacementManager = createControlsPlacementManager(controls);
     const champSelectControlsMenu = new ChampSelectControlsMenu(
         "Auto Champion Select",
@@ -308,7 +476,8 @@ function createPluginRuntime() {
     const runtime = {
         ...controls,
         champSelectControlsMenu,
-        setupToggles: () => setupConfigToggles(controls),
+        readyCheckModalSuppressor,
+        setupToggles: () => setupConfigToggles({ ...controls, readyCheckModalSuppressor }),
         setupChampionSelectors: () => setupChampionSelectors(controls.championSelectors),
         refreshChampionSelectors: () => refreshChampionSelectors(controls.championSelectors),
         refreshPickChampionSelector: async () => {
@@ -414,6 +583,7 @@ async function main() {
     const runtime = createPluginRuntime();
 
     runtime.setupToggles();
+    runtime.readyCheckModalSuppressor.start();
 
     registerCommandActions(runtime);
     registerLeagueClientSubscriptions(runtime);

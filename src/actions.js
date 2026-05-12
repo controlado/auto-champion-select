@@ -1,4 +1,5 @@
 import { patchConfig, readConfig } from "./config-store.js";
+import { showErrorToast, showPromiseToast, showSuccessToast } from "./toast.js";
 
 const PLUGIN_COMMAND_GROUP = "Balaclava: Auto Champion Select";
 
@@ -40,7 +41,7 @@ class CommandAction {
     }
 
     /**
-     * CommandBar entrypoint. Returns Toast.promise for async callbacks and shows a success toast immediately for sync callbacks.
+     * CommandBar entrypoint. Shows toast feedback for async and sync callbacks.
      *
      * @returns {unknown}
      */
@@ -49,20 +50,17 @@ class CommandAction {
             const result = this.callback();
 
             if (isPromiseLike(result)) {
-                return Toast.promise(
-                    result,
-                    {
-                        loading: this.toasts.loading,
-                        success: this.toasts.success,
-                        error: this.toasts.error
-                    }
-                );
+                return showPromiseToast(result, {
+                    loading: this.toasts.loading,
+                    success: this.toasts.success,
+                    error: this.toasts.error
+                });
             }
 
             const successToast = this.toasts.success || (result ? this.toasts.on : this.toasts.off);
-            Toast.success(successToast);
+            showSuccessToast(successToast);
         } catch (error) {
-            Toast.error(this.toasts.error);
+            showErrorToast(this.toasts.error);
             console.error(error);
         }
     }
