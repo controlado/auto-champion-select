@@ -11,6 +11,13 @@ import { LEAGUE_CLIENT_ELEMENTS } from "./league-client-dom.js";
  * @property {boolean} [enablePositionRestrictions] Enables the right-click per-position restriction menu.
  * @property {string} [searchPlaceholderText] Search input placeholder shown inside the dropdown control.
  *
+ * @typedef {Object} ChampionPrioritySelectorConfig
+ * @property {boolean} enabled
+ * @property {boolean} [force]
+ * @property {boolean} [quickAction]
+ * @property {number[]} [champions]
+ * @property {Record<string, string[]>} [positionsByChampionId]
+ *
  * @typedef {Object} SelectedChampionsScrollElements
  * @property {HTMLElement} scrollElement League client UI horizontal scrollable custom element.
  * @property {HTMLDivElement} trackElement Element that owns the selected champion icons.
@@ -53,7 +60,11 @@ export class ChampionPrioritySelector {
             this.dropdownElement,
             placeholderText,
             championId => this.addChampion(championId),
-            { searchPlaceholderText: options.searchPlaceholderText }
+            {
+                searchPlaceholderText: options.searchPlaceholderText,
+                isQuickActionEnabled: () => this.isQuickActionEnabled(),
+                onQuickActionToggle: () => this.toggleQuickAction()
+            }
         );
 
         const { scrollElement, trackElement } = this.createSelectedChampionsScroll();
@@ -74,9 +85,10 @@ export class ChampionPrioritySelector {
             this.element.appendChild(this.positionMenuElement);
         }
 
-        /** @type {{enabled: boolean, force?: boolean, champions?: number[], positionsByChampionId?: Record<string, string[]>} | null} */
+        /** @type {ChampionPrioritySelectorConfig | null} */
         this.config = null;
         this.configKey = configKey;
+        this.quickAction = false;
 
         this.loadChampions = loadChampions;
         /** @type {Champion[]} */
@@ -241,6 +253,7 @@ export class ChampionPrioritySelector {
 
         const allowedChampionIds = this.getAllowedChampionIds();
         this.config = ensureConfig(this.configKey, { allowedChampionIds });
+        this.quickAction = this.config.quickAction === true;
         this.selectedChampionIds = normalizeChampionIds(this.config.champions, allowedChampionIds);
 
         if (this.enablePositionRestrictions) {
@@ -259,6 +272,7 @@ export class ChampionPrioritySelector {
         }
 
         this.championDropdown.ensureSearchPlaceholder(root);
+        this.championDropdown.ensureQuickActionToggle(root);
         this.championDropdown.patchDropdownShadowDom();
     }
 
@@ -267,6 +281,32 @@ export class ChampionPrioritySelector {
      */
     getAllowedChampionIds() {
         return new Set(this.championById.keys());
+    }
+
+    /**
+     * @returns {boolean}
+     */
+    isQuickActionEnabled() {
+        return this.quickAction === true;
+    }
+
+    /**
+     * @returns {boolean} The quick action state after toggling.
+     */
+    toggleQuickAction() {
+        const allowedChampionIds = this.getAllowedChampionIds();
+
+        this.config = patchConfig(this.configKey, config => {
+            config.quickAction = config.quickAction !== true;
+            return config;
+        }, {
+            allowedChampionIds,
+            selectedChampionIds: this.selectedChampionIds
+        });
+
+        this.quickAction = this.config.quickAction === true;
+        this.championDropdown.syncQuickActionToggle();
+        return this.quickAction;
     }
 
     /**

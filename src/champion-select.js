@@ -31,11 +31,15 @@ import { LEAGUE_CLIENT_ENDPOINTS } from "./league-client-endpoints.js";
  * @typedef {Object} AutoSelectConfig
  * @property {boolean} enabled
  * @property {boolean} [force]
+ * @property {boolean} [quickAction]
  * @property {number[]} champions
  * @property {Record<string, string[]>} [positionsByChampionId]
  */
 
 const CHAMP_SELECT_WATCH_INTERVAL_MS = 300;
+
+const AUTO_SELECT_RANDOM_DELAY_MIN_MS = 2000;
+const AUTO_SELECT_RANDOM_DELAY_MAX_MS = 4000;
 
 /** @type {Readonly<Record<"APPLIED" | "TRY_NEXT_CHAMPION" | "ABORT_ACTION", ActionAttemptResult>>} */
 const ACTION_ATTEMPT_RESULT = Object.freeze({
@@ -103,6 +107,22 @@ function readAutoSelectConfigs() {
         pickConfig: readConfig("controladoPick"),
         banConfig: readConfig("controladoBan")
     };
+}
+
+/**
+ * @param {AutoSelectConfig} config
+ * @returns {boolean}
+ */
+function isQuickActionEnabled(config) {
+    return config.quickAction === true;
+}
+
+/**
+ * @returns {number}
+ */
+function getRandomAutoSelectDelayMs() {
+    const delayRangeMs = AUTO_SELECT_RANDOM_DELAY_MAX_MS - AUTO_SELECT_RANDOM_DELAY_MIN_MS;
+    return AUTO_SELECT_RANDOM_DELAY_MIN_MS + Math.floor(Math.random() * (delayRangeMs + 1));
 }
 
 export class ChampionSelect {
@@ -235,8 +255,31 @@ export class ChampionSelect {
                 continue;
             }
 
-            for (const championId of config.champions) {
-                const result = await this.attemptChampionForAction(action, championId, config);
+            let currentAction = action;
+            let currentConfig = config;
+            let championIds = this.getAvailableChampionIdsForAction(currentAction, currentConfig);
+            if (championIds.length === 0) {
+                continue;
+            }
+
+            const alreadyAppliedChampionId = championIds.find(championId =>
+                this.isPickIntentAlreadyApplied(currentAction, championId)
+            );
+            if (alreadyAppliedChampionId !== undefined) {
+                championIds = [alreadyAppliedChampionId];
+            } else if (!isQuickActionEnabled(currentConfig)) {
+                const delayedActionState = await this.delayAndRefreshPendingAction(currentAction);
+                if (!delayedActionState) {
+                    return;
+                }
+
+                currentAction = delayedActionState.action;
+                currentConfig = delayedActionState.config;
+                championIds = delayedActionState.championIds;
+            }
+
+            for (const championId of championIds) {
+                const result = await this.attemptChampionForAction(currentAction, championId, currentConfig);
                 if (result === ACTION_ATTEMPT_RESULT.APPLIED) {
                     break;
                 }
@@ -286,6 +329,62 @@ export class ChampionSelect {
 
     /**
      * @param {ChampSelectAction} action
+     * @param {AutoSelectConfig} config
+     * @returns {number[]}
+     */
+    getAvailableChampionIdsForAction(action, config) {
+        return config.champions
+            .map(championId => toChampionId(championId))
+            .filter(championId => championId !== null && !this.isChampionUnavailableForAction(action, championId, config));
+    }
+
+    /**
+     * @param {ChampSelectAction} action
+     * @returns {Promise<{action: ChampSelectAction, config: AutoSelectConfig, championIds: number[]} | null>}
+     */
+    async delayAndRefreshPendingAction(action) {
+        const delayMs = getRandomAutoSelectDelayMs();
+        console.debug(`auto-champion-select: Quick action is off, waiting ${delayMs}ms before ${action.type}...`);
+
+        const version = this.watchVersion;
+        await sleep(delayMs);
+
+        if (!this.mounted || version !== this.watchVersion) {
+            return null;
+        }
+
+        let updatedAction = null;
+        try {
+            await this.refreshSessionState();
+            updatedAction = this.findPendingAction(action);
+        } catch (error) {
+            console.debug("auto-champion-select: Failed to refresh champion select after action delay", error);
+            return null;
+        }
+
+        if (!updatedAction || !this.isActionAvailable(updatedAction)) {
+            return null;
+        }
+
+        const updatedConfig = this.getConfigForActionType(action.type, readAutoSelectConfigs());
+        if (!updatedConfig?.enabled) {
+            return null;
+        }
+
+        const championIds = this.getAvailableChampionIdsForAction(updatedAction, updatedConfig);
+        if (championIds.length === 0) {
+            return null;
+        }
+
+        return {
+            action: updatedAction,
+            config: updatedConfig,
+            championIds
+        };
+    }
+
+    /**
+     * @param {ChampSelectAction} action
      * @param {unknown} championId
      * @param {AutoSelectConfig} config
      * @returns {Promise<ActionAttemptResult>}
@@ -307,7 +406,7 @@ export class ChampionSelect {
         }
 
         console.debug(`auto-champion-select: Failed to ${action.type} ${normalizedChampionId}, refreshing champ select state...`);
-        const updatedAction = await this.refreshActionAfterFailedAttempt(action);
+        const updatedAction = await this.refreshPendingAction(action);
         if (!updatedAction || !this.isActionAvailable(updatedAction)) {
             return ACTION_ATTEMPT_RESULT.ABORT_ACTION;
         }
@@ -335,14 +434,22 @@ export class ChampionSelect {
      * @param {ChampSelectAction} action
      * @returns {Promise<ChampSelectAction | null>}
      */
-    async refreshActionAfterFailedAttempt(action) {
+    async refreshPendingAction(action) {
         try {
             await this.refreshSessionState();
         } catch (error) {
-            console.debug("auto-champion-select: Failed to refresh champion select after select failure", error);
+            console.debug("auto-champion-select: Failed to refresh champion select action", error);
             return null;
         }
 
+        return this.findPendingAction(action);
+    }
+
+    /**
+     * @param {ChampSelectAction} action
+     * @returns {ChampSelectAction | null}
+     */
+    findPendingAction(action) {
         return flattenActionGroups(this.actions).find(updatedAction =>
             updatedAction.id === action.id &&
             updatedAction.actorCellId === action.actorCellId &&

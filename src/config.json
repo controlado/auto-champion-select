@@ -5,6 +5,7 @@
     "controladoPick": {
         "enabled": false,
         "force": false,
+        "quickAction": false,
         "champions": [
             432,
             235
@@ -22,6 +23,7 @@
     "controladoBan": {
         "enabled": false,
         "force": false,
+        "quickAction": false,
         "champions": [
             157,
             777,

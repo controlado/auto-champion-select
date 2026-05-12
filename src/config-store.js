@@ -10,6 +10,7 @@ const repairedConfigWarnings = new Set();
  * @typedef {Object} PluginConfig
  * @property {boolean} enabled
  * @property {boolean} [force]
+ * @property {boolean} [quickAction]
  * @property {number[]} [champions]
  * @property {Record<string, string[]>} [positionsByChampionId]
  *
@@ -91,6 +92,10 @@ function normalizeActionConfig(configKey, config, options = {}) {
 
     if (hasDefaultConfigField(defaultConfig, "force")) {
         normalizedConfig.force = mergedConfig.force === true;
+    }
+
+    if (hasDefaultConfigField(defaultConfig, "quickAction")) {
+        normalizedConfig.quickAction = mergedConfig.quickAction === true;
     }
 
     if (hasDefaultConfigField(defaultConfig, "champions")) {
