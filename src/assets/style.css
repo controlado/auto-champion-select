@@ -319,13 +319,10 @@
     display: block;
     width: 38px;
     height: 32px;
-    border: none;
-    background-image: url("/fe/lol-social/chat_button.png");
-    background-color: transparent;
-    background-position: 0 0;
-    background-repeat: no-repeat;
-    background-size: cover;
-    box-shadow: none;
+    border: 1px solid #785a28;
+    background: #1e2328;
+    box-shadow: inset 0 0 0 1px #010a13;
+    box-sizing: border-box;
     cursor: pointer;
     outline: none;
     padding: 0;
@@ -338,53 +335,30 @@
     top: 50%;
     width: 20px;
     height: 20px;
-    background: url("/fe/lol-static-assets/images/nav-icon-collections.svg") center / 20px 20px no-repeat;
-    filter: drop-shadow(0 0 1px #010a13);
+    background-color: #c8aa6e;
+    -webkit-mask: url("/fe/lol-static-assets/images/nav-icon-collections.svg") center / 20px 20px no-repeat;
+    mask: url("/fe/lol-static-assets/images/nav-icon-collections.svg") center / 20px 20px no-repeat;
+    pointer-events: none;
     transform: translate(-50%, -50%);
 }
 
-@keyframes auto-select-champ-select-menu-mark-pulse {
-    0% {
-        filter: brightness(1);
-        box-shadow: #c89b3c 0 0 0 0;
-    }
-
-    15% {
-        filter: brightness(1);
-        box-shadow: #c89b3c 0 0 0 0;
-    }
-
-    100% {
-        filter: brightness(2);
-        box-shadow: #c89b3c 0 0 12px 2px;
-    }
-}
-
-.auto-select-champ-select-menu__header::after {
-    content: "";
-    position: absolute;
-    right: 5px;
-    top: 5px;
-    width: 6px;
-    height: 6px;
-    border: 0;
-    border-radius: 50%;
-    background: #c89b3c;
-    box-sizing: border-box;
-    pointer-events: none;
-    animation: auto-select-champ-select-menu-mark-pulse 0.9s ease-in-out infinite alternate;
-}
-
 .auto-select-champ-select-menu__header:hover {
-    background-position: 0 -32px;
+    border-color: #c8aa6e;
+    background: #2a3038;
+}
+
+.auto-select-champ-select-menu__header:hover::before {
+    background-color: #f0e6d2;
 }
 
 .auto-select-champ-select-menu__header:active {
-    background-position: 0 -64px;
+    border-color: #c89b3c;
+    background: #111820;
 }
 
 .auto-select-champ-select-menu-button-wrapper--open .auto-select-champ-select-menu__header {
-    background-position: 0 -96px;
+    border-color: #c89b3c;
+    background: #111820;
 }
 
 .auto-select-champ-select-menu-button-wrapper--open {
@@ -392,11 +366,12 @@
 }
 
 .auto-select-champ-select-menu-button-wrapper--open .auto-select-champ-select-menu__header:hover {
-    background-position: 0 -128px;
+    border-color: #c8aa6e;
+    background: #1e2328;
 }
 
-.auto-select-champ-select-menu-button-wrapper--open .auto-select-champ-select-menu__header:active {
-    background-position: 0 -160px;
+.auto-select-champ-select-menu-button-wrapper--open .auto-select-champ-select-menu__header::before {
+    background-color: #f0e6d2;
 }
 
 .auto-select-champ-select-menu__content {
