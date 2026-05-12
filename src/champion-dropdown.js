@@ -205,7 +205,7 @@ export class ChampionDropdown {
         this.dropdownElement = dropdownElement;
         this.placeholderText = placeholderText;
         this.searchPlaceholderText = options.searchPlaceholderText || "Search";
-        this.quickActionLabel = options.quickActionLabel || "Quick action";
+        this.quickActionLabel = options.quickActionLabel || "Pick/ban instantly";
         this.isQuickActionEnabled = typeof options.isQuickActionEnabled === "function" ? options.isQuickActionEnabled : null;
         this.onQuickActionToggle = typeof options.onQuickActionToggle === "function" ? options.onQuickActionToggle : null;
         this.onChampionSelected = onChampionSelected;

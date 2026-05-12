@@ -327,14 +327,18 @@ function createSharedControls() {
         "Add pick",
         CONFIG_KEYS.pick,
         getPlayableChampions,
-        { enablePositionRestrictions: true }
+        {
+            enablePositionRestrictions: true,
+            quickActionLabel: "Pick instantly"
+        }
     );
 
     const banToggle = new ConfigToggle("Ban", CONFIG_KEYS.ban);
     const banChampionSelector = new ChampionPrioritySelector(
         "Add ban",
         CONFIG_KEYS.ban,
-        getAllChampions
+        getAllChampions,
+        { quickActionLabel: "Ban instantly" }
     );
 
     const selectorsContainer = createSelectorsContainer(pickChampionSelector, banChampionSelector);

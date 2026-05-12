@@ -10,6 +10,7 @@ import { LEAGUE_CLIENT_ELEMENTS } from "./league-client-dom.js";
  * @typedef {Object} ChampionPrioritySelectorOptions
  * @property {boolean} [enablePositionRestrictions] Enables the right-click per-position restriction menu.
  * @property {string} [searchPlaceholderText] Search input placeholder shown inside the dropdown control.
+ * @property {string} [quickActionLabel] Tooltip and accessibility label for the quick action toggle.
  *
  * @typedef {Object} ChampionPrioritySelectorConfig
  * @property {boolean} enabled
@@ -61,6 +62,7 @@ export class ChampionPrioritySelector {
             placeholderText,
             championId => this.addChampion(championId),
             {
+                quickActionLabel: options.quickActionLabel,
                 searchPlaceholderText: options.searchPlaceholderText,
                 isQuickActionEnabled: () => this.isQuickActionEnabled(),
                 onQuickActionToggle: () => this.toggleQuickAction()
