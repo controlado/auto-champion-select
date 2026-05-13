@@ -1,8 +1,11 @@
 import { sleep } from "https://cdn.jsdelivr.net/npm/balaclava-utils@latest";
 import { LEAGUE_CLIENT_ELEMENTS, LEAGUE_CLIENT_SELECTORS } from "./league-client-dom.js";
+import { normalizePosition, POSITIONS } from "./champion-positions.js";
 
 /**
- * @typedef {{id: number, name: string, squarePortraitPath: string}} Champion
+ * @typedef {import("./champion-positions.js").PositionValue} PositionValue
+ *
+ * @typedef {{id: number, name: string, squarePortraitPath: string, recommendedPositions?: PositionValue[]}} Champion
  * @callback ChampionSelectedCallback
  * @param {number} championId
  * @returns {void}
@@ -18,23 +21,30 @@ const DROPDOWN_RENDER_ATTEMPTS = 50;
 const DROPDOWN_RENDER_RETRY_DELAY_MS = 100;
 const DROPDOWN_OPTIONS_HEIGHT_PX = 210;
 
+const POSITION_FILTER_HEIGHT_PX = 40;
+const POSITION_FILTER_CLASS = "controlado-position-filter";
+const POSITION_FILTER_VISIBLE_CLASS = "controlado-position-filter-visible";
+const POSITION_FILTER_BADGE_CLASS = "controlado-position-filter__badge";
+const POSITION_FILTER_BADGE_ACTIVE_CLASS = "controlado-position-filter__badge--active";
+
 const SEARCH_PLACEHOLDER_ID = "controlado-placeholder";
 const SEARCH_INPUT_ID = "controlado-search";
+const SEARCH_INPUT_CLASS = "controlado-filter-input";
+const SEARCH_TAG_CLASS = "controlado-tag--search";
+
 const QUICK_ACTION_TOGGLE_ID = "controlado-quick-action";
+const QUICK_ACTION_TOGGLE_CLASS = "controlado-quick-action-toggle";
+const QUICK_ACTION_TOGGLE_ACTIVE_CLASS = "controlado-quick-action-toggle--active";
+const QUICK_ACTION_ICON_MASK = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M13.1 2 4 13.2h6.7L9.9 22 20 9.8h-6.9L13.1 2z'/%3E%3C/svg%3E\")";
+
+const TAG_CLASS = "controlado-tag";
 
 const FILTER_ICON_CLASS = "controlado-filter-icon";
 const FILTER_ICON_TRASH_CLASS = "controlado-filter-icon--trash";
-const SEARCH_INPUT_CLASS = "controlado-filter-input";
-const QUICK_ACTION_TOGGLE_CLASS = "controlado-quick-action-toggle";
-const QUICK_ACTION_TOGGLE_ACTIVE_CLASS = "controlado-quick-action-toggle--active";
-const TAG_CLASS = "controlado-tag";
-const SEARCH_TAG_CLASS = "controlado-tag--search";
-const CHAMPION_OPTION_CLASS = "controlado-champion-option";
+
 const CHAMPION_OPTION_CONTENT_CLASS = "controlado-champion-option__content";
 const CHAMPION_OPTION_ICON_CLASS = "controlado-champion-option__icon";
 const CHAMPION_OPTION_NAME_CLASS = "controlado-champion-option__name";
-
-const QUICK_ACTION_ICON_MASK = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M13.1 2 4 13.2h6.7L9.9 22 20 9.8h-6.9L13.1 2z'/%3E%3C/svg%3E\")";
 
 // league dropdown renders its visible control
 // inside Shadow DOM, so search styles must be
@@ -79,6 +89,81 @@ const DROPDOWN_SEARCH_SHADOW_STYLES = `
     ${LEAGUE_CLIENT_SELECTORS.dropdownOptions},
     ${LEAGUE_CLIENT_SELECTORS.dropdownScrollable} {
         height: ${DROPDOWN_OPTIONS_HEIGHT_PX}px;
+    }
+
+    ${LEAGUE_CLIENT_SELECTORS.dropdownOptions} {
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    ${LEAGUE_CLIENT_SELECTORS.dropdownOptions} ${LEAGUE_CLIENT_SELECTORS.dropdownScrollable} {
+        box-sizing: border-box;
+    }
+
+    ${LEAGUE_CLIENT_SELECTORS.dropdownOptionsContainer}.${POSITION_FILTER_VISIBLE_CLASS} ${LEAGUE_CLIENT_SELECTORS.dropdownOptions} ${LEAGUE_CLIENT_SELECTORS.dropdownScrollable} {
+        padding-top: ${POSITION_FILTER_HEIGHT_PX}px;
+    }
+
+    .${POSITION_FILTER_CLASS} {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        z-index: 3;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: ${POSITION_FILTER_HEIGHT_PX}px;
+        min-height: ${POSITION_FILTER_HEIGHT_PX}px;
+        padding: 0 17px;
+        border-bottom: 1px solid #1e282d;
+        background: #010a13;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+        box-sizing: border-box;
+    }
+
+    .${POSITION_FILTER_BADGE_CLASS} {
+        appearance: none;
+        display: grid;
+        place-items: center;
+        flex: 0 0 28px;
+        width: 28px;
+        height: 28px;
+        padding: 0;
+        border: 1px solid #463714;
+        border-radius: 50%;
+        background: #1e2328;
+        box-shadow: 0 0 0 1px rgba(1, 10, 19, 0.85);
+        box-sizing: border-box;
+        cursor: pointer;
+        outline: none;
+    }
+
+    .${POSITION_FILTER_BADGE_CLASS}:hover,
+    .${POSITION_FILTER_BADGE_CLASS}:focus {
+        border-color: #c8aa6e;
+        background: #0f1b2d;
+    }
+
+    .${POSITION_FILTER_BADGE_ACTIVE_CLASS} {
+        border-color: #f0e6d2;
+        background: #09202c;
+        box-shadow: 0 0 0 1px #c89b3c, 0 0 10px rgba(200, 155, 60, 0.45);
+    }
+
+    .${POSITION_FILTER_BADGE_CLASS} img {
+        display: block;
+        width: 18px;
+        height: 18px;
+        object-fit: contain;
+        opacity: 0.72;
+        pointer-events: none;
+    }
+
+    .${POSITION_FILTER_BADGE_CLASS}:hover img,
+    .${POSITION_FILTER_BADGE_CLASS}:focus img,
+    .${POSITION_FILTER_BADGE_ACTIVE_CLASS} img {
+        opacity: 1;
     }
 
     .${FILTER_ICON_CLASS} {
@@ -214,6 +299,11 @@ export class ChampionDropdown {
         this.onQuickActionToggle = typeof options.onQuickActionToggle === "function" ? options.onQuickActionToggle : null;
         this.onChampionSelected = onChampionSelected;
         this.placeholderOption = null;
+        this.searchQuery = "";
+        this.activePositionFilter = null;
+        this.hasRecommendedPositionData = false;
+        /** @type {WeakMap<Element, Set<PositionValue>>} */
+        this.recommendedPositionsByOption = new WeakMap();
     }
 
     /**
@@ -222,6 +312,7 @@ export class ChampionDropdown {
      */
     renderOptions(champions) {
         this.dropdownElement.replaceChildren();
+        this.hasRecommendedPositionData = false;
 
         this.placeholderOption = createDropdownOption(this.placeholderText);
         this.placeholderOption.setAttribute("selected", "true");
@@ -229,18 +320,29 @@ export class ChampionDropdown {
         this.dropdownElement.appendChild(this.placeholderOption);
 
         for (const champion of champions) {
-            const option = this.createChampionOption(champion);
+            const recommendedPositions = this.getChampionRecommendedPositions(champion);
+            const option = this.createChampionOption(champion, recommendedPositions);
+            if (recommendedPositions.length > 0) {
+                this.hasRecommendedPositionData = true;
+            }
             this.dropdownElement.appendChild(option);
         }
+
+        if (!this.hasRecommendedPositionData) {
+            this.activePositionFilter = null;
+        }
+
+        this.applyOptionFilters();
     }
 
     /**
      * @param {Champion} champion
+     * @param {PositionValue[]} recommendedPositions
      * @returns {HTMLElement}
      */
-    createChampionOption(champion) {
+    createChampionOption(champion, recommendedPositions) {
         const option = createDropdownOption("");
-        option.classList.add(CHAMPION_OPTION_CLASS);
+        this.recommendedPositionsByOption.set(option, new Set(recommendedPositions));
         option.title = champion.name;
         option.appendChild(this.createChampionOptionContent(champion));
         option.addEventListener("click", () => {
@@ -272,6 +374,14 @@ export class ChampionDropdown {
 
         content.append(icon, name);
         return content;
+    }
+
+    /**
+     * @param {Champion} champion
+     * @returns {PositionValue[]}
+     */
+    getChampionRecommendedPositions(champion) {
+        return Array.isArray(champion.recommendedPositions) ? champion.recommendedPositions : [];
     }
 
     /**
@@ -327,6 +437,82 @@ export class ChampionDropdown {
     }
 
     /**
+     * @param {ShadowRoot} root
+     * @returns {void}
+     */
+    ensurePositionFilter(root) {
+        const optionsContainer = root.querySelector(LEAGUE_CLIENT_SELECTORS.dropdownOptionsContainer);
+        if (!optionsContainer) {
+            return;
+        }
+
+        if (!this.hasRecommendedPositionData) {
+            root.querySelector(`.${POSITION_FILTER_CLASS}`)?.remove();
+            optionsContainer.classList.remove(POSITION_FILTER_VISIBLE_CLASS);
+            this.activePositionFilter = null;
+            return;
+        }
+
+        optionsContainer.classList.add(POSITION_FILTER_VISIBLE_CLASS);
+
+        if (!root.querySelector(`.${POSITION_FILTER_CLASS}`)) {
+            optionsContainer.insertBefore(this.createPositionFilter(), optionsContainer.firstChild);
+        }
+
+        this.syncPositionFilter(root);
+    }
+
+    /**
+     * @returns {HTMLDivElement}
+     */
+    createPositionFilter() {
+        const filter = document.createElement("div");
+        filter.classList.add(POSITION_FILTER_CLASS);
+        filter.setAttribute("role", "toolbar");
+        filter.setAttribute("aria-label", "Filter champions by position");
+
+        for (const position of POSITIONS) {
+            filter.appendChild(this.createPositionFilterBadge(position));
+        }
+
+        return filter;
+    }
+
+    /**
+     * @param {{value: string, label: string, iconPath: string}} position
+     * @returns {HTMLButtonElement}
+     */
+    createPositionFilterBadge(position) {
+        const button = document.createElement("button");
+        button.classList.add(POSITION_FILTER_BADGE_CLASS);
+        button.type = "button";
+        button.dataset.position = position.value;
+        button.title = position.label;
+        button.setAttribute("aria-label", position.label);
+        button.setAttribute("aria-pressed", "false");
+
+        const image = document.createElement("img");
+        image.src = position.iconPath;
+        image.alt = "";
+        image.draggable = false;
+
+        button.appendChild(image);
+
+        button.addEventListener("pointerdown", event => {
+            event.preventDefault();
+            event.stopPropagation();
+        });
+
+        button.addEventListener("click", event => {
+            event.preventDefault();
+            event.stopPropagation();
+            this.togglePositionFilter(position.value);
+        });
+
+        return button;
+    }
+
+    /**
      * @returns {HTMLDivElement}
      */
     createSearchPlaceholder() {
@@ -355,7 +541,7 @@ export class ChampionDropdown {
 
         input.addEventListener("input", event => {
             this.ensureOpen();
-            this.filterOptions(event.target.value);
+            this.setSearchQuery(event.target.value);
             filterIcon.classList.toggle(FILTER_ICON_TRASH_CLASS, Boolean(event.target.value));
         });
 
@@ -429,13 +615,40 @@ export class ChampionDropdown {
     }
 
     /**
+     * @param {unknown} position
+     * @returns {void}
+     */
+    togglePositionFilter(position) {
+        const normalizedPosition = normalizePosition(position);
+        if (!normalizedPosition) {
+            return;
+        }
+
+        this.activePositionFilter = this.activePositionFilter === normalizedPosition ? null : normalizedPosition;
+        this.withShadowRoot(root => this.syncPositionFilter(root));
+        this.applyOptionFilters();
+    }
+
+    /**
+     * @param {ShadowRoot} root
+     * @returns {void}
+     */
+    syncPositionFilter(root) {
+        root.querySelectorAll(`.${POSITION_FILTER_BADGE_CLASS}`).forEach(button => {
+            const active = button.dataset.position === this.activePositionFilter;
+            button.classList.toggle(POSITION_FILTER_BADGE_ACTIVE_CLASS, active);
+            button.setAttribute("aria-pressed", String(active));
+        });
+    }
+
+    /**
      * @param {HTMLInputElement} input
      * @param {Element} filterIcon
      * @returns {void}
      */
     clearSearch(input, filterIcon) {
         input.value = "";
-        this.filterOptions("");
+        this.setSearchQuery("");
         filterIcon.classList.toggle(FILTER_ICON_TRASH_CLASS, false);
     }
 
@@ -443,8 +656,13 @@ export class ChampionDropdown {
      * @param {string} query
      * @returns {void}
      */
-    filterOptions(query) {
-        const normalizedQuery = query.toLowerCase();
+    setSearchQuery(query) {
+        this.searchQuery = query;
+        this.applyOptionFilters();
+    }
+
+    applyOptionFilters() {
+        const normalizedQuery = this.searchQuery.toLowerCase();
         const options = this.dropdownElement.querySelectorAll(LEAGUE_CLIENT_SELECTORS.dropdownOption);
         options.forEach(option => {
             if (option === this.placeholderOption) {
@@ -452,12 +670,33 @@ export class ChampionDropdown {
                 return;
             }
 
-            if ((option.textContent ?? "").toLowerCase().includes(normalizedQuery)) {
+            if (this.matchesSearchQuery(option, normalizedQuery) && this.matchesPositionFilter(option)) {
                 option.style.display = "";
             } else {
                 option.style.display = "none";
             }
         });
+    }
+
+    /**
+     * @param {Element} option
+     * @param {string} normalizedQuery
+     * @returns {boolean}
+     */
+    matchesSearchQuery(option, normalizedQuery) {
+        return (option.textContent ?? "").toLowerCase().includes(normalizedQuery);
+    }
+
+    /**
+     * @param {Element} option
+     * @returns {boolean}
+     */
+    matchesPositionFilter(option) {
+        if (!this.activePositionFilter) {
+            return true;
+        }
+
+        return this.recommendedPositionsByOption.get(option)?.has(this.activePositionFilter) === true;
     }
 
     hidePlaceholderOption() {
@@ -480,7 +719,7 @@ export class ChampionDropdown {
             } else {
                 if (input) {
                     input.value = "";
-                    this.filterOptions("");
+                    this.setSearchQuery("");
                 }
 
                 if (trashFilterIcon) {
@@ -515,6 +754,7 @@ export class ChampionDropdown {
         this.withShadowRoot(root => {
             this.ensureDropdownOpensUpward(root);
             this.injectDropdownSearchStyles(root);
+            this.ensurePositionFilter(root);
         });
     }
 

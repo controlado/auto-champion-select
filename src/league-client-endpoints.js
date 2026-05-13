@@ -4,6 +4,7 @@ export const LEAGUE_CLIENT_ENDPOINTS = Object.freeze({
     wallet: "/lol-inventory/v1/wallet",
     ownedChampions: "/lol-champions/v1/owned-champions-minimal",
     championSummary: "/lol-game-data/assets/v1/champion-summary.json",
+    recommendedChampionPositions: "/lol-perks/v1/recommended-champion-positions",
     champSelectSession: "/lol-champ-select/v1/session",
 
     /**

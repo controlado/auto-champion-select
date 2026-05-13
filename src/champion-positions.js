@@ -45,12 +45,12 @@ export function normalizePositionsByChampionId(positionsByChampionId, selectedCh
 
     for (const [championIdKey, allowedPositions] of Object.entries(positionsByChampionId)) {
         const championId = toChampionId(championIdKey);
+        if (championId === null || !Array.isArray(allowedPositions)) {
+            continue;
+        }
+
         const normalizedChampionIdKey = String(championId);
-        if (
-            championId === null ||
-            (selectedChampionIdKeys && !selectedChampionIdKeys.has(normalizedChampionIdKey)) ||
-            !Array.isArray(allowedPositions)
-        ) {
+        if (selectedChampionIdKeys && !selectedChampionIdKeys.has(normalizedChampionIdKey)) {
             continue;
         }
 
