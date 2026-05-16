@@ -6,13 +6,16 @@ import { normalizePosition, POSITIONS } from "./champion-positions.js";
  * @typedef {import("./champion-positions.js").PositionValue} PositionValue
  *
  * @typedef {{id: number, name: string, squarePortraitPath: string, recommendedPositions?: PositionValue[]}} Champion
- * @callback ChampionSelectedCallback
- * @param {number} championId
+ * @typedef {{value: unknown, label: string, description?: string, iconText?: string}} DropdownStaticOption
+ *
+ * @callback PriorityOptionSelectedCallback
+ * @param {unknown} priorityOption
  * @returns {void}
  *
  * @typedef {Object} ChampionDropdownOptions
  * @property {string} [searchPlaceholderText]
  * @property {string} [quickActionLabel]
+ * @property {DropdownStaticOption[]} [staticOptions]
  * @property {() => boolean} [isQuickActionEnabled]
  * @property {() => boolean} [onQuickActionToggle]
  */
@@ -44,7 +47,10 @@ const FILTER_ICON_TRASH_CLASS = "controlado-filter-icon--trash";
 
 const CHAMPION_OPTION_CONTENT_CLASS = "controlado-champion-option__content";
 const CHAMPION_OPTION_ICON_CLASS = "controlado-champion-option__icon";
+const CHAMPION_OPTION_TEXT_CLASS = "controlado-champion-option__text";
 const CHAMPION_OPTION_NAME_CLASS = "controlado-champion-option__name";
+const CHAMPION_OPTION_DESCRIPTION_CLASS = "controlado-champion-option__description";
+const STATIC_OPTION_ICON_CLASS = "controlado-champion-option__static-icon";
 
 // league dropdown renders its visible control
 // inside Shadow DOM, so search styles must be
@@ -287,23 +293,26 @@ export class ChampionDropdown {
     /**
      * @param {HTMLElement} dropdownElement League client UI framed dropdown custom element.
      * @param {string} placeholderText Text for the reset/placeholder option.
-     * @param {ChampionSelectedCallback} onChampionSelected
+     * @param {PriorityOptionSelectedCallback} onPriorityOptionSelected
      * @param {ChampionDropdownOptions} [options]
      */
-    constructor(dropdownElement, placeholderText, onChampionSelected, options = {}) {
+    constructor(dropdownElement, placeholderText, onPriorityOptionSelected, options = {}) {
         this.dropdownElement = dropdownElement;
         this.placeholderText = placeholderText;
         this.searchPlaceholderText = options.searchPlaceholderText || "Search";
         this.quickActionLabel = options.quickActionLabel || "Pick/ban instantly";
+        this.staticOptions = Array.isArray(options.staticOptions) ? options.staticOptions : [];
         this.isQuickActionEnabled = typeof options.isQuickActionEnabled === "function" ? options.isQuickActionEnabled : null;
         this.onQuickActionToggle = typeof options.onQuickActionToggle === "function" ? options.onQuickActionToggle : null;
-        this.onChampionSelected = onChampionSelected;
+        this.onPriorityOptionSelected = onPriorityOptionSelected;
         this.placeholderOption = null;
         this.searchQuery = "";
         this.activePositionFilter = null;
         this.hasRecommendedPositionData = false;
         /** @type {WeakMap<Element, Set<PositionValue>>} */
         this.recommendedPositionsByOption = new WeakMap();
+        /** @type {WeakSet<Element>} */
+        this.staticOptionElements = new WeakSet();
     }
 
     /**
@@ -313,11 +322,16 @@ export class ChampionDropdown {
     renderOptions(champions) {
         this.dropdownElement.replaceChildren();
         this.hasRecommendedPositionData = false;
+        this.staticOptionElements = new WeakSet();
 
         this.placeholderOption = createDropdownOption(this.placeholderText);
         this.placeholderOption.setAttribute("selected", "true");
         this.hidePlaceholderOption();
         this.dropdownElement.appendChild(this.placeholderOption);
+
+        for (const staticOption of this.staticOptions) {
+            this.dropdownElement.appendChild(this.createStaticOption(staticOption));
+        }
 
         for (const champion of champions) {
             const recommendedPositions = this.getChampionRecommendedPositions(champion);
@@ -346,7 +360,25 @@ export class ChampionDropdown {
         option.title = champion.name;
         option.appendChild(this.createChampionOptionContent(champion));
         option.addEventListener("click", () => {
-            this.onChampionSelected(champion.id);
+            this.onPriorityOptionSelected(champion.id);
+            requestAnimationFrame(() => this.reset());
+        });
+
+        return option;
+    }
+
+    /**
+     * @param {DropdownStaticOption} staticOption
+     * @returns {HTMLElement}
+     */
+    createStaticOption(staticOption) {
+        const option = createDropdownOption("");
+        const description = typeof staticOption.description === "string" ? staticOption.description : "";
+        this.staticOptionElements.add(option);
+        option.title = description ? `${staticOption.label}. ${description}` : staticOption.label;
+        option.appendChild(this.createStaticOptionContent(staticOption, description));
+        option.addEventListener("click", () => {
+            this.onPriorityOptionSelected(staticOption.value);
             requestAnimationFrame(() => this.reset());
         });
 
@@ -373,6 +405,38 @@ export class ChampionDropdown {
         name.innerText = champion.name;
 
         content.append(icon, name);
+        return content;
+    }
+
+    /**
+     * @param {DropdownStaticOption} staticOption
+     * @param {string} [description]
+     * @returns {HTMLSpanElement}
+     */
+    createStaticOptionContent(staticOption, descriptionText = "") {
+        const content = document.createElement("span");
+        content.classList.add(CHAMPION_OPTION_CONTENT_CLASS);
+
+        const icon = document.createElement("span");
+        icon.classList.add(CHAMPION_OPTION_ICON_CLASS, STATIC_OPTION_ICON_CLASS);
+        icon.innerText = staticOption.iconText || "?";
+
+        const name = document.createElement("span");
+        name.classList.add(CHAMPION_OPTION_NAME_CLASS);
+        name.innerText = staticOption.label;
+
+        const text = document.createElement("span");
+        text.classList.add(CHAMPION_OPTION_TEXT_CLASS);
+        text.appendChild(name);
+
+        if (descriptionText) {
+            const description = document.createElement("span");
+            description.classList.add(CHAMPION_OPTION_DESCRIPTION_CLASS);
+            description.innerText = descriptionText;
+            text.appendChild(description);
+        }
+
+        content.append(icon, text);
         return content;
     }
 
@@ -692,6 +756,10 @@ export class ChampionDropdown {
      * @returns {boolean}
      */
     matchesPositionFilter(option) {
+        if (this.staticOptionElements.has(option)) {
+            return true;
+        }
+
         if (!this.activePositionFilter) {
             return true;
         }

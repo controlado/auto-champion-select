@@ -1,6 +1,14 @@
-import { normalizeChampionIds, toChampionId } from "./champion-ids.js";
+import { toChampionId } from "./champion-ids.js";
 import { ensureConfig, patchConfig } from "./config-store.js";
 import { getPositionMetadata, normalizePosition, normalizePositionsByChampionId, POSITIONS } from "./champion-positions.js";
+import {
+    getChampionIdsFromPriorityOptions,
+    isRandomChampionOption,
+    normalizeChampionPriorityOptions,
+    RANDOM_CHAMPION_OPTION,
+    toChampionPriorityOption,
+    toChampionPriorityOptionKey
+} from "./champion-priority-options.js";
 import { ChampionDropdown } from "./champion-dropdown.js";
 import { LEAGUE_CLIENT_ELEMENTS } from "./league-client-dom.js";
 
@@ -11,12 +19,14 @@ import { LEAGUE_CLIENT_ELEMENTS } from "./league-client-dom.js";
  * @property {boolean} [enablePositionRestrictions] Enables the right-click per-position restriction menu.
  * @property {string} [searchPlaceholderText] Search input placeholder shown inside the dropdown control.
  * @property {string} [quickActionLabel] Tooltip and accessibility label for the quick action toggle.
+ * @property {string} [randomOptionDescription] Short secondary text for the Random dropdown option.
  *
  * @typedef {Object} ChampionPrioritySelectorConfig
  * @property {boolean} enabled
  * @property {boolean} [force]
  * @property {boolean} [quickAction]
  * @property {number[]} [champions]
+ * @property {import("./champion-priority-options.js").ChampionPriorityOption[]} [priorityOptions]
  * @property {Record<string, string[]>} [positionsByChampionId]
  *
  * @typedef {Object} SelectedChampionsScrollElements
@@ -24,7 +34,7 @@ import { LEAGUE_CLIENT_ELEMENTS } from "./league-client-dom.js";
  * @property {HTMLDivElement} trackElement Element that owns the selected champion icons.
  *
  * @typedef {Object} DragState
- * @property {number} championId
+ * @property {import("./champion-priority-options.js").ChampionPriorityOption} option
  * @property {number} pointerId
  * @property {number} startX
  * @property {number} startY
@@ -37,6 +47,9 @@ const POSITION_OPTION_SELECTOR = ".champion-priority-selector__position-option";
 const REMOVE_BUTTON_SELECTOR = ".champion-priority-selector__remove";
 
 const REMOVE_ICON_TEXT = "\u2715";
+
+const RANDOM_ICON_TEXT = "?";
+const RANDOM_OPTION_LABEL = "Random";
 
 const PRIMARY_MOUSE_BUTTON = 0;
 const MIDDLE_MOUSE_BUTTON = 1;
@@ -60,10 +73,16 @@ export class ChampionPrioritySelector {
         this.championDropdown = new ChampionDropdown(
             this.dropdownElement,
             placeholderText,
-            championId => this.addChampion(championId),
+            option => this.addPriorityOption(option),
             {
                 quickActionLabel: options.quickActionLabel,
                 searchPlaceholderText: options.searchPlaceholderText,
+                staticOptions: [{
+                    value: RANDOM_CHAMPION_OPTION,
+                    label: RANDOM_OPTION_LABEL,
+                    description: options.randomOptionDescription,
+                    iconText: RANDOM_ICON_TEXT
+                }],
                 isQuickActionEnabled: () => this.isQuickActionEnabled(),
                 onQuickActionToggle: () => this.toggleQuickAction()
             }
@@ -97,10 +116,10 @@ export class ChampionPrioritySelector {
         this.champions = [];
         /** @type {Map<number, Champion>} */
         this.championById = new Map();
-        /** @type {number[]} */
-        this.selectedChampionIds = [];
-        /** @type {Map<number, HTMLElement>} */
-        this.iconButtons = new Map();
+        /** @type {import("./champion-priority-options.js").ChampionPriorityOption[]} */
+        this.selectedPriorityOptions = [];
+        /** @type {Map<string, HTMLElement>} */
+        this.optionButtons = new Map();
 
         /** @type {DragState | null} */
         this.dragState = null;
@@ -256,17 +275,17 @@ export class ChampionPrioritySelector {
         const allowedChampionIds = this.getAllowedChampionIds();
         this.config = ensureConfig(this.configKey, { allowedChampionIds });
         this.quickAction = this.config.quickAction === true;
-        this.selectedChampionIds = normalizeChampionIds(this.config.champions, allowedChampionIds);
+        this.selectedPriorityOptions = normalizeChampionPriorityOptions(this.config.priorityOptions || this.config.champions, allowedChampionIds);
 
         if (this.enablePositionRestrictions) {
             this.positionsByChampionId = normalizePositionsByChampionId(
                 this.config.positionsByChampionId,
-                this.selectedChampionIds
+                getChampionIdsFromPriorityOptions(this.selectedPriorityOptions)
             );
         }
 
         this.championDropdown.renderOptions(this.champions);
-        this.renderSelectedChampions();
+        this.renderSelectedPriorityOptions();
 
         const root = await this.championDropdown.waitForRender();
         if (!root) {
@@ -303,7 +322,7 @@ export class ChampionPrioritySelector {
             return config;
         }, {
             allowedChampionIds,
-            selectedChampionIds: this.selectedChampionIds
+            selectedChampionIds: getChampionIdsFromPriorityOptions(this.selectedPriorityOptions)
         });
 
         this.quickAction = this.config.quickAction === true;
@@ -312,59 +331,64 @@ export class ChampionPrioritySelector {
     }
 
     /**
-     * @param {unknown} championId
+     * @param {unknown} option
      * @returns {void}
      */
-    addChampion(championId) {
-        const normalizedChampionId = toChampionId(championId);
-        if (normalizedChampionId === null || !this.championById.has(normalizedChampionId) || this.selectedChampionIds.includes(normalizedChampionId)) {
+    addPriorityOption(option) {
+        const normalizedOption = toChampionPriorityOption(option);
+        if (
+            normalizedOption === null ||
+            this.selectedPriorityOptions.includes(normalizedOption) ||
+            (!isRandomChampionOption(normalizedOption) && !this.championById.has(normalizedOption))
+        ) {
             return;
         }
 
-        this.selectedChampionIds.push(normalizedChampionId);
-        this.renderSelectedChampions();
+        this.selectedPriorityOptions.push(normalizedOption);
+        this.renderSelectedPriorityOptions();
         this.saveConfig();
     }
 
     /**
-     * @param {unknown} championId
+     * @param {unknown} option
      * @returns {void}
      */
-    removeChampion(championId) {
-        const normalizedChampionId = toChampionId(championId);
-        const championIndex = this.selectedChampionIds.indexOf(normalizedChampionId);
-        if (normalizedChampionId === null || championIndex === -1) {
+    removePriorityOption(option) {
+        const normalizedOption = toChampionPriorityOption(option);
+        const optionIndex = this.selectedPriorityOptions.indexOf(normalizedOption);
+        if (normalizedOption === null || optionIndex === -1) {
             return;
         }
+        this.selectedPriorityOptions.splice(optionIndex, 1);
 
-        this.selectedChampionIds.splice(championIndex, 1);
-        if (this.positionMenuChampionId === normalizedChampionId) {
+        const removedChampionId = isRandomChampionOption(normalizedOption) ? null : normalizedOption;
+        if (removedChampionId !== null && this.positionMenuChampionId === removedChampionId) {
             this.closePositionMenu();
         }
 
-        if (this.enablePositionRestrictions) {
-            delete this.positionsByChampionId[String(normalizedChampionId)];
+        if (this.enablePositionRestrictions && removedChampionId !== null) {
+            delete this.positionsByChampionId[String(removedChampionId)];
         }
 
-        this.renderSelectedChampions();
+        this.renderSelectedPriorityOptions();
         this.saveConfig();
     }
 
     /**
-     * @param {unknown} championId
+     * @param {unknown} option
      * @param {number} dropIndex
      * @returns {boolean} True when the selected order actually changed.
      */
-    moveChampionToIndex(championId, dropIndex) {
-        const normalizedChampionId = toChampionId(championId);
-        const currentIndex = this.selectedChampionIds.indexOf(normalizedChampionId);
-        if (normalizedChampionId === null || currentIndex === -1) {
+    movePriorityOptionToIndex(option, dropIndex) {
+        const normalizedOption = toChampionPriorityOption(option);
+        const currentIndex = this.selectedPriorityOptions.indexOf(normalizedOption);
+        if (normalizedOption === null || currentIndex === -1) {
             return false;
         }
 
-        const [movedChampionId] = this.selectedChampionIds.splice(currentIndex, 1);
-        const boundedDropIndex = Math.max(0, Math.min(dropIndex, this.selectedChampionIds.length));
-        this.selectedChampionIds.splice(boundedDropIndex, 0, movedChampionId);
+        const [movedOption] = this.selectedPriorityOptions.splice(currentIndex, 1);
+        const boundedDropIndex = Math.max(0, Math.min(dropIndex, this.selectedPriorityOptions.length));
+        this.selectedPriorityOptions.splice(boundedDropIndex, 0, movedOption);
         return currentIndex !== boundedDropIndex;
     }
 
@@ -376,7 +400,10 @@ export class ChampionPrioritySelector {
             return;
         }
 
-        this.positionsByChampionId = normalizePositionsByChampionId(this.positionsByChampionId, this.selectedChampionIds);
+        this.positionsByChampionId = normalizePositionsByChampionId(
+            this.positionsByChampionId,
+            getChampionIdsFromPriorityOptions(this.selectedPriorityOptions)
+        );
     }
 
     /**
@@ -387,14 +414,15 @@ export class ChampionPrioritySelector {
 
         const allowedChampionIds = this.getAllowedChampionIds();
         this.config = patchConfig(this.configKey, config => {
-            config.champions = [...this.selectedChampionIds];
+            config.priorityOptions = [...this.selectedPriorityOptions];
+            config.champions = getChampionIdsFromPriorityOptions(this.selectedPriorityOptions);
             if (this.enablePositionRestrictions) {
                 config.positionsByChampionId = { ...this.positionsByChampionId };
             }
             return config;
         }, {
             allowedChampionIds,
-            selectedChampionIds: this.selectedChampionIds
+            selectedChampionIds: getChampionIdsFromPriorityOptions(this.selectedPriorityOptions)
         });
 
         if (this.enablePositionRestrictions) {
@@ -405,40 +433,55 @@ export class ChampionPrioritySelector {
     }
 
     /**
-     * @param {Map<number, DOMRect> | null} [previousPositions]
-     * @param {number | null} [draggedChampionId]
+     * @param {Map<string, DOMRect> | null} [previousPositions]
+     * @param {import("./champion-priority-options.js").ChampionPriorityOption | null} [draggedOption]
      * @returns {void}
      */
-    renderSelectedChampions(previousPositions = null, draggedChampionId = null) {
+    renderSelectedPriorityOptions(previousPositions = null, draggedOption = null) {
         if (this.positionMenuChampionId !== null) {
             this.closePositionMenu();
         }
 
-        const activeChampionIds = new Set(this.selectedChampionIds);
+        const activeOptionKeys = new Set(
+            this.selectedPriorityOptions.map(option => toChampionPriorityOptionKey(option))
+        );
 
-        for (const [championId, button] of this.iconButtons) {
-            if (!activeChampionIds.has(championId)) {
+        for (const [optionKey, button] of this.optionButtons) {
+            if (!activeOptionKeys.has(optionKey)) {
                 button.remove();
-                this.iconButtons.delete(championId);
+                this.optionButtons.delete(optionKey);
             }
         }
 
-        if (this.selectedChampionIds.length === 0) {
+        if (this.selectedPriorityOptions.length === 0) {
             this.trackElement.replaceChildren(this.emptyElement);
             return;
         }
 
         this.emptyElement.remove();
 
-        const orderedButtons = this.selectedChampionIds
-            .map((championId, index) => this.getIconButton(championId, index))
+        const orderedButtons = this.selectedPriorityOptions
+            .map((option, index) => this.getPriorityOptionButton(option, index))
             .filter(Boolean);
 
         this.trackElement.append(...orderedButtons);
 
         if (previousPositions) {
-            this.animateReorder(previousPositions, draggedChampionId);
+            this.animateReorder(previousPositions, draggedOption);
         }
+    }
+
+    /**
+     * @param {import("./champion-priority-options.js").ChampionPriorityOption} option
+     * @param {number} index
+     * @returns {HTMLElement | null}
+     */
+    getPriorityOptionButton(option, index) {
+        if (isRandomChampionOption(option)) {
+            return this.getRandomOptionButton(index);
+        }
+
+        return this.getChampionOptionButton(option, index);
     }
 
     /**
@@ -446,19 +489,21 @@ export class ChampionPrioritySelector {
      * @param {number} index
      * @returns {HTMLElement | null}
      */
-    getIconButton(championId, index) {
+    getChampionOptionButton(championId, index) {
         const champion = this.championById.get(championId);
         if (!champion) {
             return null;
         }
 
-        let button = this.iconButtons.get(championId);
+        const optionKey = String(championId);
+        let button = this.optionButtons.get(optionKey);
         if (!button) {
             button = this.createIconButton(champion);
-            this.iconButtons.set(championId, button);
+            this.optionButtons.set(optionKey, button);
         }
 
         button.dataset.rank = String(index + 1);
+        button.classList.toggle("champion-priority-selector__icon--random", false);
         const positionText = this.getChampionPositionTitleSuffix(championId);
         button.title = `${index + 1}. ${champion.name}${positionText}`;
         button.setAttribute("aria-label", `${index + 1}. ${champion.name}${positionText}`);
@@ -472,6 +517,28 @@ export class ChampionPrioritySelector {
         removeButton.title = `Remove ${champion.name}`;
 
         this.renderPositionBadge(button, championId);
+
+        return button;
+    }
+
+    /**
+     * @param {number} index
+     * @returns {HTMLElement}
+     */
+    getRandomOptionButton(index) {
+        let button = this.optionButtons.get(RANDOM_CHAMPION_OPTION);
+        if (!button) {
+            button = this.createRandomOptionButton();
+            this.optionButtons.set(RANDOM_CHAMPION_OPTION, button);
+        }
+
+        button.dataset.rank = String(index + 1);
+        button.title = `${index + 1}. ${RANDOM_OPTION_LABEL}`;
+        button.setAttribute("aria-label", `${index + 1}. ${RANDOM_OPTION_LABEL}`);
+
+        const removeButton = button.querySelector(REMOVE_BUTTON_SELECTOR);
+        removeButton.setAttribute("aria-label", `Remove ${RANDOM_OPTION_LABEL}`);
+        removeButton.title = `Remove ${RANDOM_OPTION_LABEL}`;
 
         return button;
     }
@@ -496,16 +563,45 @@ export class ChampionPrioritySelector {
         removeButton.addEventListener("pointerdown", event => event.stopPropagation());
         removeButton.addEventListener("click", event => {
             event.stopPropagation();
-            this.removeChampion(champion.id);
+            this.removePriorityOption(champion.id);
         });
 
         button.addEventListener("pointerdown", event => this.startDrag(event, champion.id));
-        button.addEventListener("auxclick", event => this.removeChampionOnMiddleClick(event, champion.id));
+        button.addEventListener("auxclick", event => this.removePriorityOptionOnMiddleClick(event, champion.id));
         if (this.enablePositionRestrictions) {
             button.addEventListener("contextmenu", event => this.openPositionMenu(event, champion.id));
         }
 
         button.append(image, removeButton);
+        return button;
+    }
+
+    /**
+     * @returns {HTMLElement}
+     */
+    createRandomOptionButton() {
+        const button = document.createElement("div");
+        button.classList.add("champion-priority-selector__icon", "champion-priority-selector__icon--random");
+        button.setAttribute("role", "button");
+        button.tabIndex = 0;
+
+        const icon = document.createElement("span");
+        icon.classList.add("champion-priority-selector__random-icon");
+        icon.innerText = RANDOM_ICON_TEXT;
+
+        const removeButton = document.createElement("button");
+        removeButton.classList.add("champion-priority-selector__remove");
+        removeButton.type = "button";
+        removeButton.dataset.icon = REMOVE_ICON_TEXT;
+        removeButton.addEventListener("pointerdown", event => event.stopPropagation());
+        removeButton.addEventListener("click", event => {
+            event.stopPropagation();
+            this.removePriorityOption(RANDOM_CHAMPION_OPTION);
+        });
+
+        button.addEventListener("pointerdown", event => this.startDrag(event, RANDOM_CHAMPION_OPTION));
+        button.addEventListener("auxclick", event => this.removePriorityOptionOnMiddleClick(event, RANDOM_CHAMPION_OPTION));
+        button.append(icon, removeButton);
         return button;
     }
 
@@ -608,7 +704,7 @@ export class ChampionPrioritySelector {
         }
 
         const normalizedChampionId = toChampionId(championId);
-        if (normalizedChampionId === null || !this.selectedChampionIds.includes(normalizedChampionId)) {
+        if (normalizedChampionId === null || !this.selectedPriorityOptions.includes(normalizedChampionId)) {
             return;
         }
 
@@ -703,10 +799,10 @@ export class ChampionPrioritySelector {
 
         this.renderPositionMenu();
 
-        const iconButton = this.iconButtons.get(this.positionMenuChampionId);
-        const iconIndex = this.selectedChampionIds.indexOf(this.positionMenuChampionId);
+        const iconButton = this.optionButtons.get(String(this.positionMenuChampionId));
+        const iconIndex = this.selectedPriorityOptions.indexOf(this.positionMenuChampionId);
         if (iconButton && iconIndex !== -1) {
-            this.getIconButton(this.positionMenuChampionId, iconIndex);
+            this.getChampionOptionButton(this.positionMenuChampionId, iconIndex);
         }
 
         this.saveConfig();
@@ -747,10 +843,10 @@ export class ChampionPrioritySelector {
 
     /**
      * @param {PointerEvent} event
-     * @param {number} championId
+     * @param {import("./champion-priority-options.js").ChampionPriorityOption} option
      * @returns {void}
      */
-    startDrag(event, championId) {
+    startDrag(event, option) {
         if (event.button === MIDDLE_MOUSE_BUTTON) {
             event.preventDefault();
             return;
@@ -764,13 +860,14 @@ export class ChampionPrioritySelector {
             this.clearDragState();
         }
 
-        const iconButton = this.iconButtons.get(championId);
+        const optionKey = toChampionPriorityOptionKey(option);
+        const iconButton = optionKey ? this.optionButtons.get(optionKey) : null;
         if (!iconButton) {
             return;
         }
 
         this.dragState = {
-            championId,
+            option,
             pointerId: event.pointerId,
             startX: event.clientX,
             startY: event.clientY,
@@ -789,17 +886,17 @@ export class ChampionPrioritySelector {
 
     /**
      * @param {MouseEvent} event
-     * @param {number} championId
+     * @param {import("./champion-priority-options.js").ChampionPriorityOption} option
      * @returns {void}
      */
-    removeChampionOnMiddleClick(event, championId) {
+    removePriorityOptionOnMiddleClick(event, option) {
         if (event.button !== MIDDLE_MOUSE_BUTTON) {
             return;
         }
 
         event.preventDefault();
         event.stopPropagation();
-        this.removeChampion(championId);
+        this.removePriorityOption(option);
     }
 
     /**
@@ -811,7 +908,8 @@ export class ChampionPrioritySelector {
             return;
         }
 
-        const championId = this.dragState.championId;
+        const option = this.dragState.option;
+        const optionKey = toChampionPriorityOptionKey(option);
         const deltaX = event.clientX - this.dragState.startX;
         const deltaY = event.clientY - this.dragState.startY;
         const movement = Math.hypot(deltaX, deltaY);
@@ -822,21 +920,23 @@ export class ChampionPrioritySelector {
             }
 
             this.dragState.active = true;
-            this.iconButtons.get(championId)?.classList.add("champion-priority-selector__icon--dragging");
+            if (optionKey) {
+                this.optionButtons.get(optionKey)?.classList.add("champion-priority-selector__icon--dragging");
+            }
         }
 
         event.preventDefault();
 
-        const dropIndex = this.getDropIndex(event.clientX, championId);
-        const currentIndex = this.selectedChampionIds.indexOf(championId);
+        const dropIndex = this.getDropIndex(event.clientX, option);
+        const currentIndex = this.selectedPriorityOptions.indexOf(option);
         if (dropIndex === currentIndex || dropIndex === -1) {
             return;
         }
 
         const previousPositions = this.getIconPositions();
-        if (this.moveChampionToIndex(championId, dropIndex)) {
+        if (this.movePriorityOptionToIndex(option, dropIndex)) {
             this.dragState.moved = true;
-            this.renderSelectedChampions(previousPositions, championId);
+            this.renderSelectedPriorityOptions(previousPositions, option);
         }
     }
 
@@ -875,8 +975,9 @@ export class ChampionPrioritySelector {
             return;
         }
 
-        const { championId, pointerId } = this.dragState;
-        const iconButton = this.iconButtons.get(championId);
+        const { option, pointerId } = this.dragState;
+        const optionKey = toChampionPriorityOptionKey(option);
+        const iconButton = optionKey ? this.optionButtons.get(optionKey) : null;
         iconButton?.classList.remove("champion-priority-selector__icon--dragging");
         try { iconButton?.releasePointerCapture?.(pointerId); } catch { }
         window.removeEventListener("pointermove", this.handleWindowPointerMove);
@@ -887,14 +988,15 @@ export class ChampionPrioritySelector {
 
     /**
      * @param {number} clientX
-     * @param {number} draggedChampionId
+     * @param {import("./champion-priority-options.js").ChampionPriorityOption} draggedOption
      * @returns {number}
      */
-    getDropIndex(clientX, draggedChampionId) {
-        const championIdsWithoutDragged = this.selectedChampionIds.filter(championId => championId !== draggedChampionId);
+    getDropIndex(clientX, draggedOption) {
+        const optionsWithoutDragged = this.selectedPriorityOptions.filter(option => option !== draggedOption);
 
-        for (let index = 0; index < championIdsWithoutDragged.length; index++) {
-            const iconButton = this.iconButtons.get(championIdsWithoutDragged[index]);
+        for (let index = 0; index < optionsWithoutDragged.length; index++) {
+            const optionKey = toChampionPriorityOptionKey(optionsWithoutDragged[index]);
+            const iconButton = optionKey ? this.optionButtons.get(optionKey) : null;
             if (!iconButton) {
                 continue;
             }
@@ -905,18 +1007,19 @@ export class ChampionPrioritySelector {
             }
         }
 
-        return championIdsWithoutDragged.length;
+        return optionsWithoutDragged.length;
     }
 
     /**
-     * @returns {Map<number, DOMRect>}
+     * @returns {Map<string, DOMRect>}
      */
     getIconPositions() {
         const positions = new Map();
-        for (const championId of this.selectedChampionIds) {
-            const iconButton = this.iconButtons.get(championId);
+        for (const option of this.selectedPriorityOptions) {
+            const optionKey = toChampionPriorityOptionKey(option);
+            const iconButton = optionKey ? this.optionButtons.get(optionKey) : null;
             if (iconButton) {
-                positions.set(championId, iconButton.getBoundingClientRect());
+                positions.set(optionKey, iconButton.getBoundingClientRect());
             }
         }
 
@@ -924,18 +1027,19 @@ export class ChampionPrioritySelector {
     }
 
     /**
-     * @param {Map<number, DOMRect>} previousPositions
-     * @param {number | null} draggedChampionId
+     * @param {Map<string, DOMRect>} previousPositions
+     * @param {import("./champion-priority-options.js").ChampionPriorityOption | null} draggedOption
      * @returns {void}
      */
-    animateReorder(previousPositions, draggedChampionId) {
-        for (const championId of this.selectedChampionIds) {
-            if (championId === draggedChampionId) {
+    animateReorder(previousPositions, draggedOption) {
+        for (const option of this.selectedPriorityOptions) {
+            if (option === draggedOption) {
                 continue;
             }
 
-            const iconButton = this.iconButtons.get(championId);
-            const previousPosition = previousPositions.get(championId);
+            const optionKey = toChampionPriorityOptionKey(option);
+            const iconButton = optionKey ? this.optionButtons.get(optionKey) : null;
+            const previousPosition = optionKey ? previousPositions.get(optionKey) : null;
             if (!iconButton || !previousPosition || typeof iconButton.animate !== "function") {
                 continue;
             }

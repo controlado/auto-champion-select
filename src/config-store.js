@@ -1,6 +1,6 @@
 import defaultPluginConfig from "./config.json";
-import { normalizeChampionIds } from "./champion-ids.js";
 import { normalizePositionsByChampionId } from "./champion-positions.js";
+import { getChampionIdsFromPriorityOptions, normalizeChampionPriorityOptions } from "./champion-priority-options.js";
 
 const repairedConfigWarnings = new Set();
 
@@ -12,6 +12,7 @@ const repairedConfigWarnings = new Set();
  * @property {boolean} [force]
  * @property {boolean} [quickAction]
  * @property {number[]} [champions]
+ * @property {import("./champion-priority-options.js").ChampionPriorityOption[]} [priorityOptions]
  * @property {Record<string, string[]>} [positionsByChampionId]
  *
  * @typedef {Object} ConfigNormalizationOptions
@@ -33,6 +34,13 @@ function hasOwnProperty(object, key) {
 
 function hasDefaultConfigField(defaultConfig, fieldName) {
     return hasOwnProperty(defaultConfig, fieldName);
+}
+
+function getRawPriorityOptions(mergedConfig) {
+    // use priorityOptions when present; fall back to legacy champions.
+    return Array.isArray(mergedConfig.priorityOptions)
+        ? mergedConfig.priorityOptions
+        : mergedConfig.champions;
 }
 
 /**
@@ -99,7 +107,8 @@ function normalizeActionConfig(configKey, config, options = {}) {
     }
 
     if (hasDefaultConfigField(defaultConfig, "champions")) {
-        normalizedConfig.champions = normalizeChampionIds(mergedConfig.champions, options.allowedChampionIds);
+        normalizedConfig.priorityOptions = normalizeChampionPriorityOptions(getRawPriorityOptions(mergedConfig), options.allowedChampionIds);
+        normalizedConfig.champions = getChampionIdsFromPriorityOptions(normalizedConfig.priorityOptions);
     }
 
     if (hasDefaultConfigField(defaultConfig, "positionsByChampionId")) {

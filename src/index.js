@@ -329,7 +329,8 @@ function createSharedControls() {
         getPlayableChampions,
         {
             enablePositionRestrictions: true,
-            quickActionLabel: "Pick instantly"
+            quickActionLabel: "Pick instantly",
+            randomOptionDescription: "Uses assigned role"
         }
     );
 

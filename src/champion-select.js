@@ -1,11 +1,18 @@
 import { request, sleep } from "https://cdn.jsdelivr.net/npm/balaclava-utils@latest";
-import { toChampionId } from "./champion-ids.js";
+import { normalizeChampionIds, toChampionId } from "./champion-ids.js";
 import { readConfig } from "./config-store.js";
+import { getAllChampions, getRecommendedChampionPositionsById } from "./champion-data.js";
 import { getAllowedPositionsForChampion, isChampionAllowedInPosition, normalizePosition } from "./champion-positions.js";
+import { isRandomChampionOption, normalizeChampionPriorityOptions } from "./champion-priority-options.js";
 import { LEAGUE_CLIENT_ENDPOINTS } from "./league-client-endpoints.js";
 
 /**
- * @typedef {"applied" | "try-next-champion" | "abort-action"} ActionAttemptResult
+ * @typedef {import("./champion-priority-options.js").ChampionPriorityOption} ChampionPriorityOption
+ *
+ * @typedef {"satisfied" | "try-next-champion" | "stop-cycle"} ActionAttemptResult
+ * @typedef {"continue-cycle" | "stop-cycle"} AutoSelectCycleResult
+ * @typedef {"ready" | "skip-action" | "stop-cycle"} AutoSelectPlanStatus
+ * @typedef {"satisfied" | "try-next-priority-option" | "stop-cycle"} PriorityOptionAttemptResult
  *
  * @typedef {Object} ChampSelectAction
  * @property {number} id
@@ -33,7 +40,19 @@ import { LEAGUE_CLIENT_ENDPOINTS } from "./league-client-endpoints.js";
  * @property {boolean} [force]
  * @property {boolean} [quickAction]
  * @property {number[]} champions
+ * @property {ChampionPriorityOption[]} [priorityOptions]
  * @property {Record<string, string[]>} [positionsByChampionId]
+ *
+ * @typedef {Object} AutoSelectConfigs
+ * @property {AutoSelectConfig} pickConfig
+ * @property {AutoSelectConfig} banConfig
+ *
+ * @typedef {Object} AutoSelectPlan
+ * @property {ChampSelectAction} action
+ * @property {AutoSelectConfig} config
+ * @property {ChampionPriorityOption[]} priorityOptions
+ *
+ * @typedef {{status: "ready", plan: AutoSelectPlan} | {status: "skip-action" | "stop-cycle"}} AutoSelectPlanResult
  */
 
 const CHAMP_SELECT_WATCH_INTERVAL_MS = 300;
@@ -41,11 +60,33 @@ const CHAMP_SELECT_WATCH_INTERVAL_MS = 300;
 const AUTO_SELECT_RANDOM_DELAY_MIN_MS = 2000;
 const AUTO_SELECT_RANDOM_DELAY_MAX_MS = 4000;
 
-/** @type {Readonly<Record<"APPLIED" | "TRY_NEXT_CHAMPION" | "ABORT_ACTION", ActionAttemptResult>>} */
+const ANY_BANNABLE_CHAMPION_SENTINEL = -1;
+
+/** @type {Readonly<Record<"SATISFIED" | "TRY_NEXT_CHAMPION" | "STOP_CYCLE", ActionAttemptResult>>} */
 const ACTION_ATTEMPT_RESULT = Object.freeze({
-    APPLIED: "applied",
+    SATISFIED: "satisfied",
     TRY_NEXT_CHAMPION: "try-next-champion",
-    ABORT_ACTION: "abort-action"
+    STOP_CYCLE: "stop-cycle"
+});
+
+/** @type {Readonly<Record<"CONTINUE" | "STOP", AutoSelectCycleResult>>} */
+const AUTO_SELECT_CYCLE_RESULT = Object.freeze({
+    CONTINUE: "continue-cycle",
+    STOP: "stop-cycle"
+});
+
+/** @type {Readonly<Record<"READY" | "SKIP_ACTION" | "STOP_CYCLE", AutoSelectPlanStatus>>} */
+const AUTO_SELECT_PLAN_STATUS = Object.freeze({
+    READY: "ready",
+    SKIP_ACTION: "skip-action",
+    STOP_CYCLE: "stop-cycle"
+});
+
+/** @type {Readonly<Record<"SATISFIED" | "TRY_NEXT_PRIORITY_OPTION" | "STOP_CYCLE", PriorityOptionAttemptResult>>} */
+const PRIORITY_OPTION_ATTEMPT_RESULT = Object.freeze({
+    SATISFIED: "satisfied",
+    TRY_NEXT_PRIORITY_OPTION: "try-next-priority-option",
+    STOP_CYCLE: "stop-cycle"
 });
 
 /**
@@ -100,7 +141,7 @@ function getActionTypePriority(action) {
 }
 
 /**
- * @returns {{pickConfig: AutoSelectConfig, banConfig: AutoSelectConfig}}
+ * @returns {AutoSelectConfigs}
  */
 function readAutoSelectConfigs() {
     return {
@@ -123,6 +164,30 @@ function isQuickActionEnabled(config) {
 function getRandomAutoSelectDelayMs() {
     const delayRangeMs = AUTO_SELECT_RANDOM_DELAY_MAX_MS - AUTO_SELECT_RANDOM_DELAY_MIN_MS;
     return AUTO_SELECT_RANDOM_DELAY_MIN_MS + Math.floor(Math.random() * (delayRangeMs + 1));
+}
+
+/**
+ * @param {number[]} championIds
+ * @returns {number[]}
+ */
+function getShuffledChampionIds(championIds) {
+    const shuffledChampionIds = [...championIds];
+    for (let index = shuffledChampionIds.length - 1; index > 0; index--) {
+        const randomIndex = Math.floor(Math.random() * (index + 1));
+        [shuffledChampionIds[index], shuffledChampionIds[randomIndex]] = [shuffledChampionIds[randomIndex], shuffledChampionIds[index]];
+    }
+
+    return shuffledChampionIds;
+}
+
+/**
+ * @param {unknown} championIds
+ * @returns {boolean}
+ */
+function isAnyBannableChampionSentinel(championIds) {
+    return Array.isArray(championIds) &&
+        championIds.length === 1 &&
+        championIds[0] === ANY_BANNABLE_CHAMPION_SENTINEL;
 }
 
 export class ChampionSelect {
@@ -232,9 +297,9 @@ export class ChampionSelect {
     }
 
     async runAutoSelectCycle() {
-        const { pickConfig, banConfig } = readAutoSelectConfigs();
+        const configs = readAutoSelectConfigs();
 
-        if (!pickConfig.enabled && !banConfig.enabled) {
+        if (!configs.pickConfig.enabled && !configs.banConfig.enabled) {
             return;
         }
 
@@ -246,49 +311,109 @@ export class ChampionSelect {
         }
 
         for (const action of localPlayerActions) {
-            if (!this.isActionAvailable(action)) {
-                continue;
-            }
-
-            const config = this.getConfigForActionType(action.type, { pickConfig, banConfig });
-            if (!config?.enabled) {
-                continue;
-            }
-
-            let currentAction = action;
-            let currentConfig = config;
-            let championIds = this.getAvailableChampionIdsForAction(currentAction, currentConfig);
-            if (championIds.length === 0) {
-                continue;
-            }
-
-            const alreadyAppliedChampionId = championIds.find(championId =>
-                this.isPickIntentAlreadyApplied(currentAction, championId)
-            );
-            if (alreadyAppliedChampionId !== undefined) {
-                championIds = [alreadyAppliedChampionId];
-            } else if (!isQuickActionEnabled(currentConfig)) {
-                const delayedActionState = await this.delayAndRefreshPendingAction(currentAction);
-                if (!delayedActionState) {
-                    return;
-                }
-
-                currentAction = delayedActionState.action;
-                currentConfig = delayedActionState.config;
-                championIds = delayedActionState.championIds;
-            }
-
-            for (const championId of championIds) {
-                const result = await this.attemptChampionForAction(currentAction, championId, currentConfig);
-                if (result === ACTION_ATTEMPT_RESULT.APPLIED) {
-                    break;
-                }
-
-                if (result === ACTION_ATTEMPT_RESULT.ABORT_ACTION) {
-                    return;
-                }
+            const result = await this.runAutoSelectForAction(action, configs);
+            if (result === AUTO_SELECT_CYCLE_RESULT.STOP) {
+                return;
             }
         }
+    }
+
+    /**
+     * @param {ChampSelectAction} action
+     * @param {AutoSelectConfigs} configs
+     * @returns {Promise<AutoSelectCycleResult>}
+     */
+    async runAutoSelectForAction(action, configs) {
+        const planResult = await this.prepareActionForAutoSelect(action, configs);
+        switch (planResult.status) {
+            case AUTO_SELECT_PLAN_STATUS.READY: return this.tryAutoSelectPlan(planResult.plan);
+            case AUTO_SELECT_PLAN_STATUS.SKIP_ACTION: return AUTO_SELECT_CYCLE_RESULT.CONTINUE;
+            case AUTO_SELECT_PLAN_STATUS.STOP_CYCLE: return AUTO_SELECT_CYCLE_RESULT.STOP;
+            default: throw new Error(`Unexpected auto-select plan status: ${planResult.status}`);
+        }
+    }
+
+    /**
+     * @param {ChampSelectAction} action
+     * @param {AutoSelectConfigs} configs
+     * @returns {Promise<AutoSelectPlanResult>}
+     */
+    async prepareActionForAutoSelect(action, configs) {
+        if (!this.isActionAvailable(action)) {
+            return { status: AUTO_SELECT_PLAN_STATUS.SKIP_ACTION };
+        }
+
+        const config = this.getConfigForActionType(action.type, configs);
+        if (!config?.enabled) {
+            return { status: AUTO_SELECT_PLAN_STATUS.SKIP_ACTION };
+        }
+
+        const plan = this.createAutoSelectPlan(action, config);
+        if (!plan) {
+            return { status: AUTO_SELECT_PLAN_STATUS.SKIP_ACTION };
+        }
+
+        const alreadySatisfiedPlan = this.createPlanLimitedToAlreadySatisfiedPriorityOption(plan);
+        if (alreadySatisfiedPlan) {
+            return {
+                status: AUTO_SELECT_PLAN_STATUS.READY,
+                plan: alreadySatisfiedPlan
+            };
+        }
+
+        if (isQuickActionEnabled(config)) {
+            return {
+                status: AUTO_SELECT_PLAN_STATUS.READY,
+                plan
+            };
+        }
+
+        const refreshedPlan = await this.delayAndRefreshAutoSelectPlan(action);
+        if (!refreshedPlan) {
+            return { status: AUTO_SELECT_PLAN_STATUS.STOP_CYCLE };
+        }
+
+        return {
+            status: AUTO_SELECT_PLAN_STATUS.READY,
+            plan: this.createPlanLimitedToAlreadySatisfiedPriorityOption(refreshedPlan) || refreshedPlan
+        };
+    }
+
+    /**
+     * @param {AutoSelectPlan} plan
+     * @returns {Promise<AutoSelectCycleResult>}
+     */
+    async tryAutoSelectPlan(plan) {
+        for (const priorityOption of plan.priorityOptions) {
+            const result = await this.tryPriorityOptionForAction(plan.action, priorityOption, plan.config);
+            if (result === PRIORITY_OPTION_ATTEMPT_RESULT.SATISFIED) return AUTO_SELECT_CYCLE_RESULT.CONTINUE;
+            if (result === PRIORITY_OPTION_ATTEMPT_RESULT.STOP_CYCLE) return AUTO_SELECT_CYCLE_RESULT.STOP;
+        }
+
+        return AUTO_SELECT_CYCLE_RESULT.CONTINUE;
+    }
+
+    /**
+     * @param {ChampSelectAction} action
+     * @param {ChampionPriorityOption} priorityOption
+     * @param {AutoSelectConfig} config
+     * @returns {Promise<PriorityOptionAttemptResult>}
+     */
+    async tryPriorityOptionForAction(action, priorityOption, config) {
+        if (this.isPriorityOptionAlreadySatisfied(action, priorityOption)) {
+            return PRIORITY_OPTION_ATTEMPT_RESULT.SATISFIED;
+        }
+
+        const championIds = await this.resolveChampionIdsForPriorityOption(action, priorityOption, config);
+        const shouldTryNextRandomCandidateOnFailure = isRandomChampionOption(priorityOption) && !this.isLockingExistingPickIntent(action, championIds);
+        for (const championId of championIds) {
+            const options = { tryNextRandomCandidateOnFailure: shouldTryNextRandomCandidateOnFailure };
+            const result = await this.attemptChampionForAction(action, championId, config, options);
+            if (result === ACTION_ATTEMPT_RESULT.SATISFIED) return PRIORITY_OPTION_ATTEMPT_RESULT.SATISFIED;
+            if (result === ACTION_ATTEMPT_RESULT.STOP_CYCLE) return PRIORITY_OPTION_ATTEMPT_RESULT.STOP_CYCLE;
+        }
+
+        return PRIORITY_OPTION_ATTEMPT_RESULT.TRY_NEXT_PRIORITY_OPTION;
     }
 
     /**
@@ -318,7 +443,7 @@ export class ChampionSelect {
 
     /**
      * @param {string} actionType
-     * @param {{pickConfig: AutoSelectConfig, banConfig: AutoSelectConfig}} configs
+     * @param {AutoSelectConfigs} configs
      * @returns {AutoSelectConfig | null}
      */
     getConfigForActionType(actionType, configs) {
@@ -330,19 +455,109 @@ export class ChampionSelect {
     /**
      * @param {ChampSelectAction} action
      * @param {AutoSelectConfig} config
-     * @returns {number[]}
+     * @returns {AutoSelectPlan | null}
      */
-    getAvailableChampionIdsForAction(action, config) {
-        return config.champions
-            .map(championId => toChampionId(championId))
-            .filter(championId => championId !== null && !this.isChampionUnavailableForAction(action, championId, config));
+    createAutoSelectPlan(action, config) {
+        const priorityOptions = this.getAvailablePriorityOptionsForAction(action, config);
+        if (priorityOptions.length === 0) {
+            return null;
+        }
+
+        return { action, config, priorityOptions };
     }
 
     /**
      * @param {ChampSelectAction} action
-     * @returns {Promise<{action: ChampSelectAction, config: AutoSelectConfig, championIds: number[]} | null>}
+     * @param {AutoSelectConfig} config
+     * @returns {ChampionPriorityOption[]}
      */
-    async delayAndRefreshPendingAction(action) {
+    getAvailablePriorityOptionsForAction(action, config) {
+        return normalizeChampionPriorityOptions(config.priorityOptions || config.champions)
+            .filter(priorityOption => !this.isPriorityOptionUnavailableForAction(action, priorityOption, config));
+    }
+
+    /**
+     * @param {ChampSelectAction} action
+     * @param {ChampionPriorityOption} priorityOption
+     * @param {AutoSelectConfig} config
+     * @returns {boolean}
+     */
+    isPriorityOptionUnavailableForAction(action, priorityOption, config) {
+        return !isRandomChampionOption(priorityOption) &&
+            this.isChampionUnavailableForAction(action, priorityOption, config);
+    }
+
+    /**
+     * @param {AutoSelectPlan} plan
+     * @returns {AutoSelectPlan | null}
+     */
+    createPlanLimitedToAlreadySatisfiedPriorityOption(plan) {
+        const alreadySatisfiedPriorityOption = plan.priorityOptions.find(priorityOption =>
+            this.isPriorityOptionAlreadySatisfied(plan.action, priorityOption)
+        );
+
+        if (alreadySatisfiedPriorityOption === undefined) {
+            return null;
+        }
+
+        return {
+            ...plan,
+            priorityOptions: [alreadySatisfiedPriorityOption]
+        };
+    }
+
+    /**
+     * @param {ChampSelectAction} action
+     * @param {ChampionPriorityOption} priorityOption
+     * @returns {boolean}
+     */
+    isPriorityOptionAlreadySatisfied(action, priorityOption) {
+        if (isRandomChampionOption(priorityOption)) {
+            return this.hasAnyPickIntentSet(action);
+        }
+
+        return this.isPickIntentSetToChampion(action, priorityOption);
+    }
+
+    /**
+     * @param {ChampSelectAction} action
+     * @returns {boolean}
+     */
+    hasAnyPickIntentSet(action) {
+        return action.type === "pick" &&
+            action.isInProgress !== true &&
+            (this.localPlayerIntentChampionId !== null || toChampionId(action.championId) !== null);
+    }
+
+    /**
+     * @param {ChampSelectAction} action
+     * @param {number[]} championIds
+     * @returns {boolean}
+     */
+    isLockingExistingPickIntent(action, championIds) {
+        return action.type === "pick" &&
+            action.isInProgress === true &&
+            championIds.length === 1 &&
+            championIds[0] === this.getPickIntentChampionId(action);
+    }
+
+    /**
+     * @param {ChampSelectAction} action
+     * @returns {number | null}
+     */
+    getPickIntentChampionId(action) {
+        if (action.type !== "pick") {
+            return null;
+        }
+
+        return toChampionId(action.championId) ?? this.localPlayerIntentChampionId;
+    }
+
+    /**
+     * @param {ChampSelectAction} action
+     * @returns {Promise<AutoSelectPlan | null>}
+     */
+    async delayAndRefreshAutoSelectPlan(action) {
         const delayMs = getRandomAutoSelectDelayMs();
         console.debug(`auto-champion-select: Quick action is off, waiting ${delayMs}ms before ${action.type}...`);
 
@@ -371,48 +586,147 @@ export class ChampionSelect {
             return null;
         }
 
-        const championIds = this.getAvailableChampionIdsForAction(updatedAction, updatedConfig);
-        if (championIds.length === 0) {
-            return null;
+        return this.createAutoSelectPlan(updatedAction, updatedConfig);
+    }
+
+    /**
+     * @param {ChampSelectAction} action
+     * @param {ChampionPriorityOption} priorityOption
+     * @param {AutoSelectConfig} config
+     * @returns {Promise<number[]>}
+     */
+    async resolveChampionIdsForPriorityOption(action, priorityOption, config) {
+        if (!isRandomChampionOption(priorityOption)) {
+            return [priorityOption];
         }
 
-        return {
-            action: updatedAction,
-            config: updatedConfig,
-            championIds
-        };
+        return this.resolveRandomChampionIdsForAction(action, config);
+    }
+
+    /**
+     * @param {ChampSelectAction} action
+     * @param {AutoSelectConfig} config
+     * @returns {Promise<number[]>}
+     */
+    async resolveRandomChampionIdsForAction(action, config) {
+        if (action.type === "pick" && action.isInProgress === true) {
+            const pickIntentChampionId = this.getPickIntentChampionId(action);
+            if (
+                pickIntentChampionId !== null &&
+                !this.isChampionUnavailableForAction(action, pickIntentChampionId, config)
+            ) {
+                return [pickIntentChampionId];
+            }
+        }
+
+        const championIds = await this.fetchRandomCandidateChampionIds(action);
+        if (championIds.length === 0) {
+            return [];
+        }
+
+        const availableChampionIds = championIds.filter(championId => !this.isChampionUnavailableForAction(action, championId, config));
+
+        const assignedPositionPreferredChampionIds = action.type === "pick"
+            ? await this.preferAssignedPositionRandomPickCandidates(availableChampionIds)
+            : availableChampionIds;
+
+        return getShuffledChampionIds(assignedPositionPreferredChampionIds);
+    }
+
+    /**
+     * @param {ChampSelectAction} action
+     * @returns {Promise<number[]>}
+     */
+    async fetchRandomCandidateChampionIds(action) {
+        const endpoint = action.type === "pick"
+            ? LEAGUE_CLIENT_ENDPOINTS.pickableChampionIds
+            : LEAGUE_CLIENT_ENDPOINTS.bannableChampionIds;
+
+        try {
+            const response = await request("GET", endpoint);
+            if (!response.ok) {
+                console.debug(`auto-champion-select: Failed to load random ${action.type} candidates`, response);
+                return [];
+            }
+
+            const rawCandidateChampionIds = await response.json();
+            if (action.type === "ban" && isAnyBannableChampionSentinel(rawCandidateChampionIds)) {
+                console.debug("auto-champion-select: Random ban endpoint returned unrestricted sentinel, falling back to all champions...");
+                return await this.fetchAllChampionIdsForRandomBan();
+            }
+
+            return normalizeChampionIds(rawCandidateChampionIds);
+        } catch (error) {
+            console.debug(`auto-champion-select: Failed to load random ${action.type} candidates`, error);
+            return [];
+        }
+    }
+
+    /**
+     * @returns {Promise<number[]>}
+     */
+    async fetchAllChampionIdsForRandomBan() {
+        const champions = await getAllChampions();
+        return champions.map(champion => champion.id);
+    }
+
+    /**
+     * @param {number[]} championIds
+     * @returns {Promise<number[]>}
+     */
+    async preferAssignedPositionRandomPickCandidates(championIds) {
+        if (!this.localPlayerAssignedPosition) {
+            return championIds;
+        }
+
+        const recommendedPositionsByChampionId = await getRecommendedChampionPositionsById();
+        const positionFilteredChampionIds = championIds.filter(championId =>
+            recommendedPositionsByChampionId[String(championId)]?.includes(this.localPlayerAssignedPosition)
+        );
+
+        return positionFilteredChampionIds.length > 0 ? positionFilteredChampionIds : championIds;
     }
 
     /**
      * @param {ChampSelectAction} action
      * @param {unknown} championId
      * @param {AutoSelectConfig} config
+     * @param {{tryNextRandomCandidateOnFailure?: boolean}} [options]
      * @returns {Promise<ActionAttemptResult>}
      */
-    async attemptChampionForAction(action, championId, config) {
+    async attemptChampionForAction(action, championId, config, options = {}) {
         const normalizedChampionId = toChampionId(championId);
         if (normalizedChampionId === null || this.isChampionUnavailableForAction(action, normalizedChampionId, config)) {
             return ACTION_ATTEMPT_RESULT.TRY_NEXT_CHAMPION;
         }
 
-        if (this.isPickIntentAlreadyApplied(action, normalizedChampionId)) {
-            return ACTION_ATTEMPT_RESULT.APPLIED;
+        if (this.isPickIntentSetToChampion(action, normalizedChampionId)) {
+            return ACTION_ATTEMPT_RESULT.SATISFIED;
         }
 
         console.debug(`auto-champion-select: Trying to ${action.type} ${normalizedChampionId}...`);
         const response = await this.selectChampion(action.id, normalizedChampionId);
         if (response.ok) {
-            return ACTION_ATTEMPT_RESULT.APPLIED;
+            return ACTION_ATTEMPT_RESULT.SATISFIED;
         }
 
         console.debug(`auto-champion-select: Failed to ${action.type} ${normalizedChampionId}, refreshing champ select state...`);
         const updatedAction = await this.refreshPendingAction(action);
         if (!updatedAction || !this.isActionAvailable(updatedAction)) {
-            return ACTION_ATTEMPT_RESULT.ABORT_ACTION;
+            return ACTION_ATTEMPT_RESULT.STOP_CYCLE;
+        }
+
+        if (options.tryNextRandomCandidateOnFailure === true) {
+            if (this.hasAnyPickIntentSet(updatedAction)) {
+                return ACTION_ATTEMPT_RESULT.SATISFIED;
+            }
+
+            console.debug(`auto-champion-select: Failed random ${action.type} candidate ${normalizedChampionId}, trying next ${action.type}...`);
+            return ACTION_ATTEMPT_RESULT.TRY_NEXT_CHAMPION;
         }
 
         if (!this.isChampionUnavailableForAction(updatedAction, normalizedChampionId, config)) {
-            return ACTION_ATTEMPT_RESULT.ABORT_ACTION;
+            return ACTION_ATTEMPT_RESULT.STOP_CYCLE;
         }
 
         console.debug(`auto-champion-select: ${normalizedChampionId} is unavailable after refresh, trying next ${action.type}...`);
@@ -424,7 +738,7 @@ export class ChampionSelect {
      * @param {number} championId
      * @returns {boolean}
      */
-    isPickIntentAlreadyApplied(action, championId) {
+    isPickIntentSetToChampion(action, championId) {
         return action.type === "pick" &&
             action.isInProgress !== true &&
             (this.localPlayerIntentChampionId === championId || toChampionId(action.championId) === championId);

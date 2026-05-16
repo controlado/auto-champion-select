@@ -120,7 +120,7 @@ async function fetchRecommendedChampionPositionsById() {
     }
 }
 
-const getRecommendedChampionPositionsById = createCoalescedFetcher(fetchRecommendedChampionPositionsById);
+export const getRecommendedChampionPositionsById = createCoalescedFetcher(fetchRecommendedChampionPositionsById);
 
 /**
  * @returns {Promise<Champion[]>}

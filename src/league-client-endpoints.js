@@ -6,6 +6,8 @@ export const LEAGUE_CLIENT_ENDPOINTS = Object.freeze({
     championSummary: "/lol-game-data/assets/v1/champion-summary.json",
     recommendedChampionPositions: "/lol-perks/v1/recommended-champion-positions",
     champSelectSession: "/lol-champ-select/v1/session",
+    pickableChampionIds: "/lol-champ-select/v1/pickable-champion-ids",
+    bannableChampionIds: "/lol-champ-select/v1/bannable-champion-ids",
 
     /**
      * @param {number} championId
