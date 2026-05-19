@@ -41,7 +41,8 @@ import { LEAGUE_CLIENT_ENDPOINTS } from "./league-client-endpoints.js";
  * @property {boolean} [quickAction]
  * @property {number[]} champions
  * @property {ChampionPriorityOption[]} [priorityOptions]
- * @property {string[]} [randomPositions]
+ * @property {string[]} [randomAssignedPositions]
+ * @property {string[]} [randomPoolPositions]
  * @property {Record<string, string[]>} [positionsByChampionId]
  *
  * @typedef {Object} AutoSelectConfigs
@@ -484,8 +485,39 @@ export class ChampionSelect {
      * @returns {boolean}
      */
     isPriorityOptionUnavailableForAction(action, priorityOption, config) {
-        return !isRandomChampionOption(priorityOption) &&
-            this.isChampionUnavailableForAction(action, priorityOption, config);
+        if (isRandomChampionOption(priorityOption)) {
+            return this.isRandomPriorityOptionUnavailableForAction(action, config);
+        }
+
+        return this.isChampionUnavailableForAction(action, priorityOption, config);
+    }
+
+    /**
+     * @param {ChampSelectAction} action
+     * @param {AutoSelectConfig} config
+     * @returns {boolean}
+     */
+    isRandomPriorityOptionUnavailableForAction(action, config) {
+        if (action.type !== "pick") {
+            return false;
+        }
+
+        const randomAssignedPositions = normalizePositionList(config.randomAssignedPositions);
+        if (randomAssignedPositions.length === 0) {
+            return false;
+        }
+
+        if (!this.localPlayerAssignedPosition) {
+            console.debug(`auto-champion-select: Skipping random pick because no assigned position is available for ${randomAssignedPositions.join(", ")} restriction.`);
+            return true;
+        }
+
+        if (!randomAssignedPositions.includes(this.localPlayerAssignedPosition)) {
+            console.debug(`auto-champion-select: Skipping random pick because assigned position ${this.localPlayerAssignedPosition} is not in ${randomAssignedPositions.join(", ")}.`);
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -627,9 +659,9 @@ export class ChampionSelect {
 
         const availableChampionIds = championIds.filter(championId => !this.isChampionUnavailableForAction(action, championId, config));
 
-        const resolvedRandomChampionIds = action.type === "pick" && !this.hasConfiguredRandomPositions(config)
+        const resolvedRandomChampionIds = action.type === "pick" && !this.hasConfiguredRandomPoolPositions(config)
             ? await this.preferAssignedPositionRandomPickCandidates(availableChampionIds)
-            : await this.filterRandomChampionIdsByConfiguredPositions(availableChampionIds, config);
+            : await this.filterRandomChampionIdsByConfiguredPoolPositions(availableChampionIds, config);
 
         return getShuffledChampionIds(resolvedRandomChampionIds);
     }
@@ -675,8 +707,8 @@ export class ChampionSelect {
      * @param {AutoSelectConfig} config
      * @returns {boolean}
      */
-    hasConfiguredRandomPositions(config) {
-        return normalizePositionList(config.randomPositions).length > 0;
+    hasConfiguredRandomPoolPositions(config) {
+        return normalizePositionList(config.randomPoolPositions).length > 0;
     }
 
     /**
@@ -684,20 +716,20 @@ export class ChampionSelect {
      * @param {AutoSelectConfig} config
      * @returns {Promise<number[]>}
      */
-    async filterRandomChampionIdsByConfiguredPositions(championIds, config) {
-        const randomPositions = normalizePositionList(config.randomPositions);
-        if (randomPositions.length === 0) {
+    async filterRandomChampionIdsByConfiguredPoolPositions(championIds, config) {
+        const randomPoolPositions = normalizePositionList(config.randomPoolPositions);
+        if (randomPoolPositions.length === 0) {
             return championIds;
         }
 
-        const randomPositionSet = new Set(randomPositions);
+        const randomPoolPositionSet = new Set(randomPoolPositions);
         const recommendedPositionsByChampionId = await getRecommendedChampionPositionsById();
         const positionFilteredChampionIds = championIds.filter(championId =>
-            recommendedPositionsByChampionId[String(championId)]?.some(position => randomPositionSet.has(position))
+            recommendedPositionsByChampionId[String(championId)]?.some(position => randomPoolPositionSet.has(position))
         );
 
         if (positionFilteredChampionIds.length === 0) {
-            console.debug(`auto-champion-select: No random candidates matched ${randomPositions.join(", ")} restriction.`);
+            console.debug(`auto-champion-select: No random candidates matched ${randomPoolPositions.join(", ")} restriction.`);
         }
 
         return positionFilteredChampionIds;

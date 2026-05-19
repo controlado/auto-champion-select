@@ -13,7 +13,8 @@ const repairedConfigWarnings = new Set();
  * @property {boolean} [quickAction]
  * @property {number[]} [champions]
  * @property {import("./champion-priority-options.js").ChampionPriorityOption[]} [priorityOptions]
- * @property {string[]} [randomPositions]
+ * @property {string[]} [randomAssignedPositions]
+ * @property {string[]} [randomPoolPositions]
  * @property {Record<string, string[]>} [positionsByChampionId]
  *
  * @typedef {Object} ConfigNormalizationOptions
@@ -42,6 +43,13 @@ function getRawPriorityOptions(mergedConfig) {
     return Array.isArray(mergedConfig.priorityOptions)
         ? mergedConfig.priorityOptions
         : mergedConfig.champions;
+}
+
+function getRawRandomPoolPositions(sourceConfig, mergedConfig) {
+    // randomPositions is the legacy storage key for the Random champion pool filter.
+    return hasOwnProperty(sourceConfig, "randomPoolPositions")
+        ? sourceConfig.randomPoolPositions
+        : mergedConfig.randomPositions;
 }
 
 /**
@@ -112,8 +120,12 @@ function normalizeActionConfig(configKey, config, options = {}) {
         normalizedConfig.champions = getChampionIdsFromPriorityOptions(normalizedConfig.priorityOptions);
     }
 
-    if (hasDefaultConfigField(defaultConfig, "randomPositions")) {
-        normalizedConfig.randomPositions = normalizePositionList(mergedConfig.randomPositions);
+    if (hasDefaultConfigField(defaultConfig, "randomAssignedPositions")) {
+        normalizedConfig.randomAssignedPositions = normalizePositionList(mergedConfig.randomAssignedPositions);
+    }
+
+    if (hasDefaultConfigField(defaultConfig, "randomPoolPositions")) {
+        normalizedConfig.randomPoolPositions = normalizePositionList(getRawRandomPoolPositions(sourceConfig, mergedConfig));
     }
 
     if (hasDefaultConfigField(defaultConfig, "positionsByChampionId")) {

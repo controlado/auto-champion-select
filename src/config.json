@@ -10,7 +10,8 @@
             432,
             235
         ],
-        "randomPositions": [],
+        "randomAssignedPositions": [],
+        "randomPoolPositions": [],
         "positionsByChampionId": {
             "432": [
                 "UTILITY"
@@ -31,6 +32,6 @@
             238,
             38
         ],
-        "randomPositions": []
+        "randomPoolPositions": []
     }
 }

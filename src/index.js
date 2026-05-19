@@ -329,9 +329,10 @@ function createSharedControls() {
         getPlayableChampions,
         {
             enablePositionRestrictions: true,
+            enableRandomAssignedPositionRestrictions: true,
             quickActionLabel: "Pick instantly",
-            enableRandomPositionFilters: true,
-            randomOptionDescription: "Uses assigned role unless lanes selected"
+            enableRandomPoolPositionFilters: true,
+            randomOptionDescription: "Picks a random available champion. Badges limit draft lanes or filter the pool."
         }
     );
 
@@ -342,8 +343,8 @@ function createSharedControls() {
         getAllChampions,
         {
             quickActionLabel: "Ban instantly",
-            enableRandomPositionFilters: true,
-            randomOptionDescription: "Can filter lanes"
+            enableRandomPoolPositionFilters: true,
+            randomOptionDescription: "Bans a random available champion. Lane badges filter the pool first."
         }
     );
 
