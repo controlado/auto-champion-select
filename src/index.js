@@ -330,7 +330,8 @@ function createSharedControls() {
         {
             enablePositionRestrictions: true,
             quickActionLabel: "Pick instantly",
-            randomOptionDescription: "Uses assigned role"
+            enableRandomPositionFilters: true,
+            randomOptionDescription: "Uses assigned role unless lanes selected"
         }
     );
 
@@ -339,7 +340,11 @@ function createSharedControls() {
         "Add ban",
         CONFIG_KEYS.ban,
         getAllChampions,
-        { quickActionLabel: "Ban instantly" }
+        {
+            quickActionLabel: "Ban instantly",
+            enableRandomPositionFilters: true,
+            randomOptionDescription: "Can filter lanes"
+        }
     );
 
     const selectorsContainer = createSelectorsContainer(pickChampionSelector, banChampionSelector);

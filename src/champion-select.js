@@ -2,7 +2,7 @@ import { request, sleep } from "https://cdn.jsdelivr.net/npm/balaclava-utils@lat
 import { normalizeChampionIds, toChampionId } from "./champion-ids.js";
 import { readConfig } from "./config-store.js";
 import { getAllChampions, getRecommendedChampionPositionsById } from "./champion-data.js";
-import { getAllowedPositionsForChampion, isChampionAllowedInPosition, normalizePosition } from "./champion-positions.js";
+import { getAllowedPositionsForChampion, isChampionAllowedInPosition, normalizePosition, normalizePositionList } from "./champion-positions.js";
 import { isRandomChampionOption, normalizeChampionPriorityOptions } from "./champion-priority-options.js";
 import { LEAGUE_CLIENT_ENDPOINTS } from "./league-client-endpoints.js";
 
@@ -41,6 +41,7 @@ import { LEAGUE_CLIENT_ENDPOINTS } from "./league-client-endpoints.js";
  * @property {boolean} [quickAction]
  * @property {number[]} champions
  * @property {ChampionPriorityOption[]} [priorityOptions]
+ * @property {string[]} [randomPositions]
  * @property {Record<string, string[]>} [positionsByChampionId]
  *
  * @typedef {Object} AutoSelectConfigs
@@ -626,11 +627,11 @@ export class ChampionSelect {
 
         const availableChampionIds = championIds.filter(championId => !this.isChampionUnavailableForAction(action, championId, config));
 
-        const assignedPositionPreferredChampionIds = action.type === "pick"
+        const resolvedRandomChampionIds = action.type === "pick" && !this.hasConfiguredRandomPositions(config)
             ? await this.preferAssignedPositionRandomPickCandidates(availableChampionIds)
-            : availableChampionIds;
+            : await this.filterRandomChampionIdsByConfiguredPositions(availableChampionIds, config);
 
-        return getShuffledChampionIds(assignedPositionPreferredChampionIds);
+        return getShuffledChampionIds(resolvedRandomChampionIds);
     }
 
     /**
@@ -668,6 +669,38 @@ export class ChampionSelect {
     async fetchAllChampionIdsForRandomBan() {
         const champions = await getAllChampions();
         return champions.map(champion => champion.id);
+    }
+
+    /**
+     * @param {AutoSelectConfig} config
+     * @returns {boolean}
+     */
+    hasConfiguredRandomPositions(config) {
+        return normalizePositionList(config.randomPositions).length > 0;
+    }
+
+    /**
+     * @param {number[]} championIds
+     * @param {AutoSelectConfig} config
+     * @returns {Promise<number[]>}
+     */
+    async filterRandomChampionIdsByConfiguredPositions(championIds, config) {
+        const randomPositions = normalizePositionList(config.randomPositions);
+        if (randomPositions.length === 0) {
+            return championIds;
+        }
+
+        const randomPositionSet = new Set(randomPositions);
+        const recommendedPositionsByChampionId = await getRecommendedChampionPositionsById();
+        const positionFilteredChampionIds = championIds.filter(championId =>
+            recommendedPositionsByChampionId[String(championId)]?.some(position => randomPositionSet.has(position))
+        );
+
+        if (positionFilteredChampionIds.length === 0) {
+            console.debug(`auto-champion-select: No random candidates matched ${randomPositions.join(", ")} restriction.`);
+        }
+
+        return positionFilteredChampionIds;
     }
 
     /**

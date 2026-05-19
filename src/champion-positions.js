@@ -30,6 +30,28 @@ export function normalizePosition(position) {
 }
 
 /**
+ * @param {unknown} positions Raw storage array.
+ * @returns {PositionValue[]}
+ */
+export function normalizePositionList(positions) {
+    if (!Array.isArray(positions)) {
+        return [];
+    }
+
+    const normalizedPositions = new Set();
+    for (const position of positions) {
+        const normalizedPosition = normalizePosition(position);
+        if (normalizedPosition) {
+            normalizedPositions.add(normalizedPosition);
+        }
+    }
+
+    return POSITIONS
+        .map(positionMetadata => positionMetadata.value)
+        .filter(positionValue => normalizedPositions.has(positionValue));
+}
+
+/**
  * @param {unknown} positionsByChampionId Raw storage object keyed by champion id.
  * @param {Iterable<unknown> | null} [selectedChampionIds] Optional selected ids; when present, drops positions for unselected champions.
  * @returns {Record<string, PositionValue[]>}

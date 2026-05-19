@@ -249,6 +249,33 @@
     transform: translate(0.25px, 0.40px);
 }
 
+.champion-priority-selector__position-badge--random {
+    left: auto;
+    right: -6px;
+    top: -6px;
+    bottom: auto;
+}
+
+.champion-priority-selector__position-badge--random::before {
+    content: "";
+    display: block;
+    width: 11px;
+    height: 11px;
+    background: url("/fe/lol-tft-team-planner/images/team_editor_trait_filter_icon.png") center / contain no-repeat;
+    transform: none;
+}
+
+.champion-priority-selector__position-badge--random:hover::before,
+.champion-priority-selector__position-badge--random:focus::before,
+.champion-priority-selector__position-badge--random.champion-priority-selector__position-badge--active::before {
+    background-image: url("/fe/lol-tft-team-planner/images/team_editor_trait_filter_icon_pressed.png");
+}
+
+.champion-priority-selector__position-badge--random.champion-priority-selector__position-badge--active {
+    border-color: #c8aa6e;
+    background: #010a13;
+}
+
 .champion-priority-selector__position-badge img {
     display: block;
     width: 11px;

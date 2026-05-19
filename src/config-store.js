@@ -1,5 +1,5 @@
 import defaultPluginConfig from "./config.json";
-import { normalizePositionsByChampionId } from "./champion-positions.js";
+import { normalizePositionList, normalizePositionsByChampionId } from "./champion-positions.js";
 import { getChampionIdsFromPriorityOptions, normalizeChampionPriorityOptions } from "./champion-priority-options.js";
 
 const repairedConfigWarnings = new Set();
@@ -13,6 +13,7 @@ const repairedConfigWarnings = new Set();
  * @property {boolean} [quickAction]
  * @property {number[]} [champions]
  * @property {import("./champion-priority-options.js").ChampionPriorityOption[]} [priorityOptions]
+ * @property {string[]} [randomPositions]
  * @property {Record<string, string[]>} [positionsByChampionId]
  *
  * @typedef {Object} ConfigNormalizationOptions
@@ -109,6 +110,10 @@ function normalizeActionConfig(configKey, config, options = {}) {
     if (hasDefaultConfigField(defaultConfig, "champions")) {
         normalizedConfig.priorityOptions = normalizeChampionPriorityOptions(getRawPriorityOptions(mergedConfig), options.allowedChampionIds);
         normalizedConfig.champions = getChampionIdsFromPriorityOptions(normalizedConfig.priorityOptions);
+    }
+
+    if (hasDefaultConfigField(defaultConfig, "randomPositions")) {
+        normalizedConfig.randomPositions = normalizePositionList(mergedConfig.randomPositions);
     }
 
     if (hasDefaultConfigField(defaultConfig, "positionsByChampionId")) {

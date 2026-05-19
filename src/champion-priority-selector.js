@@ -1,6 +1,6 @@
 import { toChampionId } from "./champion-ids.js";
 import { ensureConfig, patchConfig } from "./config-store.js";
-import { getPositionMetadata, normalizePosition, normalizePositionsByChampionId, POSITIONS } from "./champion-positions.js";
+import { getPositionMetadata, normalizePosition, normalizePositionList, normalizePositionsByChampionId, POSITIONS } from "./champion-positions.js";
 import {
     getChampionIdsFromPriorityOptions,
     isRandomChampionOption,
@@ -17,6 +17,7 @@ import { LEAGUE_CLIENT_ELEMENTS } from "./league-client-dom.js";
  *
  * @typedef {Object} ChampionPrioritySelectorOptions
  * @property {boolean} [enablePositionRestrictions] Enables the right-click per-position restriction menu.
+ * @property {boolean} [enableRandomPositionFilters] Enables the per-random position filter menu.
  * @property {string} [searchPlaceholderText] Search input placeholder shown inside the dropdown control.
  * @property {string} [quickActionLabel] Tooltip and accessibility label for the quick action toggle.
  * @property {string} [randomOptionDescription] Short secondary text for the Random dropdown option.
@@ -27,6 +28,7 @@ import { LEAGUE_CLIENT_ELEMENTS } from "./league-client-dom.js";
  * @property {boolean} [quickAction]
  * @property {number[]} [champions]
  * @property {import("./champion-priority-options.js").ChampionPriorityOption[]} [priorityOptions]
+ * @property {string[]} [randomPositions]
  * @property {Record<string, string[]>} [positionsByChampionId]
  *
  * @typedef {Object} SelectedChampionsScrollElements
@@ -93,11 +95,15 @@ export class ChampionPrioritySelector {
         this.trackElement = trackElement;
 
         this.enablePositionRestrictions = options.enablePositionRestrictions === true;
-        this.positionMenuElement = this.enablePositionRestrictions ? this.createPositionMenu() : null;
-        /** @type {number | null} */
-        this.positionMenuChampionId = null;
+        this.enableRandomPositionFilters = options.enableRandomPositionFilters === true;
+        this.enablePositionMenu = this.enablePositionRestrictions || this.enableRandomPositionFilters;
+        this.positionMenuElement = this.enablePositionMenu ? this.createPositionMenu() : null;
+        /** @type {import("./champion-priority-options.js").ChampionPriorityOption | null} */
+        this.positionMenuTargetOption = null;
         /** @type {Record<string, string[]>} */
         this.positionsByChampionId = {};
+        /** @type {string[]} */
+        this.randomPositions = [];
 
         this.emptyElement = this.createEmptyState(placeholderText);
 
@@ -217,7 +223,7 @@ export class ChampionPrioritySelector {
         button.addEventListener("pointerdown", event => event.stopPropagation());
         button.addEventListener("click", event => {
             event.stopPropagation();
-            this.toggleChampionPosition(position.value);
+            this.togglePositionMenuPosition(position.value);
         });
 
         const image = document.createElement("img");
@@ -282,6 +288,9 @@ export class ChampionPrioritySelector {
                 this.config.positionsByChampionId,
                 getChampionIdsFromPriorityOptions(this.selectedPriorityOptions)
             );
+        }
+        if (this.enableRandomPositionFilters) {
+            this.randomPositions = normalizePositionList(this.config.randomPositions);
         }
 
         this.championDropdown.renderOptions(this.champions);
@@ -362,12 +371,15 @@ export class ChampionPrioritySelector {
         this.selectedPriorityOptions.splice(optionIndex, 1);
 
         const removedChampionId = isRandomChampionOption(normalizedOption) ? null : normalizedOption;
-        if (removedChampionId !== null && this.positionMenuChampionId === removedChampionId) {
+        if (this.positionMenuTargetOption === normalizedOption) {
             this.closePositionMenu();
         }
 
         if (this.enablePositionRestrictions && removedChampionId !== null) {
             delete this.positionsByChampionId[String(removedChampionId)];
+        }
+        if (this.enableRandomPositionFilters && isRandomChampionOption(normalizedOption)) {
+            this.randomPositions = [];
         }
 
         this.renderSelectedPriorityOptions();
@@ -409,13 +421,28 @@ export class ChampionPrioritySelector {
     /**
      * @returns {void}
      */
+    syncRandomPositions() {
+        if (!this.enableRandomPositionFilters) {
+            return;
+        }
+
+        this.randomPositions = normalizePositionList(this.randomPositions);
+    }
+
+    /**
+     * @returns {void}
+     */
     saveConfig() {
         this.syncPositionsByChampionId();
+        this.syncRandomPositions();
 
         const allowedChampionIds = this.getAllowedChampionIds();
         this.config = patchConfig(this.configKey, config => {
             config.priorityOptions = [...this.selectedPriorityOptions];
             config.champions = getChampionIdsFromPriorityOptions(this.selectedPriorityOptions);
+            if (this.enableRandomPositionFilters) {
+                config.randomPositions = [...this.randomPositions];
+            }
             if (this.enablePositionRestrictions) {
                 config.positionsByChampionId = { ...this.positionsByChampionId };
             }
@@ -428,6 +455,9 @@ export class ChampionPrioritySelector {
         if (this.enablePositionRestrictions) {
             this.positionsByChampionId = this.config.positionsByChampionId || {};
         }
+        if (this.enableRandomPositionFilters) {
+            this.randomPositions = this.config.randomPositions || [];
+        }
 
         console.debug(this.configKey, this.config);
     }
@@ -438,7 +468,7 @@ export class ChampionPrioritySelector {
      * @returns {void}
      */
     renderSelectedPriorityOptions(previousPositions = null, draggedOption = null) {
-        if (this.positionMenuChampionId !== null) {
+        if (this.positionMenuTargetOption !== null) {
             this.closePositionMenu();
         }
 
@@ -533,12 +563,15 @@ export class ChampionPrioritySelector {
         }
 
         button.dataset.rank = String(index + 1);
-        button.title = `${index + 1}. ${RANDOM_OPTION_LABEL}`;
-        button.setAttribute("aria-label", `${index + 1}. ${RANDOM_OPTION_LABEL}`);
+        const positionText = this.getRandomPositionTitleSuffix();
+        button.title = `${index + 1}. ${RANDOM_OPTION_LABEL}${positionText}`;
+        button.setAttribute("aria-label", `${index + 1}. ${RANDOM_OPTION_LABEL}${positionText}`);
 
         const removeButton = button.querySelector(REMOVE_BUTTON_SELECTOR);
         removeButton.setAttribute("aria-label", `Remove ${RANDOM_OPTION_LABEL}`);
         removeButton.title = `Remove ${RANDOM_OPTION_LABEL}`;
+
+        this.renderPositionBadge(button, RANDOM_CHAMPION_OPTION);
 
         return button;
     }
@@ -601,6 +634,9 @@ export class ChampionPrioritySelector {
 
         button.addEventListener("pointerdown", event => this.startDrag(event, RANDOM_CHAMPION_OPTION));
         button.addEventListener("auxclick", event => this.removePriorityOptionOnMiddleClick(event, RANDOM_CHAMPION_OPTION));
+        if (this.enableRandomPositionFilters) {
+            button.addEventListener("contextmenu", event => this.openPositionMenu(event, RANDOM_CHAMPION_OPTION));
+        }
         button.append(icon, removeButton);
         return button;
     }
@@ -612,6 +648,33 @@ export class ChampionPrioritySelector {
     getChampionAllowedPositions(championId) {
         const normalizedChampionId = toChampionId(championId);
         return normalizedChampionId === null ? [] : this.positionsByChampionId[String(normalizedChampionId)] || [];
+    }
+
+    /**
+     * @returns {string[]}
+     */
+    getRandomAllowedPositions() {
+        return this.randomPositions;
+    }
+
+    /**
+     * @param {import("./champion-priority-options.js").ChampionPriorityOption} option
+     * @returns {string[]}
+     */
+    getAllowedPositionsForPriorityOption(option) {
+        return isRandomChampionOption(option)
+            ? this.getRandomAllowedPositions()
+            : this.getChampionAllowedPositions(option);
+    }
+
+    /**
+     * @param {import("./champion-priority-options.js").ChampionPriorityOption} option
+     * @returns {string[]}
+     */
+    getAllowedPositionLabelsForPriorityOption(option) {
+        return this.getAllowedPositionsForPriorityOption(option)
+            .map(position => getPositionMetadata(position)?.label)
+            .filter(Boolean);
     }
 
     /**
@@ -634,39 +697,59 @@ export class ChampionPrioritySelector {
     }
 
     /**
+     * @returns {string}
+     */
+    getRandomPositionTitleSuffix() {
+        const allowedPositionLabels = this.getAllowedPositionLabelsForPriorityOption(RANDOM_CHAMPION_OPTION);
+        return allowedPositionLabels.length > 0 ? ` (${allowedPositionLabels.join(", ")})` : "";
+    }
+
+    /**
      * @param {HTMLElement} button
-     * @param {number} championId
+     * @param {import("./champion-priority-options.js").ChampionPriorityOption} option
      * @returns {void}
      */
-    renderPositionBadge(button, championId) {
+    renderPositionBadge(button, option) {
         button.querySelector(POSITION_BADGE_SELECTOR)?.remove();
-        if (!this.enablePositionRestrictions) {
+        const normalizedOption = toChampionPriorityOption(option);
+        if (normalizedOption === null || !this.canOpenPositionMenuForOption(normalizedOption)) {
             return;
         }
 
-        const badge = this.createPositionBadge(championId);
+        const badge = this.createPositionBadge(normalizedOption);
         if (badge) {
             button.appendChild(badge);
         }
     }
 
     /**
-     * @param {number} championId
+     * @param {import("./champion-priority-options.js").ChampionPriorityOption} option
      * @returns {HTMLButtonElement | null}
      */
-    createPositionBadge(championId) {
-        const allowedPositions = this.getChampionAllowedPositions(championId);
-        const allowedPositionLabels = this.getChampionAllowedPositionLabels(championId);
+    createPositionBadge(option) {
+        const allowedPositions = this.getAllowedPositionsForPriorityOption(option);
+        const allowedPositionLabels = this.getAllowedPositionLabelsForPriorityOption(option);
+        const isRandomOption = isRandomChampionOption(option);
 
         const badge = document.createElement("button");
         badge.classList.add("champion-priority-selector__position-badge");
+        badge.classList.toggle("champion-priority-selector__position-badge--random", isRandomOption);
         badge.type = "button";
-        badge.title = allowedPositionLabels.length > 0
-            ? `${allowedPositionLabels.join(", ")}. Click to edit positions.`
-            : "Any position. Click to restrict positions.";
+        badge.title = this.getPositionBadgeTitle(allowedPositionLabels, isRandomOption);
         badge.setAttribute("aria-label", badge.title);
         badge.addEventListener("pointerdown", event => event.stopPropagation());
-        badge.addEventListener("click", event => this.openPositionMenu(event, championId, badge));
+        badge.addEventListener("click", event => this.openPositionMenu(event, option, badge));
+
+        if (isRandomOption) {
+            if (allowedPositions.length > 0) {
+                badge.classList.add("champion-priority-selector__position-badge--active");
+                badge.dataset.count = String(allowedPositions.length);
+            } else {
+                badge.classList.add("champion-priority-selector__position-badge--empty");
+            }
+
+            return badge;
+        }
 
         if (allowedPositions.length === 0) {
             badge.classList.add("champion-priority-selector__position-badge--empty");
@@ -693,25 +776,55 @@ export class ChampionPrioritySelector {
     }
 
     /**
+     * @param {string[]} allowedPositionLabels
+     * @param {boolean} isRandomOption
+     * @returns {string}
+     */
+    getPositionBadgeTitle(allowedPositionLabels, isRandomOption) {
+        if (allowedPositionLabels.length > 0) {
+            const editTarget = isRandomOption ? "random lanes" : "positions";
+            return `${allowedPositionLabels.join(", ")}. Click to edit ${editTarget}.`;
+        }
+
+        return isRandomOption
+            ? "Any lane. Click to restrict random lanes."
+            : "Any position. Click to restrict positions.";
+    }
+
+    /**
+     * @param {import("./champion-priority-options.js").ChampionPriorityOption} option
+     * @returns {boolean}
+     */
+    canOpenPositionMenuForOption(option) {
+        const isRandomOption = isRandomChampionOption(option);
+        return this.selectedPriorityOptions.includes(option) &&
+            (
+                isRandomOption
+                    ? this.enableRandomPositionFilters
+                    : this.enablePositionRestrictions
+            );
+    }
+
+    /**
      * @param {MouseEvent} event
-     * @param {unknown} championId
+     * @param {unknown} option
      * @param {HTMLElement | null} [anchorElement]
      * @returns {void}
      */
-    openPositionMenu(event, championId, anchorElement = null) {
-        if (!this.enablePositionRestrictions || !this.positionMenuElement) {
+    openPositionMenu(event, option, anchorElement = null) {
+        if (!this.positionMenuElement) {
             return;
         }
 
-        const normalizedChampionId = toChampionId(championId);
-        if (normalizedChampionId === null || !this.selectedPriorityOptions.includes(normalizedChampionId)) {
+        const normalizedOption = toChampionPriorityOption(option);
+        if (normalizedOption === null || !this.canOpenPositionMenuForOption(normalizedOption)) {
             return;
         }
 
         event.preventDefault();
         event.stopPropagation();
 
-        this.positionMenuChampionId = normalizedChampionId;
+        this.positionMenuTargetOption = normalizedOption;
         this.renderPositionMenu();
         this.positionMenuElement.hidden = false;
         this.positionMenuElement.style.left = "0px";
@@ -753,11 +866,11 @@ export class ChampionPrioritySelector {
     }
 
     renderPositionMenu() {
-        if (!this.positionMenuElement || this.positionMenuChampionId === null) {
+        if (!this.positionMenuElement || this.positionMenuTargetOption === null) {
             return;
         }
 
-        const allowedPositions = new Set(this.getChampionAllowedPositions(this.positionMenuChampionId));
+        const allowedPositions = new Set(this.getAllowedPositionsForPriorityOption(this.positionMenuTargetOption));
         this.positionMenuElement.querySelectorAll(POSITION_OPTION_SELECTOR).forEach(button => {
             const selected = allowedPositions.has(button.dataset.position);
             button.classList.toggle("champion-priority-selector__position-option--selected", selected);
@@ -769,8 +882,8 @@ export class ChampionPrioritySelector {
      * @param {unknown} position
      * @returns {void}
      */
-    toggleChampionPosition(position) {
-        if (!this.enablePositionRestrictions || this.positionMenuChampionId === null) {
+    togglePositionMenuPosition(position) {
+        if (!this.positionMenuElement || this.positionMenuTargetOption === null) {
             return;
         }
 
@@ -779,8 +892,8 @@ export class ChampionPrioritySelector {
             return;
         }
 
-        const championIdKey = String(this.positionMenuChampionId);
-        const allowedPositions = new Set(this.positionsByChampionId[championIdKey] || []);
+        const targetOption = this.positionMenuTargetOption;
+        const allowedPositions = new Set(this.getAllowedPositionsForPriorityOption(targetOption));
         if (allowedPositions.has(normalizedPosition)) {
             allowedPositions.delete(normalizedPosition);
         } else {
@@ -791,18 +904,28 @@ export class ChampionPrioritySelector {
             .map(positionMetadata => positionMetadata.value)
             .filter(positionValue => allowedPositions.has(positionValue));
 
-        if (orderedAllowedPositions.length > 0) {
-            this.positionsByChampionId[championIdKey] = orderedAllowedPositions;
+        if (isRandomChampionOption(targetOption)) {
+            this.randomPositions = orderedAllowedPositions;
         } else {
-            delete this.positionsByChampionId[championIdKey];
+            const championIdKey = String(targetOption);
+            if (orderedAllowedPositions.length > 0) {
+                this.positionsByChampionId[championIdKey] = orderedAllowedPositions;
+            } else {
+                delete this.positionsByChampionId[championIdKey];
+            }
         }
 
         this.renderPositionMenu();
 
-        const iconButton = this.optionButtons.get(String(this.positionMenuChampionId));
-        const iconIndex = this.selectedPriorityOptions.indexOf(this.positionMenuChampionId);
+        const optionKey = toChampionPriorityOptionKey(targetOption);
+        const iconButton = optionKey ? this.optionButtons.get(optionKey) : null;
+        const iconIndex = this.selectedPriorityOptions.indexOf(targetOption);
         if (iconButton && iconIndex !== -1) {
-            this.getChampionOptionButton(this.positionMenuChampionId, iconIndex);
+            if (isRandomChampionOption(targetOption)) {
+                this.getRandomOptionButton(iconIndex);
+            } else {
+                this.getChampionOptionButton(targetOption, iconIndex);
+            }
         }
 
         this.saveConfig();
@@ -836,7 +959,7 @@ export class ChampionPrioritySelector {
         }
 
         this.positionMenuElement.hidden = true;
-        this.positionMenuChampionId = null;
+        this.positionMenuTargetOption = null;
         document.removeEventListener("pointerdown", this.handlePositionMenuOutsidePointerDown, true);
         document.removeEventListener("keydown", this.handlePositionMenuKeyDown, true);
     }
