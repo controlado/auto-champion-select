@@ -223,6 +223,8 @@ export class ChampionSelect {
         this.bannedChampionIds = new Set();
         /** @type {string | null} */
         this.localPlayerAssignedPosition = null;
+        /** @type {Set<number>} */
+        this.rejectedBraveryActionIds = new Set();
 
         /** @type {Promise<void> | null} */
         this.watchTask = null;
@@ -235,6 +237,7 @@ export class ChampionSelect {
             return;
         }
         this.mounted = true;
+        this.rejectedBraveryActionIds.clear();
         this.watchVersion += 1;
 
         if (!this.watchTask) {
@@ -247,6 +250,7 @@ export class ChampionSelect {
             return;
         }
         this.mounted = false;
+        this.rejectedBraveryActionIds.clear();
         this.watchVersion += 1;
     }
 
@@ -450,21 +454,23 @@ export class ChampionSelect {
 
         console.debug("auto-champion-select: Trying to pick Bravery...");
         const response = await this.selectChampion(action.id, BRAVERY_CHAMPION_ID);
-        if (response.ok) {
-            return PRIORITY_OPTION_ATTEMPT_RESULT.SATISFIED;
-        }
+        console.debug(response.ok
+            ? "auto-champion-select: Bravery request accepted, refreshing champ select state..."
+            : "auto-champion-select: Failed to pick Bravery, refreshing champ select state...");
 
-        console.debug("auto-champion-select: Failed to pick Bravery, refreshing champ select state...");
         const updatedAction = await this.refreshPendingAction(action);
         if (!updatedAction || !this.isActionAvailable(updatedAction)) {
-            return PRIORITY_OPTION_ATTEMPT_RESULT.STOP_CYCLE;
+            return response.ok
+                ? PRIORITY_OPTION_ATTEMPT_RESULT.SATISFIED
+                : PRIORITY_OPTION_ATTEMPT_RESULT.STOP_CYCLE;
         }
 
         if (this.isBraveryPickIntentSet(updatedAction)) {
             return PRIORITY_OPTION_ATTEMPT_RESULT.SATISFIED;
         }
 
-        console.debug("auto-champion-select: Bravery is unavailable after refresh, trying next pick...");
+        this.rejectedBraveryActionIds.add(action.id);
+        console.debug("auto-champion-select: Bravery was not applied after refresh, trying next pick...");
         return PRIORITY_OPTION_ATTEMPT_RESULT.TRY_NEXT_PRIORITY_OPTION;
     }
 
@@ -540,7 +546,7 @@ export class ChampionSelect {
         }
 
         if (isBraveryChampionOption(priorityOption)) {
-            return action.type !== "pick";
+            return action.type !== "pick" || this.rejectedBraveryActionIds.has(action.id);
         }
 
         return this.isChampionUnavailableForAction(action, priorityOption, config);
