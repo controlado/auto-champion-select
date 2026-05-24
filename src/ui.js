@@ -17,12 +17,17 @@ const SETTINGS_TRIGGER_CLASS = "auto-select-settings-trigger";
 const SETTINGS_FLYOUT_CLASS = "auto-select-settings-flyout";
 const SETTINGS_MENU_CLASS = "auto-select-settings-menu";
 const SETTINGS_EMPTY_CLASS = "auto-select-settings-menu__empty";
+const SETTINGS_CHECKBOX_CLASS = "auto-select-settings-checkbox";
 
 /**
  * @typedef {Object} SettingsControl
  * @property {HTMLElement} element
  * @property {() => void} [setup]
  * @property {() => void} [sync]
+ *
+ * @typedef {Object} SettingsCheckboxOptions
+ * @property {() => boolean} isSelected
+ * @property {() => void} toggle
  */
 
 export class ConfigToggle {
@@ -508,6 +513,48 @@ export class SettingsMenu {
         if (event.key === "Escape" && this.isOpen()) {
             this.setOpen(false);
         }
+    }
+}
+
+export class SettingsCheckbox {
+    /**
+     * @param {string} label
+     * @param {SettingsCheckboxOptions} options
+     */
+    constructor(label, options) {
+        this.label = label;
+        this.options = options;
+        this.element = document.createElement(LEAGUE_CLIENT_ELEMENTS.radioInputOption);
+        this.element.classList.add("lol-settings-voice-input-mode-option", SETTINGS_CHECKBOX_CLASS);
+        this.element.textContent = label;
+        this.element.title = label;
+        this.setupComplete = false;
+    }
+
+    /**
+     * @returns {void}
+     */
+    setup() {
+        this.sync();
+
+        if (this.setupComplete) {
+            return;
+        }
+
+        this.element.addEventListener("click", event => {
+            event.preventDefault();
+            event.stopPropagation();
+            this.options.toggle();
+            this.sync();
+        });
+        this.setupComplete = true;
+    }
+
+    /**
+     * @returns {void}
+     */
+    sync() {
+        this.element.toggleAttribute("selected", this.options.isSelected() === true);
     }
 }
 

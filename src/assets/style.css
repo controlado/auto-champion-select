@@ -463,6 +463,22 @@
     font-size: 11px;
 }
 
+.auto-select-settings-checkbox {
+    display: block;
+    min-height: 0;
+    width: 100%;
+    height: 36px;
+    padding: 0;
+    box-sizing: content-box;
+    color: #a09b8c;
+    cursor: pointer;
+}
+
+.auto-select-settings-checkbox:hover,
+.auto-select-settings-checkbox[selected] {
+    color: #f0e6d2;
+}
+
 .auto-select-champ-select-menu {
     position: absolute;
     right: 0;

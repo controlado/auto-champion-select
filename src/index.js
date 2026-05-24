@@ -1,10 +1,10 @@
 import { request, sleep, linkEndpoint } from "https://cdn.jsdelivr.net/npm/balaclava-utils@latest";
 import { version } from "../package.json";
-import { readConfig } from "./config-store.js";
+import { patchConfig, readConfig } from "./config-store.js";
 import { getPlayableChampions, getAllChampions } from "./champion-data.js";
 import { ChampionSelect } from "./champion-select.js";
 import { ChampionPrioritySelector } from "./champion-priority-selector.js";
-import { ChampSelectControlsMenu, ConfigToggle, SettingsMenu, SocialRosterSection } from "./ui.js";
+import { ChampSelectControlsMenu, ConfigToggle, SettingsCheckbox, SettingsMenu, SocialRosterSection } from "./ui.js";
 import { AutoPickSwitchAction, AutoBanSwitchAction, ForcePickSwitchAction, ForceBanSwitchAction, RefreshDropdownsAction, addActions } from "./actions.js";
 import { LEAGUE_CLIENT_ENDPOINTS } from "./league-client-endpoints.js";
 import { getChampSelectButtonsContainer, getSocialRosterContainer } from "./league-client-dom.js";
@@ -89,6 +89,33 @@ const CONFIG_KEYS = Object.freeze({
  */
 function isAutoAcceptEnabled() {
     return readConfig(CONFIG_KEYS.autoAccept).enabled === true;
+}
+
+/**
+ * @param {"pick" | "ban"} action
+ * @returns {"controladoPick" | "controladoBan"}
+ */
+function getConfigKeyForDraftAction(action) {
+    return action === "pick" ? CONFIG_KEYS.pick : CONFIG_KEYS.ban;
+}
+
+/**
+ * @param {"pick" | "ban"} action
+ * @returns {boolean}
+ */
+function isQuickActionEnabled(action) {
+    return readConfig(getConfigKeyForDraftAction(action)).quickAction === true;
+}
+
+/**
+ * @param {"pick" | "ban"} action
+ * @returns {void}
+ */
+function toggleQuickAction(action) {
+    patchConfig(getConfigKeyForDraftAction(action), config => {
+        config.quickAction = config.quickAction !== true;
+        return config;
+    });
 }
 
 class ReadyCheckModalSuppressor {
@@ -352,7 +379,7 @@ function createSharedControls() {
 
     const selectorsContainer = createSelectorsContainer(pickChampionSelector, banChampionSelector);
     const checkboxesContainer = createCheckboxesContainer(autoAcceptToggle, pickToggle, banToggle);
-    const settingsMenu = new SettingsMenu();
+    const settingsMenu = createSettingsMenu();
 
     const pluginSection = new SocialRosterSection("Auto champion select", selectorsContainer, checkboxesContainer);
     pluginSection.setHeaderAccessory(settingsMenu.createTriggerElement());
@@ -371,6 +398,22 @@ function createSharedControls() {
         settingsMenu,
         championSelectors
     };
+}
+
+/**
+ * @returns {SettingsMenu}
+ */
+function createSettingsMenu() {
+    return new SettingsMenu([
+        new SettingsCheckbox("Fast pick", {
+            isSelected: () => isQuickActionEnabled("pick"),
+            toggle: () => toggleQuickAction("pick")
+        }),
+        new SettingsCheckbox("Fast ban", {
+            isSelected: () => isQuickActionEnabled("ban"),
+            toggle: () => toggleQuickAction("ban")
+        })
+    ]);
 }
 
 /**
