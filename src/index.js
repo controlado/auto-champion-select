@@ -361,7 +361,6 @@ function createSharedControls() {
             enablePositionRestrictions: true,
             enableRandomAssignedPositionRestrictions: true,
             enableBraveryOption: true,
-            quickActionLabel: "Pick instantly",
             enableRandomPoolPositionFilters: true,
         }
     );
@@ -372,7 +371,6 @@ function createSharedControls() {
         CONFIG_KEYS.ban,
         getAllChampions,
         {
-            quickActionLabel: "Ban instantly",
             enableRandomPoolPositionFilters: true,
         }
     );

@@ -23,7 +23,6 @@ import { LEAGUE_CLIENT_ELEMENTS } from "./league-client-dom.js";
  * @property {boolean} [enableRandomPoolPositionFilters] Enables the per-random pool position filter menu.
  * @property {boolean} [enableBraveryOption] Enables the Bravery pick option.
  * @property {string} [searchPlaceholderText] Search input placeholder shown inside the dropdown control.
- * @property {string} [quickActionLabel] Tooltip and accessibility label for the quick action toggle.
  *
  * @typedef {Object} ChampionPrioritySelectorConfig
  * @property {boolean} enabled
@@ -118,11 +117,8 @@ export class ChampionPrioritySelector {
             placeholderText,
             option => this.addPriorityOption(option),
             {
-                quickActionLabel: options.quickActionLabel,
                 searchPlaceholderText: options.searchPlaceholderText,
-                staticOptions,
-                isQuickActionEnabled: () => this.isQuickActionEnabled(),
-                onQuickActionToggle: () => this.toggleQuickAction()
+                staticOptions
             }
         );
 
@@ -156,7 +152,6 @@ export class ChampionPrioritySelector {
         /** @type {ChampionPrioritySelectorConfig | null} */
         this.config = null;
         this.configKey = configKey;
-        this.quickAction = false;
 
         this.loadChampions = loadChampions;
         /** @type {Champion[]} */
@@ -321,7 +316,6 @@ export class ChampionPrioritySelector {
 
         const allowedChampionIds = this.getAllowedChampionIds();
         this.config = ensureConfig(this.configKey, { allowedChampionIds });
-        this.quickAction = this.config.quickAction === true;
         this.selectedPriorityOptions = normalizeChampionPriorityOptions(this.config.priorityOptions || this.config.champions, allowedChampionIds)
             .filter(option => this.isPriorityOptionEnabled(option));
 
@@ -347,7 +341,6 @@ export class ChampionPrioritySelector {
         }
 
         this.championDropdown.ensureSearchPlaceholder(root);
-        this.championDropdown.ensureQuickActionToggle(root);
         this.championDropdown.patchDropdownShadowDom();
     }
 
@@ -359,37 +352,11 @@ export class ChampionPrioritySelector {
     }
 
     /**
-     * @returns {boolean}
-     */
-    isQuickActionEnabled() {
-        return this.quickAction === true;
-    }
-
-    /**
      * @param {import("./champion-priority-options.js").ChampionPriorityOption} option
      * @returns {boolean}
      */
     isPriorityOptionEnabled(option) {
         return !isBraveryChampionOption(option) || this.enableBraveryOption;
-    }
-
-    /**
-     * @returns {boolean} The quick action state after toggling.
-     */
-    toggleQuickAction() {
-        const allowedChampionIds = this.getAllowedChampionIds();
-
-        this.config = patchConfig(this.configKey, config => {
-            config.quickAction = config.quickAction !== true;
-            return config;
-        }, {
-            allowedChampionIds,
-            selectedChampionIds: getChampionIdsFromPriorityOptions(this.selectedPriorityOptions)
-        });
-
-        this.quickAction = this.config.quickAction === true;
-        this.championDropdown.syncQuickActionToggle();
-        return this.quickAction;
     }
 
     /**

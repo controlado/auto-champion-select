@@ -14,10 +14,7 @@ import { normalizePosition, POSITIONS } from "./champion-positions.js";
  *
  * @typedef {Object} ChampionDropdownOptions
  * @property {string} [searchPlaceholderText]
- * @property {string} [quickActionLabel]
  * @property {DropdownStaticOption[]} [staticOptions]
- * @property {() => boolean} [isQuickActionEnabled]
- * @property {() => boolean} [onQuickActionToggle]
  */
 
 const DROPDOWN_RENDER_ATTEMPTS = 50;
@@ -34,11 +31,6 @@ const SEARCH_PLACEHOLDER_ID = "controlado-placeholder";
 const SEARCH_INPUT_ID = "controlado-search";
 const SEARCH_INPUT_CLASS = "controlado-filter-input";
 const SEARCH_TAG_CLASS = "controlado-tag--search";
-
-const QUICK_ACTION_TOGGLE_ID = "controlado-quick-action";
-const QUICK_ACTION_TOGGLE_CLASS = "controlado-quick-action-toggle";
-const QUICK_ACTION_TOGGLE_ACTIVE_CLASS = "controlado-quick-action-toggle--active";
-const QUICK_ACTION_ICON_MASK = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M13.1 2 4 13.2h6.7L9.9 22 20 9.8h-6.9L13.1 2z'/%3E%3C/svg%3E\")";
 
 const TAG_CLASS = "controlado-tag";
 
@@ -66,7 +58,7 @@ const DROPDOWN_SEARCH_SHADOW_STYLES = `
 
     :host ${LEAGUE_CLIENT_SELECTORS.dropdownRoot} dt${LEAGUE_CLIENT_SELECTORS.dropdownCurrent} {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) max-content max-content;
+        grid-template-columns: minmax(0, 1fr) max-content;
         align-items: center;
         column-gap: 8px;
         padding: 7px 8px 7px 10px;
@@ -233,48 +225,9 @@ const DROPDOWN_SEARCH_SHADOW_STYLES = `
         box-sizing: border-box;
         justify-content: flex-start;
         justify-self: end;
-        order: 2;
+        order: 1;
         text-transform: none;
         font-weight: 500;
-    }
-
-    .${QUICK_ACTION_TOGGLE_CLASS} {
-        appearance: none;
-        display: inline-grid;
-        place-items: center;
-        width: 18px;
-        height: 18px;
-        padding: 0;
-        border: 0;
-        background: transparent;
-        box-sizing: border-box;
-        cursor: pointer;
-        justify-self: end;
-        order: 1;
-        outline: none;
-    }
-
-    .${QUICK_ACTION_TOGGLE_CLASS}::before {
-        content: "";
-        display: block;
-        width: 16px;
-        height: 16px;
-        background-color: #785a28;
-        -webkit-mask-image: ${QUICK_ACTION_ICON_MASK};
-        -webkit-mask-repeat: no-repeat;
-        -webkit-mask-position: center;
-        -webkit-mask-size: 16px 16px;
-        filter: drop-shadow(0 0 1px #010a13);
-    }
-
-    .${QUICK_ACTION_TOGGLE_CLASS}:hover::before,
-    .${QUICK_ACTION_TOGGLE_CLASS}:focus::before {
-        background-color: #c8aa6e;
-    }
-
-    .${QUICK_ACTION_TOGGLE_ACTIVE_CLASS}::before {
-        background-color: #f0e6d2;
-        filter: drop-shadow(0 0 3px rgba(200, 170, 110, 0.75));
     }
 `;
 
@@ -300,10 +253,7 @@ export class ChampionDropdown {
         this.dropdownElement = dropdownElement;
         this.placeholderText = placeholderText;
         this.searchPlaceholderText = options.searchPlaceholderText || "Search";
-        this.quickActionLabel = options.quickActionLabel || "Pick/ban instantly";
         this.staticOptions = Array.isArray(options.staticOptions) ? options.staticOptions : [];
-        this.isQuickActionEnabled = typeof options.isQuickActionEnabled === "function" ? options.isQuickActionEnabled : null;
-        this.onQuickActionToggle = typeof options.onQuickActionToggle === "function" ? options.onQuickActionToggle : null;
         this.onPriorityOptionSelected = onPriorityOptionSelected;
         this.placeholderOption = null;
         this.searchQuery = "";
@@ -500,25 +450,6 @@ export class ChampionDropdown {
      * @param {ShadowRoot} root
      * @returns {void}
      */
-    ensureQuickActionToggle(root) {
-        if (!this.isQuickActionAvailable() || root.querySelector(`#${QUICK_ACTION_TOGGLE_ID}`)) {
-            this.syncQuickActionToggle(root);
-            return;
-        }
-
-        const currentDropdown = root.querySelector(LEAGUE_CLIENT_SELECTORS.dropdownCurrent);
-        if (!currentDropdown) {
-            return;
-        }
-
-        currentDropdown.appendChild(this.createQuickActionToggle());
-        this.syncQuickActionToggle(root);
-    }
-
-    /**
-     * @param {ShadowRoot} root
-     * @returns {void}
-     */
     ensurePositionFilter(root) {
         const optionsContainer = root.querySelector(LEAGUE_CLIENT_SELECTORS.dropdownOptionsContainer);
         if (!optionsContainer) {
@@ -636,61 +567,6 @@ export class ChampionDropdown {
         placeholder.appendChild(filterIcon);
         placeholder.appendChild(input);
         return placeholder;
-    }
-
-    /**
-     * @returns {HTMLButtonElement}
-     */
-    createQuickActionToggle() {
-        const button = document.createElement("button");
-        button.classList.add(QUICK_ACTION_TOGGLE_CLASS);
-        button.id = QUICK_ACTION_TOGGLE_ID;
-        button.type = "button";
-        button.title = this.quickActionLabel;
-        button.setAttribute("aria-label", this.quickActionLabel);
-        button.setAttribute("aria-pressed", "false");
-
-        ["pointerdown", "click"].forEach(type => {
-            button.addEventListener(type, event => {
-                event.preventDefault();
-                event.stopPropagation();
-            });
-        });
-
-        button.addEventListener("click", () => {
-            this.onQuickActionToggle?.();
-            this.syncQuickActionToggle();
-        });
-
-        return button;
-    }
-
-    /**
-     * @returns {boolean}
-     */
-    isQuickActionAvailable() {
-        return Boolean(this.isQuickActionEnabled && this.onQuickActionToggle);
-    }
-
-    /**
-     * @param {ShadowRoot | null} [root]
-     * @returns {void}
-     */
-    syncQuickActionToggle(root = this.dropdownElement.shadowRoot) {
-        if (!this.isQuickActionAvailable() || !root) {
-            return;
-        }
-
-        const button = root.querySelector(`#${QUICK_ACTION_TOGGLE_ID}`);
-        if (!button) {
-            return;
-        }
-
-        const enabled = this.isQuickActionEnabled() === true;
-        button.classList.toggle(QUICK_ACTION_TOGGLE_ACTIVE_CLASS, enabled);
-        button.setAttribute("aria-pressed", String(enabled));
-        button.title = this.quickActionLabel;
-        button.setAttribute("aria-label", this.quickActionLabel);
     }
 
     /**
