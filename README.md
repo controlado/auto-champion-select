@@ -17,8 +17,8 @@ Accept queue, pick and ban champions automatically. <br>
 
 ## 📍 What's new
 
-- Bravery pick option
-- Random pick option
+- Bravery pick option for Arena mode
+- Random pick or ban option
 - Champion select menu
 - Filter champions
 

@@ -17,8 +17,8 @@ Aceite a fila, selecione e bana os campeões automaticamente. <br>
 
 ## 📍 Novidades
 
-- Opção pickar Bravura
-- Opção para pickar aleatoriamente
+- Opção pickar Bravura no modo Arena
+- Opção para pickar ou banir aleatoriamente
 - Menu na seleção de campeões
 - Filtrar campeões
 
