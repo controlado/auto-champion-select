@@ -195,6 +195,8 @@ export class ChampionSelect {
         /** @type {number | null} */
         this.localPlayerCellId = null;
         /** @type {Set<number>} */
+        this.alliedIntentChampionIds = new Set();
+        /** @type {Set<number>} */
         this.teammateIntentChampionIds = new Set();
         /** @type {number | null} */
         this.localPlayerIntentChampionId = null;
@@ -285,6 +287,7 @@ export class ChampionSelect {
         const alliedTeam = getTeamPlayers(this.session.myTeam);
         const opposingTeam = getTeamPlayers(this.session.theirTeam);
         const localPlayer = alliedTeam.find(player => player.cellId === this.localPlayerCellId);
+        const teammatePlayers = alliedTeam.filter(player => player.cellId !== this.localPlayerCellId);
         this.localPlayerAssignedPosition = normalizePosition(localPlayer?.assignedPosition);
         this.localPlayerIntentChampionId = toChampionId(localPlayer?.championPickIntent);
         this.localPlayerIntentIsBravery = isBraveryChampionId(localPlayer?.championPickIntent);
@@ -295,7 +298,8 @@ export class ChampionSelect {
             ...(this.session.bans?.theirTeamBans || []),
             ...getCompletedBanChampionIds(this.actions)
         ]);
-        this.teammateIntentChampionIds = championIdSetFromValues(alliedTeam.map(player => player.championPickIntent));
+        this.alliedIntentChampionIds = championIdSetFromValues(alliedTeam.map(player => player.championPickIntent));
+        this.teammateIntentChampionIds = championIdSetFromValues(teammatePlayers.map(player => player.championPickIntent));
     }
 
     async runAutoSelectCycle() {
@@ -927,22 +931,27 @@ export class ChampionSelect {
             return true;
         }
 
-        if (action.type === "ban" && this.teammateIntentChampionIds.has(championId)) {
+        if (action.type === "ban" && this.alliedIntentChampionIds.has(championId)) {
             if (config.force === true) {
-                console.debug(`auto-champion-select: Banning ${championId} but it's already picked, forcing...`);
+                console.debug(`auto-champion-select: Banning ${championId} but it has an allied pick intent, forcing...`);
             } else {
-                console.debug(`auto-champion-select: Banning ${championId} but it's already picked, skipping...`);
+                console.debug(`auto-champion-select: Banning ${championId} but it has an allied pick intent, skipping...`);
+                return true;
+            }
+        }
+
+        if (action.type === "pick" && this.teammateIntentChampionIds.has(championId)) {
+            if (config.force === true) {
+                console.debug(`auto-champion-select: Picking ${championId} but it has a teammate pick intent, forcing...`);
+            } else {
+                console.debug(`auto-champion-select: Picking ${championId} but it has a teammate pick intent, skipping...`);
                 return true;
             }
         }
 
         if (action.type === "pick" && this.pickedChampionIds.has(championId)) {
-            if (config.force === true) {
-                console.debug(`auto-champion-select: Picking ${championId} but it's already picked, forcing...`);
-            } else {
-                console.debug(`auto-champion-select: Picking ${championId} but it's already picked, skipping...`);
-                return true;
-            }
+            console.debug(`auto-champion-select: Picking ${championId} but it's already picked, skipping...`);
+            return true;
         }
 
         return false;

@@ -108,17 +108,21 @@ class ForceConfigSwitchAction extends CommandAction {
      * @param {"controladoPick" | "controladoBan"} configKey
      */
     constructor(name, configKey) {
+        const isPickConfig = configKey === "controladoPick";
+        const settingName = `Ignore Team Intent ${name}`;
         super({
             id: `${configKey}ForceSwitch`,
-            name: () => `Force ${name} [${readConfig(configKey).force ? "ON" : "OFF"}]`,
-            legend: () => `Ignore team intent and force ${name} the selected champion`,
-            tags: [PLUGIN_COMMAND_GROUP, configKey, "force", "switch"],
+            name: () => `${settingName} [${readConfig(configKey).force ? "ON" : "OFF"}]`,
+            legend: () => isPickConfig
+                ? "Pick champions even when a teammate shows the same intent"
+                : "Ban champions even when an ally shows the same intent",
+            tags: [PLUGIN_COMMAND_GROUP, configKey, "force", "intent", "switch"],
             group: PLUGIN_COMMAND_GROUP,
             callback: () => toggleForceConfig(configKey),
             toasts: {
-                on: `Force ${name} is ON!`,
-                off: `Force ${name} is OFF!`,
-                error: `Failed to toggle Force ${name}. Check console.`
+                on: `${settingName} is ON!`,
+                off: `${settingName} is OFF!`,
+                error: `Failed to toggle ${settingName}. Check console.`
             }
         });
     }
