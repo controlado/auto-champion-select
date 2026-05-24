@@ -10,6 +10,7 @@ const repairedConfigWarnings = new Set();
  *
  * @typedef {Object} PluginConfig
  * @property {boolean} enabled
+ * @property {boolean} [hideAutoAcceptPrompt]
  * @property {boolean} [force]
  * @property {boolean} [quickAction]
  * @property {number} [delayMinMs]
@@ -109,6 +110,10 @@ function normalizeActionConfig(configKey, config, options = {}) {
     const normalizedConfig = {
         enabled: mergedConfig.enabled === true
     };
+
+    if (hasDefaultConfigField(defaultConfig, "hideAutoAcceptPrompt")) {
+        normalizedConfig.hideAutoAcceptPrompt = mergedConfig.hideAutoAcceptPrompt === true;
+    }
 
     if (hasDefaultConfigField(defaultConfig, "force")) {
         normalizedConfig.force = mergedConfig.force === true;

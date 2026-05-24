@@ -1,6 +1,7 @@
 {
     "controladoAutoAccept": {
-        "enabled": false
+        "enabled": false,
+        "hideAutoAcceptPrompt": true
     },
     "controladoPick": {
         "enabled": false,

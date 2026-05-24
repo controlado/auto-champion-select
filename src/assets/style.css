@@ -445,6 +445,8 @@
 
 .auto-select-settings-flyout lc-flyout-content {
     display: block;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .auto-select-settings-menu {

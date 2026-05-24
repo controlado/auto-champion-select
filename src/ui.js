@@ -11,6 +11,7 @@ const CHAMP_SELECT_BUTTON_RETRY_DELAY_MS = 200;
 
 const CHAMP_SELECT_MENU_COLLAPSED_CLASS = "auto-select-champ-select-menu--collapsed";
 const CHAMP_SELECT_MENU_OPEN_WRAPPER_CLASS = "auto-select-champ-select-menu-button-wrapper--open";
+const SETTINGS_FLYOUT_WIDTH_PX = 224;
 const SOCIAL_ROSTER_SECTION_CLASS = "auto-select-social-roster-section";
 const SOCIAL_ROSTER_SECTION_HEADER_CLASS = "auto-select-social-roster-section__header";
 const SETTINGS_TRIGGER_CLASS = "auto-select-settings-trigger";
@@ -493,7 +494,7 @@ export class SettingsMenu {
         }
 
         const triggerRect = this.activeTriggerElement.getBoundingClientRect();
-        const flyoutWidth = Math.min(280, window.innerWidth - 16);
+        const flyoutWidth = Math.min(SETTINGS_FLYOUT_WIDTH_PX, window.innerWidth - 16);
         this.flyoutElement.style.width = `${flyoutWidth}px`;
 
         const flyoutRect = this.flyoutElement.getBoundingClientRect();

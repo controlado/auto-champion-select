@@ -93,6 +93,32 @@ function isAutoAcceptEnabled() {
 }
 
 /**
+ * @returns {boolean}
+ */
+function isAutoAcceptPromptHiddenByConfig() {
+    return readConfig(CONFIG_KEYS.autoAccept).hideAutoAcceptPrompt === true;
+}
+
+/**
+ * @returns {boolean}
+ */
+function shouldHideAutoAcceptPrompt() {
+    const config = readConfig(CONFIG_KEYS.autoAccept);
+    return config.enabled === true && config.hideAutoAcceptPrompt === true;
+}
+
+/**
+ * @returns {void}
+ */
+function toggleAutoAcceptPromptHidden() {
+    const hidden = isAutoAcceptPromptHiddenByConfig();
+    patchConfig(CONFIG_KEYS.autoAccept, config => {
+        config.hideAutoAcceptPrompt = !hidden;
+        return config;
+    });
+}
+
+/**
  * @param {"pick" | "ban"} action
  * @returns {"controladoPick" | "controladoBan"}
  */
@@ -430,7 +456,7 @@ function createSharedControls() {
 
     const selectorsContainer = createSelectorsContainer(pickChampionSelector, banChampionSelector);
     const checkboxesContainer = createCheckboxesContainer(autoAcceptToggle, pickToggle, banToggle);
-    const settingsMenu = createSettingsMenu();
+    const settingsMenu = new SettingsMenu();
 
     const pluginSection = new SocialRosterSection("Auto champion select", selectorsContainer, checkboxesContainer);
     pluginSection.setHeaderAccessory(settingsMenu.createTriggerElement());
@@ -452,10 +478,11 @@ function createSharedControls() {
 }
 
 /**
- * @returns {SettingsMenu}
+ * @param {ReadyCheckModalSuppressor} readyCheckModalSuppressor
+ * @returns {import("./ui.js").SettingsControl[]}
  */
-function createSettingsMenu() {
-    return new SettingsMenu([
+function createSettingsControls(readyCheckModalSuppressor) {
+    return [
         new SettingsDualRange("Action delay", {
             min: ACTION_DELAY_MIN_MS,
             max: ACTION_DELAY_MAX_MS,
@@ -479,8 +506,15 @@ function createSettingsMenu() {
         new SettingsCheckbox("Ignore team intent and ban", {
             isSelected: () => isForceActionEnabled("ban"),
             toggle: () => toggleForceAction("ban")
+        }),
+        new SettingsCheckbox("Hide auto-accept prompt", {
+            isSelected: () => isAutoAcceptPromptHiddenByConfig(),
+            toggle: () => {
+                toggleAutoAcceptPromptHidden();
+                readyCheckModalSuppressor.sync();
+            }
         })
-    ]);
+    ];
 }
 
 /**
@@ -590,7 +624,8 @@ async function refreshChampionSelectors(championSelectors) {
  */
 function createPluginRuntime() {
     const controls = createSharedControls();
-    const readyCheckModalSuppressor = new ReadyCheckModalSuppressor(isAutoAcceptEnabled);
+    const readyCheckModalSuppressor = new ReadyCheckModalSuppressor(shouldHideAutoAcceptPrompt);
+    controls.settingsMenu.setControls(createSettingsControls(readyCheckModalSuppressor));
     const controlsPlacementManager = createControlsPlacementManager(controls);
     const champSelectControlsMenu = new ChampSelectControlsMenu(
         "Auto Champion Select",
