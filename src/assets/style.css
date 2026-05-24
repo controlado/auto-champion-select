@@ -559,7 +559,7 @@
     background-position: 0 -30px;
 }
 
-.auto-select-settings-range__handle:active {
+.auto-select-settings-range__handle--dragging {
     background-position: 0 -60px;
 }
 

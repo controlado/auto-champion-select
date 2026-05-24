@@ -28,6 +28,7 @@ const SETTINGS_RANGE_FILL_CLASS = "auto-select-settings-range__fill";
 const SETTINGS_RANGE_HANDLE_CLASS = "auto-select-settings-range__handle";
 const SETTINGS_RANGE_HANDLE_MIN_CLASS = "auto-select-settings-range__handle--min";
 const SETTINGS_RANGE_HANDLE_MAX_CLASS = "auto-select-settings-range__handle--max";
+const SETTINGS_RANGE_HANDLE_DRAGGING_CLASS = "auto-select-settings-range__handle--dragging";
 
 /**
  * @typedef {Object} SettingsControl
@@ -589,6 +590,7 @@ export class SettingsDualRange {
         this.label = label;
         this.options = options;
         this.dragHandle = null;
+        this.dragStartedCollapsed = false;
         this.setupComplete = false;
         this.boundPointerMove = event => this.onPointerMove(event);
         this.boundPointerUp = () => this.stopDragging();
@@ -755,6 +757,9 @@ export class SettingsDualRange {
         event.preventDefault();
         event.stopPropagation();
         this.dragHandle = handle;
+        const currentValue = this.getNormalizedValue();
+        this.dragStartedCollapsed = currentValue.min === currentValue.max;
+        this.syncDraggingHandle();
         document.addEventListener("pointermove", this.boundPointerMove, true);
         document.addEventListener("pointerup", this.boundPointerUp, true);
     }
@@ -769,16 +774,38 @@ export class SettingsDualRange {
         }
 
         event.preventDefault();
-        this.setHandleValue(this.dragHandle, this.clientXToValue(event.clientX));
+        const value = this.clientXToValue(event.clientX);
+        const handle = this.resolveDragHandleForValue(value);
+        this.dragHandle = handle;
+        this.syncDraggingHandle();
+        this.setHandleValue(handle, value);
     }
 
     /**
      * @returns {void}
      */
     stopDragging() {
+        this.clearDraggingHandle();
         this.dragHandle = null;
+        this.dragStartedCollapsed = false;
         document.removeEventListener("pointermove", this.boundPointerMove, true);
         document.removeEventListener("pointerup", this.boundPointerUp, true);
+    }
+
+    /**
+     * @returns {void}
+     */
+    syncDraggingHandle() {
+        this.minHandleElement.classList.toggle(SETTINGS_RANGE_HANDLE_DRAGGING_CLASS, this.dragHandle === "min");
+        this.maxHandleElement.classList.toggle(SETTINGS_RANGE_HANDLE_DRAGGING_CLASS, this.dragHandle === "max");
+    }
+
+    /**
+     * @returns {void}
+     */
+    clearDraggingHandle() {
+        this.minHandleElement.classList.remove(SETTINGS_RANGE_HANDLE_DRAGGING_CLASS);
+        this.maxHandleElement.classList.remove(SETTINGS_RANGE_HANDLE_DRAGGING_CLASS);
     }
 
     /**
@@ -805,6 +832,32 @@ export class SettingsDualRange {
 
         event.preventDefault();
         this.setHandleValue(handle, nextValue);
+    }
+
+    /**
+     * @param {number} value
+     * @returns {"min" | "max"}
+     */
+    resolveDragHandleForValue(value) {
+        if (!this.dragHandle) {
+            return "min";
+        }
+
+        if (!this.dragStartedCollapsed) {
+            return this.dragHandle;
+        }
+
+        const currentValue = this.getNormalizedValue();
+
+        if (value < currentValue.min) {
+            return "min";
+        }
+
+        if (value > currentValue.max) {
+            return "max";
+        }
+
+        return this.dragHandle;
     }
 
     /**
