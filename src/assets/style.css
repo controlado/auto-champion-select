@@ -378,6 +378,91 @@
     margin-right: 17px;
 }
 
+.auto-select-social-roster-section__header {
+    position: relative;
+    padding-right: 28px;
+    box-sizing: border-box;
+}
+
+.auto-select-social-roster-section .group-name,
+.auto-select-social-roster-section .group-name-text {
+    min-width: 0;
+}
+
+.auto-select-settings-trigger {
+    display: grid;
+    place-items: center;
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    box-sizing: border-box;
+    cursor: pointer;
+    outline: none;
+}
+
+.auto-select-social-roster-section__header>.auto-select-settings-trigger {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.auto-select-champ-select-menu__title>.auto-select-settings-trigger {
+    position: absolute;
+    right: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.auto-select-settings-trigger::before {
+    content: "";
+    display: block;
+    width: 13px;
+    height: 13px;
+    background: #5f5b4f;
+    opacity: 0.95;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M19.43 12.98c.04-.32.07-.65.07-.98s-.02-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.37-.31-.6-.22l-2.49 1a7.34 7.34 0 0 0-1.69-.98L14.5 2.42A.5.5 0 0 0 14 2h-4a.5.5 0 0 0-.49.42l-.38 2.65c-.61.24-1.18.56-1.69.98l-2.49-1a.5.5 0 0 0-.6.22l-2 3.46a.5.5 0 0 0 .12.64l2.11 1.65c-.04.32-.08.65-.08.98s.03.66.08.98l-2.11 1.65a.5.5 0 0 0-.12.64l2 3.46c.12.22.37.31.6.22l2.49-1c.51.4 1.08.73 1.69.98l.38 2.65c.04.24.25.42.49.42h4c.25 0 .46-.18.5-.42l.38-2.65c.61-.25 1.18-.58 1.69-.98l2.49 1c.23.08.48 0 .6-.22l2-3.46a.5.5 0 0 0-.12-.64l-2.11-1.65ZM12 15.5A3.5 3.5 0 1 1 12 8a3.5 3.5 0 0 1 0 7.5Z'/%3E%3C/svg%3E") center / 13px 13px no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M19.43 12.98c.04-.32.07-.65.07-.98s-.02-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.37-.31-.6-.22l-2.49 1a7.34 7.34 0 0 0-1.69-.98L14.5 2.42A.5.5 0 0 0 14 2h-4a.5.5 0 0 0-.49.42l-.38 2.65c-.61.24-1.18.56-1.69.98l-2.49-1a.5.5 0 0 0-.6.22l-2 3.46a.5.5 0 0 0 .12.64l2.11 1.65c-.04.32-.08.65-.08.98s.03.66.08.98l-2.11 1.65a.5.5 0 0 0-.12.64l2 3.46c.12.22.37.31.6.22l2.49-1c.51.4 1.08.73 1.69.98l.38 2.65c.04.24.25.42.49.42h4c.25 0 .46-.18.5-.42l.38-2.65c.61-.25 1.18-.58 1.69-.98l2.49 1c.23.08.48 0 .6-.22l2-3.46a.5.5 0 0 0-.12-.64l-2.11-1.65ZM12 15.5A3.5 3.5 0 1 1 12 8a3.5 3.5 0 0 1 0 7.5Z'/%3E%3C/svg%3E") center / 13px 13px no-repeat;
+}
+
+.auto-select-settings-trigger:hover::before,
+.auto-select-settings-trigger:focus::before,
+.auto-select-settings-trigger[aria-expanded="true"]::before {
+    background: #c8aa6e;
+    opacity: 1;
+}
+
+.auto-select-settings-flyout {
+    color: #a09b8c;
+    font-family: var(--font-body);
+    font-size: 12px;
+    line-height: 16px;
+    z-index: 10004;
+}
+
+.auto-select-settings-flyout lc-flyout-content {
+    display: block;
+}
+
+.auto-select-settings-menu {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    padding: 6px 0;
+    color: #a09b8c;
+}
+
+.auto-select-settings-menu__empty {
+    min-height: 32px;
+    padding: 8px 12px;
+    box-sizing: border-box;
+    color: #5f5b4f;
+    font-size: 11px;
+}
+
 .auto-select-champ-select-menu {
     position: absolute;
     right: 0;
@@ -476,10 +561,12 @@
 }
 
 .auto-select-champ-select-menu__title {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
     min-height: 24px;
+    padding-right: 24px;
     padding-bottom: 4px;
     border-bottom: thin solid #1e282d;
     color: #f0e6d2;

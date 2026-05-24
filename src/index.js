@@ -4,7 +4,7 @@ import { readConfig } from "./config-store.js";
 import { getPlayableChampions, getAllChampions } from "./champion-data.js";
 import { ChampionSelect } from "./champion-select.js";
 import { ChampionPrioritySelector } from "./champion-priority-selector.js";
-import { ChampSelectControlsMenu, ConfigToggle, SocialRosterSection } from "./ui.js";
+import { ChampSelectControlsMenu, ConfigToggle, SettingsMenu, SocialRosterSection } from "./ui.js";
 import { AutoPickSwitchAction, AutoBanSwitchAction, ForcePickSwitchAction, ForceBanSwitchAction, RefreshDropdownsAction, addActions } from "./actions.js";
 import { LEAGUE_CLIENT_ENDPOINTS } from "./league-client-endpoints.js";
 import { getChampSelectButtonsContainer, getSocialRosterContainer } from "./league-client-dom.js";
@@ -31,6 +31,7 @@ import "./assets/style.css";
  * @property {HTMLDivElement} selectorsContainer
  * @property {HTMLDivElement} checkboxesContainer
  * @property {SocialRosterSection} pluginSection
+ * @property {SettingsMenu} settingsMenu
  * @property {ChampionPrioritySelector[]} championSelectors
  *
  * @typedef {Object} PluginRuntime
@@ -44,9 +45,11 @@ import "./assets/style.css";
  * @property {HTMLDivElement} selectorsContainer
  * @property {HTMLDivElement} checkboxesContainer
  * @property {SocialRosterSection} pluginSection
+ * @property {SettingsMenu} settingsMenu
  * @property {ChampionPrioritySelector[]} championSelectors
  * @property {ChampSelectControlsMenu} champSelectControlsMenu
  * @property {() => void} setupToggles
+ * @property {() => void} setupSettingsMenu
  * @property {() => Promise<void>} setupChampionSelectors
  * @property {() => Promise<void>} refreshChampionSelectors
  * @property {() => Promise<void>} refreshPickChampionSelector
@@ -349,8 +352,10 @@ function createSharedControls() {
 
     const selectorsContainer = createSelectorsContainer(pickChampionSelector, banChampionSelector);
     const checkboxesContainer = createCheckboxesContainer(autoAcceptToggle, pickToggle, banToggle);
+    const settingsMenu = new SettingsMenu();
 
     const pluginSection = new SocialRosterSection("Auto champion select", selectorsContainer, checkboxesContainer);
+    pluginSection.setHeaderAccessory(settingsMenu.createTriggerElement());
     const championSelectors = [pickChampionSelector, banChampionSelector];
 
     return {
@@ -363,6 +368,7 @@ function createSharedControls() {
         selectorsContainer,
         checkboxesContainer,
         pluginSection,
+        settingsMenu,
         championSelectors
     };
 }
@@ -481,6 +487,7 @@ function createPluginRuntime() {
         controlsPlacementManager.returnControlsToSocialRoster,
         [controls.checkboxesContainer, controls.selectorsContainer]
     );
+    champSelectControlsMenu.setTitleAccessory(controls.settingsMenu.createTriggerElement());
     controlsPlacementManager.setIsChampSelectControlsMounted(() => champSelectControlsMenu.mounted);
 
     const runtime = {
@@ -488,6 +495,7 @@ function createPluginRuntime() {
         champSelectControlsMenu,
         readyCheckModalSuppressor,
         setupToggles: () => setupConfigToggles({ ...controls, readyCheckModalSuppressor }),
+        setupSettingsMenu: () => controls.settingsMenu.setup(),
         setupChampionSelectors: () => setupChampionSelectors(controls.championSelectors),
         refreshChampionSelectors: () => refreshChampionSelectors(controls.championSelectors),
         refreshPickChampionSelector: async () => {
@@ -593,6 +601,7 @@ async function main() {
     const runtime = createPluginRuntime();
 
     runtime.setupToggles();
+    runtime.setupSettingsMenu();
     runtime.readyCheckModalSuppressor.start();
 
     registerCommandActions(runtime);

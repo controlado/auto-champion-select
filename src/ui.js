@@ -11,6 +11,19 @@ const CHAMP_SELECT_BUTTON_RETRY_DELAY_MS = 200;
 
 const CHAMP_SELECT_MENU_COLLAPSED_CLASS = "auto-select-champ-select-menu--collapsed";
 const CHAMP_SELECT_MENU_OPEN_WRAPPER_CLASS = "auto-select-champ-select-menu-button-wrapper--open";
+const SOCIAL_ROSTER_SECTION_CLASS = "auto-select-social-roster-section";
+const SOCIAL_ROSTER_SECTION_HEADER_CLASS = "auto-select-social-roster-section__header";
+const SETTINGS_TRIGGER_CLASS = "auto-select-settings-trigger";
+const SETTINGS_FLYOUT_CLASS = "auto-select-settings-flyout";
+const SETTINGS_MENU_CLASS = "auto-select-settings-menu";
+const SETTINGS_EMPTY_CLASS = "auto-select-settings-menu__empty";
+
+/**
+ * @typedef {Object} SettingsControl
+ * @property {HTMLElement} element
+ * @property {() => void} [setup]
+ * @property {() => void} [sync]
+ */
 
 export class ConfigToggle {
     /**
@@ -87,6 +100,7 @@ export class ChampSelectControlsMenu {
         this.titleElement = document.createElement("div");
         this.titleElement.classList.add("auto-select-champ-select-menu__title");
         this.titleElement.textContent = label;
+        this.titleAccessoryElement = null;
 
         this.buttonWrapper.append(this.headerElement, this.element);
         this.contentElement.appendChild(this.titleElement);
@@ -252,6 +266,249 @@ export class ChampSelectControlsMenu {
 
         buttonContainer.insertBefore(this.buttonWrapper, firstSquareButton);
     }
+
+    /**
+     * @param {HTMLElement} element
+     * @returns {void}
+     */
+    setTitleAccessory(element) {
+        this.titleAccessoryElement = element;
+        if (!element.isConnected || element.parentNode !== this.titleElement) {
+            this.titleElement.appendChild(element);
+        }
+    }
+}
+
+export class SettingsMenu {
+    /**
+     * @param {SettingsControl[]} [controls]
+     */
+    constructor(controls = []) {
+        this.controls = controls;
+        this.triggerElements = new Set();
+        this.flyoutElement = this.createFlyoutElement();
+        this.open = false;
+        this.activeTriggerElement = null;
+        this.setupComplete = false;
+
+        this.boundCloseOnOutsideInteraction = event => this.closeOnOutsideInteraction(event);
+        this.boundCloseOnEscape = event => this.closeOnEscape(event);
+        this.boundPositionFlyout = () => this.positionFlyout();
+
+        this.renderControls();
+    }
+
+    /**
+     * @returns {void}
+     */
+    setup() {
+        this.ensureFlyoutConnected();
+        this.controls.forEach(control => control.setup?.());
+        this.sync();
+
+        if (this.setupComplete) {
+            return;
+        }
+
+        document.addEventListener("pointerdown", this.boundCloseOnOutsideInteraction, true);
+        document.addEventListener("keydown", this.boundCloseOnEscape, true);
+        window.addEventListener("resize", this.boundPositionFlyout);
+        this.setupComplete = true;
+    }
+
+    /**
+     * @param {SettingsControl[]} controls
+     * @returns {void}
+     */
+    setControls(controls) {
+        this.controls = controls;
+        this.renderControls();
+        if (this.setupComplete) {
+            this.controls.forEach(control => control.setup?.());
+        }
+        this.sync();
+    }
+
+    /**
+     * @param {string} [label]
+     * @returns {HTMLButtonElement}
+     */
+    createTriggerElement(label = "Auto champion select settings") {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.classList.add(SETTINGS_TRIGGER_CLASS);
+        button.dataset.autoSelectSettings = "trigger";
+        button.setAttribute("aria-label", label);
+        button.setAttribute("aria-expanded", "false");
+        button.title = label;
+        button.addEventListener("click", event => {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            event.stopPropagation();
+            this.toggleFlyout(button);
+        }, true);
+
+        this.triggerElements.add(button);
+        return button;
+    }
+
+    /**
+     * @returns {HTMLElement}
+     */
+    createFlyoutElement() {
+        const flyout = document.createElement("lol-uikit-flyout-frame");
+        flyout.classList.add("flyout", SETTINGS_FLYOUT_CLASS);
+        flyout.dataset.autoSelectSettings = "flyout";
+        flyout.setAttribute("orientation", "bottom");
+        flyout.setAttribute("animated", "true");
+        flyout.setAttribute("caretless", "true");
+        flyout.style.position = "fixed";
+        flyout.style.overflow = "visible";
+        flyout.style.display = "none";
+
+        const content = document.createElement("lc-flyout-content");
+        const menu = document.createElement("div");
+        menu.classList.add("social-options-menu", "active", SETTINGS_MENU_CLASS);
+
+        content.appendChild(menu);
+        flyout.appendChild(content);
+
+        return flyout;
+    }
+
+    /**
+     * @returns {void}
+     */
+    renderControls() {
+        const menu = this.flyoutElement.querySelector(`.${SETTINGS_MENU_CLASS}`);
+        if (!menu) {
+            return;
+        }
+
+        menu.replaceChildren();
+
+        if (this.controls.length === 0) {
+            const emptyElement = document.createElement("div");
+            emptyElement.classList.add(SETTINGS_EMPTY_CLASS);
+            emptyElement.textContent = "No settings available";
+            menu.appendChild(emptyElement);
+            return;
+        }
+
+        menu.append(...this.controls.map(control => control.element));
+    }
+
+    /**
+     * @returns {void}
+     */
+    sync() {
+        this.controls.forEach(control => control.sync?.());
+    }
+
+    /**
+     * @returns {void}
+     */
+    ensureFlyoutConnected() {
+        document.querySelectorAll(`.${SETTINGS_FLYOUT_CLASS}`).forEach(element => {
+            if (element !== this.flyoutElement) {
+                element.remove();
+            }
+        });
+
+        if (!this.flyoutElement.isConnected) {
+            document.body.appendChild(this.flyoutElement);
+        }
+    }
+
+    /**
+     * @returns {boolean}
+     */
+    isOpen() {
+        return this.open && this.flyoutElement.isConnected && getComputedStyle(this.flyoutElement).display !== "none";
+    }
+
+    /**
+     * @param {boolean} open
+     * @param {HTMLElement | null} [triggerElement]
+     * @returns {void}
+     */
+    setOpen(open, triggerElement = this.activeTriggerElement) {
+        this.open = open;
+        this.activeTriggerElement = open ? triggerElement : null;
+        this.ensureFlyoutConnected();
+        this.flyoutElement.style.display = open ? "block" : "none";
+        this.flyoutElement.toggleAttribute("show", open);
+
+        this.triggerElements.forEach(button => {
+            button.setAttribute("aria-expanded", String(open && button === this.activeTriggerElement));
+        });
+
+        if (open) {
+            this.sync();
+            this.positionFlyout();
+        }
+    }
+
+    /**
+     * @param {HTMLElement} triggerElement
+     * @returns {void}
+     */
+    toggleFlyout(triggerElement) {
+        const shouldOpen = !this.isOpen() || this.activeTriggerElement !== triggerElement;
+        this.setOpen(shouldOpen, triggerElement);
+    }
+
+    /**
+     * @returns {void}
+     */
+    positionFlyout() {
+        if (!this.isOpen() || !this.activeTriggerElement) {
+            return;
+        }
+
+        const triggerRect = this.activeTriggerElement.getBoundingClientRect();
+        const flyoutWidth = Math.min(280, window.innerWidth - 16);
+        this.flyoutElement.style.width = `${flyoutWidth}px`;
+
+        const flyoutRect = this.flyoutElement.getBoundingClientRect();
+        const preferredLeft = triggerRect.right - flyoutWidth + 4;
+        const left = Math.max(8, Math.min(window.innerWidth - flyoutWidth - 8, preferredLeft));
+        const preferredTop = triggerRect.bottom + 4;
+        const top = preferredTop + flyoutRect.height <= window.innerHeight - 8
+            ? preferredTop
+            : Math.max(8, triggerRect.top - flyoutRect.height - 4);
+
+        this.flyoutElement.style.left = `${Math.round(left)}px`;
+        this.flyoutElement.style.top = `${Math.round(top)}px`;
+    }
+
+    /**
+     * @param {PointerEvent} event
+     * @returns {void}
+     */
+    closeOnOutsideInteraction(event) {
+        if (!this.isOpen()) {
+            return;
+        }
+
+        const path = typeof event.composedPath === "function" ? event.composedPath() : [];
+        const clickedTrigger = [...this.triggerElements].some(button => path.includes(button));
+        const clickedInsideFlyout = path.includes(this.flyoutElement);
+
+        if (!clickedTrigger && !clickedInsideFlyout) {
+            this.setOpen(false);
+        }
+    }
+
+    /**
+     * @param {KeyboardEvent} event
+     * @returns {void}
+     */
+    closeOnEscape(event) {
+        if (event.key === "Escape" && this.isOpen()) {
+            this.setOpen(false);
+        }
+    }
 }
 
 export class SocialRosterSection {
@@ -261,11 +518,13 @@ export class SocialRosterSection {
      */
     constructor(label, ...collapsibleElements) {
         this.element = document.createElement(LEAGUE_CLIENT_ELEMENTS.socialRosterGroup);
+        this.element.classList.add(SOCIAL_ROSTER_SECTION_CLASS);
         this.element.addEventListener("post-render", () => this.onPostRender());
         this.element.addEventListener("click", () => this.onClick());
 
         this.label = label;
         this.collapsibleElements = collapsibleElements;
+        this.headerAccessoryElement = null;
 
         this.waitRender();
     }
@@ -282,7 +541,25 @@ export class SocialRosterSection {
 
     onPostRender() {
         this.element.querySelector(LEAGUE_CLIENT_SELECTORS.socialRosterGroupLabel).innerText = this.label;
-        this.element.querySelector(LEAGUE_CLIENT_SELECTORS.socialRosterGroupHeader)?.removeAttribute("draggable");
+        const headerElement = this.element.querySelector(LEAGUE_CLIENT_SELECTORS.socialRosterGroupHeader);
+        headerElement?.removeAttribute("draggable");
+        if (headerElement && this.headerAccessoryElement) {
+            headerElement.classList.add(SOCIAL_ROSTER_SECTION_HEADER_CLASS);
+            headerElement.appendChild(this.headerAccessoryElement);
+        }
+    }
+
+    /**
+     * @param {HTMLElement} element
+     * @returns {void}
+     */
+    setHeaderAccessory(element) {
+        this.headerAccessoryElement = element;
+        const headerElement = this.element.querySelector(LEAGUE_CLIENT_SELECTORS.socialRosterGroupHeader);
+        if (headerElement) {
+            headerElement.classList.add(SOCIAL_ROSTER_SECTION_HEADER_CLASS);
+            headerElement.appendChild(element);
+        }
     }
 
     onClick() {
