@@ -24,7 +24,6 @@ import { LEAGUE_CLIENT_ELEMENTS } from "./league-client-dom.js";
  * @property {boolean} [enableBraveryOption] Enables the Bravery pick option.
  * @property {string} [searchPlaceholderText] Search input placeholder shown inside the dropdown control.
  * @property {string} [quickActionLabel] Tooltip and accessibility label for the quick action toggle.
- * @property {string} [randomOptionDescription] Short secondary text for the Random dropdown option.
  *
  * @typedef {Object} ChampionPrioritySelectorConfig
  * @property {boolean} enabled
@@ -65,7 +64,7 @@ const RANDOM_ICON_TEXT = "?";
 const RANDOM_OPTION_LABEL = "Random";
 
 const BRAVERY_OPTION_LABEL = "Bravery";
-const BRAVERY_OPTION_DESCRIPTION = "For Arena mode.";
+const BRAVERY_OPTION_DESCRIPTION = "For Arena mode";
 const BRAVERY_OPTION_ICON_PATH = "/fe/lol-champ-select/images/champion-grid/bravery-champion.png";
 const BRAVERY_DROPDOWN_ICON_CLASS = "controlado-champion-option__icon--bravery";
 const BRAVERY_SELECTED_ICON_CLASS = "champion-priority-selector__icon--bravery";
@@ -96,12 +95,7 @@ export class ChampionPrioritySelector {
         this.element = this.createRootElement();
         this.dropdownElement = this.createDropdownElement();
 
-        const staticOptions = [{
-            value: RANDOM_CHAMPION_OPTION,
-            label: RANDOM_OPTION_LABEL,
-            description: options.randomOptionDescription,
-            iconText: RANDOM_ICON_TEXT
-        }];
+        const staticOptions = [];
 
         if (options.enableBraveryOption === true) {
             staticOptions.push({
@@ -112,6 +106,12 @@ export class ChampionPrioritySelector {
                 iconClass: BRAVERY_DROPDOWN_ICON_CLASS
             });
         }
+
+        staticOptions.push({
+            value: RANDOM_CHAMPION_OPTION,
+            label: RANDOM_OPTION_LABEL,
+            iconText: RANDOM_ICON_TEXT
+        });
 
         this.championDropdown = new ChampionDropdown(
             this.dropdownElement,

@@ -333,7 +333,6 @@ function createSharedControls() {
             enableBraveryOption: true,
             quickActionLabel: "Pick instantly",
             enableRandomPoolPositionFilters: true,
-            randomOptionDescription: "Picks a random available champion. Badges limit draft lanes or filter the pool."
         }
     );
 
@@ -345,7 +344,6 @@ function createSharedControls() {
         {
             quickActionLabel: "Ban instantly",
             enableRandomPoolPositionFilters: true,
-            randomOptionDescription: "Bans a random available champion. Lane badges filter the pool first."
         }
     );
 
