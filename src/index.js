@@ -330,6 +330,7 @@ function createSharedControls() {
         {
             enablePositionRestrictions: true,
             enableRandomAssignedPositionRestrictions: true,
+            enableBraveryOption: true,
             quickActionLabel: "Pick instantly",
             enableRandomPoolPositionFilters: true,
             randomOptionDescription: "Picks a random available champion. Badges limit draft lanes or filter the pool."

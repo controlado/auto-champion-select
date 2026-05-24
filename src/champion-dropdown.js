@@ -6,7 +6,7 @@ import { normalizePosition, POSITIONS } from "./champion-positions.js";
  * @typedef {import("./champion-positions.js").PositionValue} PositionValue
  *
  * @typedef {{id: number, name: string, squarePortraitPath: string, recommendedPositions?: PositionValue[]}} Champion
- * @typedef {{value: unknown, label: string, description?: string, iconText?: string}} DropdownStaticOption
+ * @typedef {{value: unknown, label: string, description?: string, iconText?: string, iconPath?: string, iconClass?: string}} DropdownStaticOption
  *
  * @callback PriorityOptionSelectedCallback
  * @param {unknown} priorityOption
@@ -417,9 +417,24 @@ export class ChampionDropdown {
         const content = document.createElement("span");
         content.classList.add(CHAMPION_OPTION_CONTENT_CLASS);
 
-        const icon = document.createElement("span");
-        icon.classList.add(CHAMPION_OPTION_ICON_CLASS, STATIC_OPTION_ICON_CLASS);
-        icon.innerText = staticOption.iconText || "?";
+        const icon = staticOption.iconPath
+            ? document.createElement("img")
+            : document.createElement("span");
+
+        icon.classList.add(CHAMPION_OPTION_ICON_CLASS);
+        if (staticOption.iconClass) {
+            icon.classList.add(staticOption.iconClass);
+        }
+
+        if (staticOption.iconPath) {
+            icon.src = staticOption.iconPath;
+            icon.alt = "";
+            icon.draggable = false;
+            icon.loading = "lazy";
+        } else {
+            icon.classList.add(STATIC_OPTION_ICON_CLASS);
+            icon.innerText = staticOption.iconText || "?";
+        }
 
         const name = document.createElement("span");
         name.classList.add(CHAMPION_OPTION_NAME_CLASS);

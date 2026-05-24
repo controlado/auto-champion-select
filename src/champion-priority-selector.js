@@ -2,7 +2,9 @@ import { toChampionId } from "./champion-ids.js";
 import { ensureConfig, patchConfig } from "./config-store.js";
 import { getPositionMetadata, normalizePosition, normalizePositionList, normalizePositionsByChampionId, POSITIONS } from "./champion-positions.js";
 import {
+    BRAVERY_CHAMPION_OPTION,
     getChampionIdsFromPriorityOptions,
+    isBraveryChampionOption,
     isRandomChampionOption,
     normalizeChampionPriorityOptions,
     RANDOM_CHAMPION_OPTION,
@@ -19,6 +21,7 @@ import { LEAGUE_CLIENT_ELEMENTS } from "./league-client-dom.js";
  * @property {boolean} [enablePositionRestrictions] Enables the right-click per-position restriction menu.
  * @property {boolean} [enableRandomAssignedPositionRestrictions] Enables the assigned-position gate for the Random pick option.
  * @property {boolean} [enableRandomPoolPositionFilters] Enables the per-random pool position filter menu.
+ * @property {boolean} [enableBraveryOption] Enables the Bravery pick option.
  * @property {string} [searchPlaceholderText] Search input placeholder shown inside the dropdown control.
  * @property {string} [quickActionLabel] Tooltip and accessibility label for the quick action toggle.
  * @property {string} [randomOptionDescription] Short secondary text for the Random dropdown option.
@@ -61,6 +64,12 @@ const REMOVE_ICON_TEXT = "\u2715";
 const RANDOM_ICON_TEXT = "?";
 const RANDOM_OPTION_LABEL = "Random";
 
+const BRAVERY_OPTION_LABEL = "Bravery";
+const BRAVERY_OPTION_DESCRIPTION = "Pick option for Arena mode.";
+const BRAVERY_OPTION_ICON_PATH = "/fe/lol-champ-select/images/champion-grid/bravery-champion.png";
+const BRAVERY_DROPDOWN_ICON_CLASS = "controlado-champion-option__icon--bravery";
+const BRAVERY_SELECTED_ICON_CLASS = "champion-priority-selector__icon--bravery";
+
 const PRIMARY_MOUSE_BUTTON = 0;
 const MIDDLE_MOUSE_BUTTON = 1;
 
@@ -86,6 +95,24 @@ export class ChampionPrioritySelector {
     constructor(placeholderText, configKey, loadChampions, options = {}) {
         this.element = this.createRootElement();
         this.dropdownElement = this.createDropdownElement();
+
+        const staticOptions = [{
+            value: RANDOM_CHAMPION_OPTION,
+            label: RANDOM_OPTION_LABEL,
+            description: options.randomOptionDescription,
+            iconText: RANDOM_ICON_TEXT
+        }];
+
+        if (options.enableBraveryOption === true) {
+            staticOptions.push({
+                value: BRAVERY_CHAMPION_OPTION,
+                label: BRAVERY_OPTION_LABEL,
+                description: BRAVERY_OPTION_DESCRIPTION,
+                iconPath: BRAVERY_OPTION_ICON_PATH,
+                iconClass: BRAVERY_DROPDOWN_ICON_CLASS
+            });
+        }
+
         this.championDropdown = new ChampionDropdown(
             this.dropdownElement,
             placeholderText,
@@ -93,12 +120,7 @@ export class ChampionPrioritySelector {
             {
                 quickActionLabel: options.quickActionLabel,
                 searchPlaceholderText: options.searchPlaceholderText,
-                staticOptions: [{
-                    value: RANDOM_CHAMPION_OPTION,
-                    label: RANDOM_OPTION_LABEL,
-                    description: options.randomOptionDescription,
-                    iconText: RANDOM_ICON_TEXT
-                }],
+                staticOptions,
                 isQuickActionEnabled: () => this.isQuickActionEnabled(),
                 onQuickActionToggle: () => this.toggleQuickAction()
             }
@@ -111,6 +133,7 @@ export class ChampionPrioritySelector {
         this.enablePositionRestrictions = options.enablePositionRestrictions === true;
         this.enableRandomPoolPositionFilters = options.enableRandomPoolPositionFilters === true;
         this.enableRandomAssignedPositionRestrictions = options.enableRandomAssignedPositionRestrictions === true;
+        this.enableBraveryOption = options.enableBraveryOption === true;
         this.enablePositionMenu = this.enablePositionRestrictions || this.enableRandomAssignedPositionRestrictions || this.enableRandomPoolPositionFilters;
         this.positionMenuElement = this.enablePositionMenu ? this.createPositionMenu() : null;
 
@@ -299,7 +322,8 @@ export class ChampionPrioritySelector {
         const allowedChampionIds = this.getAllowedChampionIds();
         this.config = ensureConfig(this.configKey, { allowedChampionIds });
         this.quickAction = this.config.quickAction === true;
-        this.selectedPriorityOptions = normalizeChampionPriorityOptions(this.config.priorityOptions || this.config.champions, allowedChampionIds);
+        this.selectedPriorityOptions = normalizeChampionPriorityOptions(this.config.priorityOptions || this.config.champions, allowedChampionIds)
+            .filter(option => this.isPriorityOptionEnabled(option));
 
         if (this.enablePositionRestrictions) {
             this.positionsByChampionId = normalizePositionsByChampionId(
@@ -342,6 +366,14 @@ export class ChampionPrioritySelector {
     }
 
     /**
+     * @param {import("./champion-priority-options.js").ChampionPriorityOption} option
+     * @returns {boolean}
+     */
+    isPriorityOptionEnabled(option) {
+        return !isBraveryChampionOption(option) || this.enableBraveryOption;
+    }
+
+    /**
      * @returns {boolean} The quick action state after toggling.
      */
     toggleQuickAction() {
@@ -369,7 +401,12 @@ export class ChampionPrioritySelector {
         if (
             normalizedOption === null ||
             this.selectedPriorityOptions.includes(normalizedOption) ||
-            (!isRandomChampionOption(normalizedOption) && !this.championById.has(normalizedOption))
+            !this.isPriorityOptionEnabled(normalizedOption) ||
+            (
+                !isRandomChampionOption(normalizedOption) &&
+                !isBraveryChampionOption(normalizedOption) &&
+                !this.championById.has(normalizedOption)
+            )
         ) {
             return;
         }
@@ -391,7 +428,7 @@ export class ChampionPrioritySelector {
         }
         this.selectedPriorityOptions.splice(optionIndex, 1);
 
-        const removedChampionId = isRandomChampionOption(normalizedOption) ? null : normalizedOption;
+        const removedChampionId = typeof normalizedOption === "number" ? normalizedOption : null;
         if (this.positionMenuTarget?.option === normalizedOption) {
             this.closePositionMenu();
         }
@@ -553,6 +590,10 @@ export class ChampionPrioritySelector {
             return this.getRandomOptionButton(index);
         }
 
+        if (isBraveryChampionOption(option)) {
+            return this.enableBraveryOption ? this.getBraveryOptionButton(index) : null;
+        }
+
         return this.getChampionOptionButton(option, index);
     }
 
@@ -614,6 +655,32 @@ export class ChampionPrioritySelector {
         removeButton.title = `Remove ${RANDOM_OPTION_LABEL}`;
 
         this.renderPositionBadge(button, RANDOM_CHAMPION_OPTION);
+
+        return button;
+    }
+
+    /**
+     * @param {number} index
+     * @returns {HTMLElement}
+     */
+    getBraveryOptionButton(index) {
+        let button = this.optionButtons.get(BRAVERY_CHAMPION_OPTION);
+        if (!button) {
+            button = this.createBraveryOptionButton();
+            this.optionButtons.set(BRAVERY_CHAMPION_OPTION, button);
+        }
+
+        button.dataset.rank = String(index + 1);
+        button.title = `${index + 1}. ${BRAVERY_OPTION_LABEL}`;
+        button.setAttribute("aria-label", `${index + 1}. ${BRAVERY_OPTION_LABEL}`);
+
+        const image = button.querySelector("img");
+        image.src = BRAVERY_OPTION_ICON_PATH;
+        image.alt = BRAVERY_OPTION_LABEL;
+
+        const removeButton = button.querySelector(REMOVE_BUTTON_SELECTOR);
+        removeButton.setAttribute("aria-label", `Remove ${BRAVERY_OPTION_LABEL}`);
+        removeButton.title = `Remove ${BRAVERY_OPTION_LABEL}`;
 
         return button;
     }
@@ -682,6 +749,34 @@ export class ChampionPrioritySelector {
             button.addEventListener("contextmenu", event => this.openPositionMenu(event, randomPoolTarget));
         }
         button.append(icon, removeButton);
+        return button;
+    }
+
+    /**
+     * @returns {HTMLElement}
+     */
+    createBraveryOptionButton() {
+        const button = document.createElement("div");
+        button.classList.add("champion-priority-selector__icon", BRAVERY_SELECTED_ICON_CLASS);
+        button.setAttribute("role", "button");
+        button.tabIndex = 0;
+
+        const image = document.createElement("img");
+        image.draggable = false;
+
+        const removeButton = document.createElement("button");
+        removeButton.classList.add("champion-priority-selector__remove");
+        removeButton.type = "button";
+        removeButton.dataset.icon = REMOVE_ICON_TEXT;
+        removeButton.addEventListener("pointerdown", event => event.stopPropagation());
+        removeButton.addEventListener("click", event => {
+            event.stopPropagation();
+            this.removePriorityOption(BRAVERY_CHAMPION_OPTION);
+        });
+
+        button.addEventListener("pointerdown", event => this.startDrag(event, BRAVERY_CHAMPION_OPTION));
+        button.addEventListener("auxclick", event => this.removePriorityOptionOnMiddleClick(event, BRAVERY_CHAMPION_OPTION));
+        button.append(image, removeButton);
         return button;
     }
 
@@ -820,6 +915,10 @@ export class ChampionPrioritySelector {
             ].filter(target => this.canOpenPositionMenuForTarget(target));
         }
 
+        if (isBraveryChampionOption(option)) {
+            return [];
+        }
+
         return [{ option, kind: POSITION_MENU_TARGET_KIND.CHAMPION_ASSIGNED }]
             .filter(target => this.canOpenPositionMenuForTarget(target));
     }
@@ -918,7 +1017,7 @@ export class ChampionPrioritySelector {
 
         switch (target.kind) {
             case POSITION_MENU_TARGET_KIND.CHAMPION_ASSIGNED:
-                return !isRandomChampionOption(target.option) && this.enablePositionRestrictions;
+                return typeof target.option === "number" && this.enablePositionRestrictions;
             case POSITION_MENU_TARGET_KIND.RANDOM_ASSIGNED:
                 return isRandomChampionOption(target.option) && this.enableRandomAssignedPositionRestrictions;
             case POSITION_MENU_TARGET_KIND.RANDOM_POOL:

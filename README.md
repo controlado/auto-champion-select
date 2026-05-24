@@ -9,7 +9,6 @@
 [![português](https://img.shields.io/badge/-Português%20Brasileiro-blue)](README.br.md)
 
 Accept queue, pick and ban champions automatically. <br>
-This is my first project using JavaScript :)
 
 <img src="https://i.imgur.com/4jPzqIg.jpeg" width="700" alt="Plugin preview">
 
@@ -18,6 +17,8 @@ This is my first project using JavaScript :)
 
 ## 📍 What's new
 
+- Bravery pick option
+- Random pick option
 - Champion select menu
 - Filter champions
 

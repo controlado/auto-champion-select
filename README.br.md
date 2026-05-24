@@ -9,7 +9,6 @@
 [![português](https://img.shields.io/badge/-Português%20Brasileiro-blue)](README.br.md)
 
 Aceite a fila, selecione e bana os campeões automaticamente. <br>
-Esse é o meu primeiro projeto utilizando JavaScript :)
 
 <img src="https://i.imgur.com/Ovy1gGw.png" width="700" alt="Plugin preview">
 
@@ -18,6 +17,8 @@ Esse é o meu primeiro projeto utilizando JavaScript :)
 
 ## 📍 Novidades
 
+- Opção pickar Bravura
+- Opção para pickar aleatoriamente
 - Menu na seleção de campeões
 - Filtrar campeões
 

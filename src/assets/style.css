@@ -34,6 +34,13 @@
     pointer-events: none;
 }
 
+.dropdown-champions-default img.controlado-champion-option__icon {
+    clip-path: circle(41.67% at 51.5% 51.5%);
+    object-position: center;
+    transform: scale(1.2);
+    transform-origin: 51.5% 51.5%;
+}
+
 .dropdown-champions-default .controlado-champion-option__static-icon {
     display: grid;
     place-items: center;
@@ -153,6 +160,7 @@
     font-size: 10px;
     font-weight: 700;
     line-height: 1;
+    z-index: 2;
 }
 
 .champion-priority-selector__icon::before {
@@ -167,13 +175,19 @@
     pointer-events: none;
 }
 
-.champion-priority-selector__icon img {
+.champion-priority-selector__icon>img {
+    position: relative;
+    z-index: 0;
     display: block;
     width: 100%;
     height: 100%;
     border-radius: 50%;
+    clip-path: circle(45.87% at 50% 50%);
     object-fit: cover;
+    object-position: center;
     pointer-events: none;
+    transform: scale(1.09);
+    transform-origin: center;
 }
 
 .champion-priority-selector__icon--random {

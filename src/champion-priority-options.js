@@ -1,9 +1,10 @@
 import { toChampionId } from "./champion-ids.js";
 
 export const RANDOM_CHAMPION_OPTION = "random";
+export const BRAVERY_CHAMPION_OPTION = "bravery";
 
 /**
- * @typedef {number | typeof RANDOM_CHAMPION_OPTION} ChampionPriorityOption
+ * @typedef {number | typeof RANDOM_CHAMPION_OPTION | typeof BRAVERY_CHAMPION_OPTION} ChampionPriorityOption
  */
 
 /**
@@ -16,11 +17,23 @@ export function isRandomChampionOption(option) {
 
 /**
  * @param {unknown} option
+ * @returns {option is typeof BRAVERY_CHAMPION_OPTION}
+ */
+export function isBraveryChampionOption(option) {
+    return option === BRAVERY_CHAMPION_OPTION;
+}
+
+/**
+ * @param {unknown} option
  * @returns {ChampionPriorityOption | null}
  */
 export function toChampionPriorityOption(option) {
     if (isRandomChampionOption(option)) {
         return RANDOM_CHAMPION_OPTION;
+    }
+
+    if (isBraveryChampionOption(option)) {
+        return BRAVERY_CHAMPION_OPTION;
     }
 
     return toChampionId(option);
@@ -61,7 +74,7 @@ export function normalizeChampionPriorityOptions(championPriorityOptions, allowe
         }
 
         if (
-            !isRandomChampionOption(normalizedOption) &&
+            typeof normalizedOption === "number" &&
             allowedChampionIdSet &&
             !allowedChampionIdSet.has(normalizedOption)
         ) {
@@ -76,8 +89,8 @@ export function normalizeChampionPriorityOptions(championPriorityOptions, allowe
 }
 
 /**
- * Returns only numeric champion ids. Non-champion options such as Random are intentionally discarded before
- * position config normalization.
+ * Returns only numeric champion ids. Non-champion options such as Random and
+ * Bravery are intentionally discarded before position config normalization.
  *
  * @param {Iterable<unknown> | null} priorityOptions
  * @returns {number[]}

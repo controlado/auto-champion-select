@@ -3,7 +3,7 @@ import { normalizeChampionIds, toChampionId } from "./champion-ids.js";
 import { readConfig } from "./config-store.js";
 import { getAllChampions, getRecommendedChampionPositionsById } from "./champion-data.js";
 import { getAllowedPositionsForChampion, isChampionAllowedInPosition, normalizePosition, normalizePositionList } from "./champion-positions.js";
-import { isRandomChampionOption, normalizeChampionPriorityOptions } from "./champion-priority-options.js";
+import { isBraveryChampionOption, isRandomChampionOption, normalizeChampionPriorityOptions } from "./champion-priority-options.js";
 import { LEAGUE_CLIENT_ENDPOINTS } from "./league-client-endpoints.js";
 
 /**
@@ -63,6 +63,8 @@ const AUTO_SELECT_RANDOM_DELAY_MIN_MS = 2000;
 const AUTO_SELECT_RANDOM_DELAY_MAX_MS = 4000;
 
 const ANY_BANNABLE_CHAMPION_SENTINEL = -1;
+
+const BRAVERY_CHAMPION_ID = -3;
 
 /** @type {Readonly<Record<"SATISFIED" | "TRY_NEXT_CHAMPION" | "STOP_CYCLE", ActionAttemptResult>>} */
 const ACTION_ATTEMPT_RESULT = Object.freeze({
@@ -192,6 +194,14 @@ function isAnyBannableChampionSentinel(championIds) {
         championIds[0] === ANY_BANNABLE_CHAMPION_SENTINEL;
 }
 
+/**
+ * @param {unknown} championId
+ * @returns {boolean}
+ */
+function isBraveryChampionId(championId) {
+    return Number(championId) === BRAVERY_CHAMPION_ID;
+}
+
 export class ChampionSelect {
     constructor() {
         /** @type {ChampSelectSession | null} */
@@ -205,6 +215,8 @@ export class ChampionSelect {
         this.teammateIntentChampionIds = new Set();
         /** @type {number | null} */
         this.localPlayerIntentChampionId = null;
+        /** @type {boolean} */
+        this.localPlayerIntentIsBravery = false;
         /** @type {Set<number>} */
         this.pickedChampionIds = new Set();
         /** @type {Set<number>} */
@@ -288,6 +300,7 @@ export class ChampionSelect {
         const localPlayer = alliedTeam.find(player => player.cellId === this.localPlayerCellId);
         this.localPlayerAssignedPosition = normalizePosition(localPlayer?.assignedPosition);
         this.localPlayerIntentChampionId = toChampionId(localPlayer?.championPickIntent);
+        this.localPlayerIntentIsBravery = isBraveryChampionId(localPlayer?.championPickIntent);
 
         this.pickedChampionIds = championIdSetFromValues([...alliedTeam, ...opposingTeam].map(player => player.championId));
         this.bannedChampionIds = championIdSetFromValues([
@@ -406,6 +419,10 @@ export class ChampionSelect {
             return PRIORITY_OPTION_ATTEMPT_RESULT.SATISFIED;
         }
 
+        if (isBraveryChampionOption(priorityOption)) {
+            return this.tryBraveryForAction(action);
+        }
+
         const championIds = await this.resolveChampionIdsForPriorityOption(action, priorityOption, config);
         const shouldTryNextRandomCandidateOnFailure = isRandomChampionOption(priorityOption) && !this.isLockingExistingPickIntent(action, championIds);
         for (const championId of championIds) {
@@ -415,6 +432,39 @@ export class ChampionSelect {
             if (result === ACTION_ATTEMPT_RESULT.STOP_CYCLE) return PRIORITY_OPTION_ATTEMPT_RESULT.STOP_CYCLE;
         }
 
+        return PRIORITY_OPTION_ATTEMPT_RESULT.TRY_NEXT_PRIORITY_OPTION;
+    }
+
+    /**
+     * @param {ChampSelectAction} action
+     * @returns {Promise<PriorityOptionAttemptResult>}
+     */
+    async tryBraveryForAction(action) {
+        if (action.type !== "pick") {
+            return PRIORITY_OPTION_ATTEMPT_RESULT.TRY_NEXT_PRIORITY_OPTION;
+        }
+
+        if (this.isBraveryPickIntentSet(action)) {
+            return PRIORITY_OPTION_ATTEMPT_RESULT.SATISFIED;
+        }
+
+        console.debug("auto-champion-select: Trying to pick Bravery...");
+        const response = await this.selectChampion(action.id, BRAVERY_CHAMPION_ID);
+        if (response.ok) {
+            return PRIORITY_OPTION_ATTEMPT_RESULT.SATISFIED;
+        }
+
+        console.debug("auto-champion-select: Failed to pick Bravery, refreshing champ select state...");
+        const updatedAction = await this.refreshPendingAction(action);
+        if (!updatedAction || !this.isActionAvailable(updatedAction)) {
+            return PRIORITY_OPTION_ATTEMPT_RESULT.STOP_CYCLE;
+        }
+
+        if (this.isBraveryPickIntentSet(updatedAction)) {
+            return PRIORITY_OPTION_ATTEMPT_RESULT.SATISFIED;
+        }
+
+        console.debug("auto-champion-select: Bravery is unavailable after refresh, trying next pick...");
         return PRIORITY_OPTION_ATTEMPT_RESULT.TRY_NEXT_PRIORITY_OPTION;
     }
 
@@ -489,6 +539,10 @@ export class ChampionSelect {
             return this.isRandomPriorityOptionUnavailableForAction(action, config);
         }
 
+        if (isBraveryChampionOption(priorityOption)) {
+            return action.type !== "pick";
+        }
+
         return this.isChampionUnavailableForAction(action, priorityOption, config);
     }
 
@@ -549,6 +603,10 @@ export class ChampionSelect {
             return this.hasAnyPickIntentSet(action);
         }
 
+        if (isBraveryChampionOption(priorityOption)) {
+            return this.isBraveryPickIntentSet(action);
+        }
+
         return this.isPickIntentSetToChampion(action, priorityOption);
     }
 
@@ -559,7 +617,25 @@ export class ChampionSelect {
     hasAnyPickIntentSet(action) {
         return action.type === "pick" &&
             action.isInProgress !== true &&
-            (this.localPlayerIntentChampionId !== null || toChampionId(action.championId) !== null);
+            (
+                this.localPlayerIntentChampionId !== null ||
+                this.localPlayerIntentIsBravery ||
+                toChampionId(action.championId) !== null ||
+                isBraveryChampionId(action.championId)
+            );
+    }
+
+    /**
+     * @param {ChampSelectAction} action
+     * @returns {boolean}
+     */
+    isBraveryPickIntentSet(action) {
+        return action.type === "pick" &&
+            action.isInProgress !== true &&
+            (
+                this.localPlayerIntentIsBravery ||
+                isBraveryChampionId(action.championId)
+            );
     }
 
     /**
@@ -629,6 +705,10 @@ export class ChampionSelect {
      * @returns {Promise<number[]>}
      */
     async resolveChampionIdsForPriorityOption(action, priorityOption, config) {
+        if (isBraveryChampionOption(priorityOption)) {
+            return [];
+        }
+
         if (!isRandomChampionOption(priorityOption)) {
             return [priorityOption];
         }
