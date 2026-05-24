@@ -120,6 +120,25 @@ function toggleQuickAction(action) {
 }
 
 /**
+ * @param {"pick" | "ban"} action
+ * @returns {boolean}
+ */
+function isForceActionEnabled(action) {
+    return readConfig(getConfigKeyForDraftAction(action)).force === true;
+}
+
+/**
+ * @param {"pick" | "ban"} action
+ * @returns {void}
+ */
+function toggleForceAction(action) {
+    patchConfig(getConfigKeyForDraftAction(action), config => {
+        config.force = config.force !== true;
+        return config;
+    });
+}
+
+/**
  * @returns {{min: number, max: number}}
  */
 function getSharedActionDelayRange() {
@@ -452,6 +471,14 @@ function createSettingsMenu() {
         new SettingsCheckbox("Fast ban", {
             isSelected: () => isQuickActionEnabled("ban"),
             toggle: () => toggleQuickAction("ban")
+        }),
+        new SettingsCheckbox("Ignore team intent and pick", {
+            isSelected: () => isForceActionEnabled("pick"),
+            toggle: () => toggleForceAction("pick")
+        }),
+        new SettingsCheckbox("Ignore team intent and ban", {
+            isSelected: () => isForceActionEnabled("ban"),
+            toggle: () => toggleForceAction("ban")
         })
     ]);
 }
