@@ -65,7 +65,7 @@ const RANDOM_ICON_TEXT = "?";
 const RANDOM_OPTION_LABEL = "Random";
 
 const BRAVERY_OPTION_LABEL = "Bravery";
-const BRAVERY_OPTION_DESCRIPTION = "Pick option for Arena mode.";
+const BRAVERY_OPTION_DESCRIPTION = "For Arena mode.";
 const BRAVERY_OPTION_ICON_PATH = "/fe/lol-champ-select/images/champion-grid/bravery-champion.png";
 const BRAVERY_DROPDOWN_ICON_CLASS = "controlado-champion-option__icon--bravery";
 const BRAVERY_SELECTED_ICON_CLASS = "champion-priority-selector__icon--bravery";
