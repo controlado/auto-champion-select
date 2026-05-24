@@ -4,11 +4,12 @@ import { patchConfig, readConfig } from "./config-store.js";
 import { getPlayableChampions, getAllChampions } from "./champion-data.js";
 import { ChampionSelect } from "./champion-select.js";
 import { ChampionPrioritySelector } from "./champion-priority-selector.js";
-import { ChampSelectControlsMenu, ConfigToggle, SettingsCheckbox, SettingsMenu, SocialRosterSection } from "./ui.js";
+import { ChampSelectControlsMenu, ConfigToggle, SettingsCheckbox, SettingsDualRange, SettingsMenu, SocialRosterSection } from "./ui.js";
 import { AutoPickSwitchAction, AutoBanSwitchAction, ForcePickSwitchAction, ForceBanSwitchAction, RefreshDropdownsAction, addActions } from "./actions.js";
 import { LEAGUE_CLIENT_ENDPOINTS } from "./league-client-endpoints.js";
 import { getChampSelectButtonsContainer, getSocialRosterContainer } from "./league-client-dom.js";
 import { showErrorToast, showSuccessToast } from "./toast.js";
+import { ACTION_DELAY_MAX_MS, ACTION_DELAY_MIN_MS, ACTION_DELAY_STEP_MS, formatActionDelaySeconds, normalizeActionDelayRange } from "./action-delay.js";
 import "./assets/style.css";
 
 /**
@@ -116,6 +117,39 @@ function toggleQuickAction(action) {
         config.quickAction = config.quickAction !== true;
         return config;
     });
+}
+
+/**
+ * @returns {{min: number, max: number}}
+ */
+function getSharedActionDelayRange() {
+    const pickConfig = readConfig(CONFIG_KEYS.pick);
+    const { minMs, maxMs } = normalizeActionDelayRange(pickConfig.delayMinMs, pickConfig.delayMaxMs);
+    return { min: minMs, max: maxMs };
+}
+
+/**
+ * @param {{min: number, max: number}} value
+ * @returns {void}
+ */
+function setSharedActionDelayRange(value) {
+    const { minMs, maxMs } = normalizeActionDelayRange(value.min, value.max);
+
+    [CONFIG_KEYS.pick, CONFIG_KEYS.ban].forEach(configKey => {
+        patchConfig(configKey, config => {
+            config.delayMinMs = minMs;
+            config.delayMaxMs = maxMs;
+            return config;
+        });
+    });
+}
+
+/**
+ * @param {{min: number, max: number}} value
+ * @returns {string}
+ */
+function formatActionDelayRange(value) {
+    return `${formatActionDelaySeconds(value.min)} - ${formatActionDelaySeconds(value.max)}`;
 }
 
 class ReadyCheckModalSuppressor {
@@ -403,6 +437,14 @@ function createSharedControls() {
  */
 function createSettingsMenu() {
     return new SettingsMenu([
+        new SettingsDualRange("Action delay", {
+            min: ACTION_DELAY_MIN_MS,
+            max: ACTION_DELAY_MAX_MS,
+            step: ACTION_DELAY_STEP_MS,
+            getValue: getSharedActionDelayRange,
+            setValue: setSharedActionDelayRange,
+            formatValue: formatActionDelayRange
+        }),
         new SettingsCheckbox("Fast pick", {
             isSelected: () => isQuickActionEnabled("pick"),
             toggle: () => toggleQuickAction("pick")

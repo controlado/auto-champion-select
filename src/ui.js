@@ -18,6 +18,15 @@ const SETTINGS_FLYOUT_CLASS = "auto-select-settings-flyout";
 const SETTINGS_MENU_CLASS = "auto-select-settings-menu";
 const SETTINGS_EMPTY_CLASS = "auto-select-settings-menu__empty";
 const SETTINGS_CHECKBOX_CLASS = "auto-select-settings-checkbox";
+const SETTINGS_RANGE_CLASS = "auto-select-settings-range";
+const SETTINGS_RANGE_HEADER_CLASS = "auto-select-settings-range__header";
+const SETTINGS_RANGE_LABEL_CLASS = "auto-select-settings-range__label";
+const SETTINGS_RANGE_VALUE_CLASS = "auto-select-settings-range__value";
+const SETTINGS_RANGE_TRACK_CLASS = "auto-select-settings-range__track";
+const SETTINGS_RANGE_FILL_CLASS = "auto-select-settings-range__fill";
+const SETTINGS_RANGE_HANDLE_CLASS = "auto-select-settings-range__handle";
+const SETTINGS_RANGE_HANDLE_MIN_CLASS = "auto-select-settings-range__handle--min";
+const SETTINGS_RANGE_HANDLE_MAX_CLASS = "auto-select-settings-range__handle--max";
 
 /**
  * @typedef {Object} SettingsControl
@@ -28,6 +37,18 @@ const SETTINGS_CHECKBOX_CLASS = "auto-select-settings-checkbox";
  * @typedef {Object} SettingsCheckboxOptions
  * @property {() => boolean} isSelected
  * @property {() => void} toggle
+ *
+ * @typedef {Object} SettingsRangeValue
+ * @property {number} min
+ * @property {number} max
+ *
+ * @typedef {Object} SettingsDualRangeOptions
+ * @property {number} min
+ * @property {number} max
+ * @property {number} step
+ * @property {() => SettingsRangeValue} getValue
+ * @property {(value: SettingsRangeValue) => void} setValue
+ * @property {(value: SettingsRangeValue) => string} formatValue
  */
 
 export class ConfigToggle {
@@ -555,6 +576,250 @@ export class SettingsCheckbox {
      */
     sync() {
         this.element.toggleAttribute("selected", this.options.isSelected() === true);
+    }
+}
+
+export class SettingsDualRange {
+    /**
+     * @param {string} label
+     * @param {SettingsDualRangeOptions} options
+     */
+    constructor(label, options) {
+        this.label = label;
+        this.options = options;
+        this.dragHandle = null;
+        this.setupComplete = false;
+        this.boundPointerMove = event => this.onPointerMove(event);
+        this.boundPointerUp = () => this.stopDragging();
+
+        this.element = document.createElement("div");
+        this.element.classList.add(SETTINGS_RANGE_CLASS);
+
+        const header = document.createElement("div");
+        header.classList.add(SETTINGS_RANGE_HEADER_CLASS);
+
+        this.labelElement = document.createElement("span");
+        this.labelElement.classList.add(SETTINGS_RANGE_LABEL_CLASS);
+        this.labelElement.textContent = label;
+
+        this.valueElement = document.createElement("span");
+        this.valueElement.classList.add(SETTINGS_RANGE_VALUE_CLASS);
+
+        this.trackElement = document.createElement("div");
+        this.trackElement.classList.add(SETTINGS_RANGE_TRACK_CLASS);
+
+        this.fillElement = document.createElement("div");
+        this.fillElement.classList.add(SETTINGS_RANGE_FILL_CLASS);
+
+        this.minHandleElement = this.createHandle("min");
+        this.maxHandleElement = this.createHandle("max");
+
+        header.append(this.labelElement, this.valueElement);
+        this.trackElement.append(this.fillElement, this.minHandleElement, this.maxHandleElement);
+        this.element.append(header, this.trackElement);
+    }
+
+    /**
+     * @returns {void}
+     */
+    setup() {
+        this.sync();
+
+        if (this.setupComplete) {
+            return;
+        }
+
+        this.trackElement.addEventListener("pointerdown", event => this.onTrackPointerDown(event));
+        this.minHandleElement.addEventListener("pointerdown", event => this.startDragging(event, "min"));
+        this.maxHandleElement.addEventListener("pointerdown", event => this.startDragging(event, "max"));
+        this.minHandleElement.addEventListener("keydown", event => this.onHandleKeyDown(event, "min"));
+        this.maxHandleElement.addEventListener("keydown", event => this.onHandleKeyDown(event, "max"));
+        this.setupComplete = true;
+    }
+
+    /**
+     * @param {"min" | "max"} handle
+     * @returns {HTMLButtonElement}
+     */
+    createHandle(handle) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.classList.add(
+            SETTINGS_RANGE_HANDLE_CLASS,
+            handle === "min" ? SETTINGS_RANGE_HANDLE_MIN_CLASS : SETTINGS_RANGE_HANDLE_MAX_CLASS
+        );
+        button.setAttribute("aria-label", `${this.label} ${handle}`);
+        button.setAttribute("aria-valuemin", String(this.options.min));
+        button.setAttribute("aria-valuemax", String(this.options.max));
+        button.setAttribute("role", "slider");
+        return button;
+    }
+
+    /**
+     * @returns {SettingsRangeValue}
+     */
+    getNormalizedValue() {
+        const value = this.options.getValue();
+        const min = this.snapValue(value.min);
+        const max = this.snapValue(value.max);
+        return {
+            min: Math.min(min, max),
+            max: Math.max(min, max)
+        };
+    }
+
+    /**
+     * @param {number} value
+     * @returns {number}
+     */
+    snapValue(value) {
+        const rangeMin = this.options.min;
+        const rangeMax = this.options.max;
+        const step = this.options.step;
+        const numericValue = Number(value);
+        const safeValue = Number.isFinite(numericValue) ? numericValue : rangeMin;
+        const steppedValue = Math.round((safeValue - rangeMin) / step) * step + rangeMin;
+        return Math.max(rangeMin, Math.min(rangeMax, steppedValue));
+    }
+
+    /**
+     * @returns {void}
+     */
+    sync() {
+        const value = this.getNormalizedValue();
+        const minPercent = this.valueToPercent(value.min);
+        const maxPercent = this.valueToPercent(value.max);
+
+        this.valueElement.textContent = this.options.formatValue(value);
+        this.fillElement.style.left = `${minPercent}%`;
+        this.fillElement.style.width = `${maxPercent - minPercent}%`;
+        this.minHandleElement.style.left = `${minPercent}%`;
+        this.maxHandleElement.style.left = `${maxPercent}%`;
+
+        this.syncHandle(this.minHandleElement, value.min);
+        this.syncHandle(this.maxHandleElement, value.max);
+    }
+
+    /**
+     * @param {HTMLButtonElement} handleElement
+     * @param {number} value
+     * @returns {void}
+     */
+    syncHandle(handleElement, value) {
+        handleElement.setAttribute("aria-valuenow", String(value));
+        handleElement.setAttribute("aria-valuetext", this.options.formatValue({ min: value, max: value }));
+    }
+
+    /**
+     * @param {number} value
+     * @returns {number}
+     */
+    valueToPercent(value) {
+        const range = this.options.max - this.options.min;
+        return range <= 0 ? 0 : ((value - this.options.min) / range) * 100;
+    }
+
+    /**
+     * @param {number} clientX
+     * @returns {number}
+     */
+    clientXToValue(clientX) {
+        const rect = this.trackElement.getBoundingClientRect();
+        const percentage = rect.width <= 0 ? 0 : (clientX - rect.left) / rect.width;
+        return this.snapValue(this.options.min + (this.options.max - this.options.min) * percentage);
+    }
+
+    /**
+     * @param {PointerEvent} event
+     * @returns {void}
+     */
+    onTrackPointerDown(event) {
+        if (event.target === this.minHandleElement || event.target === this.maxHandleElement) {
+            return;
+        }
+
+        const value = this.clientXToValue(event.clientX);
+        const currentValue = this.getNormalizedValue();
+        const nearestHandle = Math.abs(value - currentValue.min) <= Math.abs(value - currentValue.max) ? "min" : "max";
+        this.startDragging(event, nearestHandle);
+        this.setHandleValue(nearestHandle, value);
+    }
+
+    /**
+     * @param {PointerEvent} event
+     * @param {"min" | "max"} handle
+     * @returns {void}
+     */
+    startDragging(event, handle) {
+        event.preventDefault();
+        event.stopPropagation();
+        this.dragHandle = handle;
+        document.addEventListener("pointermove", this.boundPointerMove, true);
+        document.addEventListener("pointerup", this.boundPointerUp, true);
+    }
+
+    /**
+     * @param {PointerEvent} event
+     * @returns {void}
+     */
+    onPointerMove(event) {
+        if (!this.dragHandle) {
+            return;
+        }
+
+        event.preventDefault();
+        this.setHandleValue(this.dragHandle, this.clientXToValue(event.clientX));
+    }
+
+    /**
+     * @returns {void}
+     */
+    stopDragging() {
+        this.dragHandle = null;
+        document.removeEventListener("pointermove", this.boundPointerMove, true);
+        document.removeEventListener("pointerup", this.boundPointerUp, true);
+    }
+
+    /**
+     * @param {KeyboardEvent} event
+     * @param {"min" | "max"} handle
+     * @returns {void}
+     */
+    onHandleKeyDown(event, handle) {
+        const currentValue = this.getNormalizedValue();
+        const currentHandleValue = handle === "min" ? currentValue.min : currentValue.max;
+        let nextValue = currentHandleValue;
+
+        if (event.key === "ArrowLeft" || event.key === "ArrowDown") {
+            nextValue -= this.options.step;
+        } else if (event.key === "ArrowRight" || event.key === "ArrowUp") {
+            nextValue += this.options.step;
+        } else if (event.key === "Home") {
+            nextValue = this.options.min;
+        } else if (event.key === "End") {
+            nextValue = this.options.max;
+        } else {
+            return;
+        }
+
+        event.preventDefault();
+        this.setHandleValue(handle, nextValue);
+    }
+
+    /**
+     * @param {"min" | "max"} handle
+     * @param {number} value
+     * @returns {void}
+     */
+    setHandleValue(handle, value) {
+        const currentValue = this.getNormalizedValue();
+        const snappedValue = this.snapValue(value);
+        const nextValue = handle === "min"
+            ? { min: Math.min(snappedValue, currentValue.max), max: currentValue.max }
+            : { min: currentValue.min, max: Math.max(snappedValue, currentValue.min) };
+
+        this.options.setValue(nextValue);
+        this.sync();
     }
 }
 

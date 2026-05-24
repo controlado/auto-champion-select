@@ -4,6 +4,7 @@ import { readConfig } from "./config-store.js";
 import { getAllChampions, getRecommendedChampionPositionsById } from "./champion-data.js";
 import { getAllowedPositionsForChampion, isChampionAllowedInPosition, normalizePosition, normalizePositionList } from "./champion-positions.js";
 import { isBraveryChampionOption, isRandomChampionOption, normalizeChampionPriorityOptions } from "./champion-priority-options.js";
+import { getRandomActionDelayMs } from "./action-delay.js";
 import { LEAGUE_CLIENT_ENDPOINTS } from "./league-client-endpoints.js";
 
 /**
@@ -39,6 +40,8 @@ import { LEAGUE_CLIENT_ENDPOINTS } from "./league-client-endpoints.js";
  * @property {boolean} enabled
  * @property {boolean} [force]
  * @property {boolean} [quickAction]
+ * @property {number} [delayMinMs]
+ * @property {number} [delayMaxMs]
  * @property {number[]} champions
  * @property {ChampionPriorityOption[]} [priorityOptions]
  * @property {string[]} [randomAssignedPositions]
@@ -58,9 +61,6 @@ import { LEAGUE_CLIENT_ENDPOINTS } from "./league-client-endpoints.js";
  */
 
 const CHAMP_SELECT_WATCH_INTERVAL_MS = 300;
-
-const AUTO_SELECT_RANDOM_DELAY_MIN_MS = 2000;
-const AUTO_SELECT_RANDOM_DELAY_MAX_MS = 4000;
 
 const ANY_BANNABLE_CHAMPION_SENTINEL = -1;
 
@@ -160,14 +160,6 @@ function readAutoSelectConfigs() {
  */
 function isQuickActionEnabled(config) {
     return config.quickAction === true;
-}
-
-/**
- * @returns {number}
- */
-function getRandomAutoSelectDelayMs() {
-    const delayRangeMs = AUTO_SELECT_RANDOM_DELAY_MAX_MS - AUTO_SELECT_RANDOM_DELAY_MIN_MS;
-    return AUTO_SELECT_RANDOM_DELAY_MIN_MS + Math.floor(Math.random() * (delayRangeMs + 1));
 }
 
 /**
@@ -387,7 +379,7 @@ export class ChampionSelect {
             };
         }
 
-        const refreshedPlan = await this.delayAndRefreshAutoSelectPlan(action);
+        const refreshedPlan = await this.delayAndRefreshAutoSelectPlan(action, config);
         if (!refreshedPlan) {
             return { status: AUTO_SELECT_PLAN_STATUS.STOP_CYCLE };
         }
@@ -670,10 +662,11 @@ export class ChampionSelect {
 
     /**
      * @param {ChampSelectAction} action
+     * @param {AutoSelectConfig} config
      * @returns {Promise<AutoSelectPlan | null>}
      */
-    async delayAndRefreshAutoSelectPlan(action) {
-        const delayMs = getRandomAutoSelectDelayMs();
+    async delayAndRefreshAutoSelectPlan(action, config) {
+        const delayMs = getRandomActionDelayMs(config);
         console.debug(`auto-champion-select: Quick action is off, waiting ${delayMs}ms before ${action.type}...`);
 
         const version = this.watchVersion;

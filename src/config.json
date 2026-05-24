@@ -6,6 +6,8 @@
         "enabled": false,
         "force": false,
         "quickAction": false,
+        "delayMinMs": 2000,
+        "delayMaxMs": 4000,
         "champions": [
             432,
             235
@@ -26,6 +28,8 @@
         "enabled": false,
         "force": false,
         "quickAction": false,
+        "delayMinMs": 2000,
+        "delayMaxMs": 4000,
         "champions": [
             157,
             777,

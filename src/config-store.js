@@ -1,4 +1,5 @@
 import defaultPluginConfig from "./config.json";
+import { normalizeActionDelayRange } from "./action-delay.js";
 import { normalizePositionList, normalizePositionsByChampionId } from "./champion-positions.js";
 import { getChampionIdsFromPriorityOptions, normalizeChampionPriorityOptions } from "./champion-priority-options.js";
 
@@ -11,6 +12,8 @@ const repairedConfigWarnings = new Set();
  * @property {boolean} enabled
  * @property {boolean} [force]
  * @property {boolean} [quickAction]
+ * @property {number} [delayMinMs]
+ * @property {number} [delayMaxMs]
  * @property {number[]} [champions]
  * @property {import("./champion-priority-options.js").ChampionPriorityOption[]} [priorityOptions]
  * @property {string[]} [randomAssignedPositions]
@@ -113,6 +116,17 @@ function normalizeActionConfig(configKey, config, options = {}) {
 
     if (hasDefaultConfigField(defaultConfig, "quickAction")) {
         normalizedConfig.quickAction = mergedConfig.quickAction === true;
+    }
+
+    if (hasDefaultConfigField(defaultConfig, "delayMinMs") && hasDefaultConfigField(defaultConfig, "delayMaxMs")) {
+        const { minMs, maxMs } = normalizeActionDelayRange(
+            mergedConfig.delayMinMs,
+            mergedConfig.delayMaxMs,
+            defaultConfig.delayMinMs,
+            defaultConfig.delayMaxMs
+        );
+        normalizedConfig.delayMinMs = minMs;
+        normalizedConfig.delayMaxMs = maxMs;
     }
 
     if (hasDefaultConfigField(defaultConfig, "champions")) {

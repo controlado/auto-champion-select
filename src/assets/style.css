@@ -479,6 +479,88 @@
     color: #f0e6d2;
 }
 
+.auto-select-settings-range {
+    display: grid;
+    gap: 8px;
+    padding: 8px 12px 10px;
+    border-bottom: thin solid #1e282d;
+    box-sizing: border-box;
+}
+
+.auto-select-settings-range__header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    min-width: 0;
+}
+
+.auto-select-settings-range__label {
+    min-width: 0;
+    overflow: hidden;
+    color: #f0e6d2;
+    font-size: 12px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.auto-select-settings-range__value {
+    flex: 0 0 auto;
+    color: #a09b8c;
+    font-size: 11px;
+}
+
+.auto-select-settings-range__track {
+    position: relative;
+    height: 30px;
+    margin: 0 15px;
+    cursor: pointer;
+}
+
+.auto-select-settings-range__track::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 14px;
+    height: 2px;
+    background: #1e2328;
+}
+
+.auto-select-settings-range__fill {
+    position: absolute;
+    top: 13px;
+    height: 2px;
+    border: thin solid #010a13;
+    background: linear-gradient(to right, #785a28 0%, #c89b3c 56%, #c8aa6e 100%);
+    box-sizing: border-box;
+    pointer-events: none;
+}
+
+.auto-select-settings-range__handle {
+    position: absolute;
+    top: 0;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border: 0;
+    background: url("/fe/lol-uikit/images/slider-btn.png") no-repeat top left;
+    background-size: 100%;
+    box-sizing: border-box;
+    cursor: pointer;
+    outline: none;
+    transform: translateX(-50%);
+}
+
+.auto-select-settings-range__handle:hover,
+.auto-select-settings-range__handle:focus {
+    background-position: 0 -30px;
+}
+
+.auto-select-settings-range__handle:active {
+    background-position: 0 -60px;
+}
+
 .auto-select-champ-select-menu {
     position: absolute;
     right: 0;
