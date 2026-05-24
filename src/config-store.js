@@ -12,7 +12,6 @@ const repairedConfigWarnings = new Set();
  * @property {boolean} enabled
  * @property {boolean} [hideAutoAcceptPrompt]
  * @property {boolean} [force]
- * @property {boolean} [quickAction]
  * @property {number} [delayMinMs]
  * @property {number} [delayMaxMs]
  * @property {number[]} [champions]
@@ -117,10 +116,6 @@ function normalizeActionConfig(configKey, config, options = {}) {
 
     if (hasDefaultConfigField(defaultConfig, "force")) {
         normalizedConfig.force = mergedConfig.force === true;
-    }
-
-    if (hasDefaultConfigField(defaultConfig, "quickAction")) {
-        normalizedConfig.quickAction = mergedConfig.quickAction === true;
     }
 
     if (hasDefaultConfigField(defaultConfig, "delayMinMs") && hasDefaultConfigField(defaultConfig, "delayMaxMs")) {

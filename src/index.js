@@ -130,25 +130,6 @@ function getConfigKeyForDraftAction(action) {
  * @param {"pick" | "ban"} action
  * @returns {boolean}
  */
-function isQuickActionEnabled(action) {
-    return readConfig(getConfigKeyForDraftAction(action)).quickAction === true;
-}
-
-/**
- * @param {"pick" | "ban"} action
- * @returns {void}
- */
-function toggleQuickAction(action) {
-    patchConfig(getConfigKeyForDraftAction(action), config => {
-        config.quickAction = config.quickAction !== true;
-        return config;
-    });
-}
-
-/**
- * @param {"pick" | "ban"} action
- * @returns {boolean}
- */
 function isForceActionEnabled(action) {
     return readConfig(getConfigKeyForDraftAction(action)).force === true;
 }
@@ -194,7 +175,21 @@ function setSharedActionDelayRange(value) {
  * @returns {string}
  */
 function formatActionDelayRange(value) {
-    return `${formatActionDelaySeconds(value.min)} - ${formatActionDelaySeconds(value.max)}`;
+    const { minMs, maxMs } = normalizeActionDelayRange(value.min, value.max);
+
+    if (minMs === 0 && maxMs === 0) {
+        return "Instant";
+    }
+
+    if (minMs === maxMs) {
+        return `Delays actions for ${formatActionDelaySeconds(maxMs)}`;
+    }
+
+    if (minMs === 0) {
+        return `Delays actions up to ${formatActionDelaySeconds(maxMs)}`;
+    }
+
+    return `Delays actions ${formatActionDelaySeconds(minMs)}-${formatActionDelaySeconds(maxMs)}`;
 }
 
 class ReadyCheckModalSuppressor {
@@ -490,14 +485,6 @@ function createSettingsControls(readyCheckModalSuppressor) {
             getValue: getSharedActionDelayRange,
             setValue: setSharedActionDelayRange,
             formatValue: formatActionDelayRange
-        }),
-        new SettingsCheckbox("Fast pick", {
-            isSelected: () => isQuickActionEnabled("pick"),
-            toggle: () => toggleQuickAction("pick")
-        }),
-        new SettingsCheckbox("Fast ban", {
-            isSelected: () => isQuickActionEnabled("ban"),
-            toggle: () => toggleQuickAction("ban")
         }),
         new SettingsCheckbox("Ignore team intent and pick", {
             isSelected: () => isForceActionEnabled("pick"),

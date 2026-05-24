@@ -57,5 +57,6 @@ export function getRandomActionDelayMs(config) {
  * @returns {string}
  */
 export function formatActionDelaySeconds(delayMs) {
-    return `${(delayMs / 1000).toFixed(1)}s`;
+    const seconds = delayMs / 1000;
+    return `${Number.isInteger(seconds) ? seconds.toFixed(0) : seconds.toFixed(1)}s`;
 }

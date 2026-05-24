@@ -6,7 +6,6 @@
     "controladoPick": {
         "enabled": false,
         "force": false,
-        "quickAction": false,
         "delayMinMs": 2000,
         "delayMaxMs": 4000,
         "champions": [
@@ -28,7 +27,6 @@
     "controladoBan": {
         "enabled": false,
         "force": false,
-        "quickAction": false,
         "delayMinMs": 2000,
         "delayMaxMs": 4000,
         "champions": [

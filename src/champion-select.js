@@ -39,7 +39,6 @@ import { LEAGUE_CLIENT_ENDPOINTS } from "./league-client-endpoints.js";
  * @typedef {Object} AutoSelectConfig
  * @property {boolean} enabled
  * @property {boolean} [force]
- * @property {boolean} [quickAction]
  * @property {number} [delayMinMs]
  * @property {number} [delayMaxMs]
  * @property {number[]} champions
@@ -152,14 +151,6 @@ function readAutoSelectConfigs() {
         pickConfig: readConfig("controladoPick"),
         banConfig: readConfig("controladoBan")
     };
-}
-
-/**
- * @param {AutoSelectConfig} config
- * @returns {boolean}
- */
-function isQuickActionEnabled(config) {
-    return config.quickAction === true;
 }
 
 /**
@@ -369,13 +360,6 @@ export class ChampionSelect {
             return {
                 status: AUTO_SELECT_PLAN_STATUS.READY,
                 plan: alreadySatisfiedPlan
-            };
-        }
-
-        if (isQuickActionEnabled(config)) {
-            return {
-                status: AUTO_SELECT_PLAN_STATUS.READY,
-                plan
             };
         }
 
@@ -667,7 +651,12 @@ export class ChampionSelect {
      */
     async delayAndRefreshAutoSelectPlan(action, config) {
         const delayMs = getRandomActionDelayMs(config);
-        console.debug(`auto-champion-select: Quick action is off, waiting ${delayMs}ms before ${action.type}...`);
+        if (delayMs <= 0) {
+            console.debug(`auto-champion-select: Action delay is instant for ${action.type}.`);
+            return this.createAutoSelectPlan(action, config);
+        }
+
+        console.debug(`auto-champion-select: Waiting ${delayMs}ms before ${action.type}...`);
 
         const version = this.watchVersion;
         await sleep(delayMs);

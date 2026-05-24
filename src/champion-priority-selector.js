@@ -27,7 +27,6 @@ import { LEAGUE_CLIENT_ELEMENTS } from "./league-client-dom.js";
  * @typedef {Object} ChampionPrioritySelectorConfig
  * @property {boolean} enabled
  * @property {boolean} [force]
- * @property {boolean} [quickAction]
  * @property {number[]} [champions]
  * @property {import("./champion-priority-options.js").ChampionPriorityOption[]} [priorityOptions]
  * @property {string[]} [randomAssignedPositions]
