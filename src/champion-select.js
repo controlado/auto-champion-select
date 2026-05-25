@@ -39,17 +39,20 @@ import { LEAGUE_CLIENT_ENDPOINTS } from "./league-client-endpoints.js";
  * @typedef {Object} AutoSelectConfig
  * @property {boolean} enabled
  * @property {boolean} [force]
- * @property {number} [delayMinMs]
- * @property {number} [delayMaxMs]
  * @property {number[]} champions
  * @property {ChampionPriorityOption[]} [priorityOptions]
  * @property {string[]} [randomAssignedPositions]
  * @property {string[]} [randomPoolPositions]
  * @property {Record<string, string[]>} [positionsByChampionId]
  *
+ * @typedef {Object} ActionDelayConfig
+ * @property {number} minMs
+ * @property {number} maxMs
+ *
  * @typedef {Object} AutoSelectConfigs
  * @property {AutoSelectConfig} pickConfig
  * @property {AutoSelectConfig} banConfig
+ * @property {ActionDelayConfig} actionDelayConfig
  *
  * @typedef {Object} AutoSelectPlan
  * @property {ChampSelectAction} action
@@ -149,7 +152,8 @@ function getActionTypePriority(action) {
 function readAutoSelectConfigs() {
     return {
         pickConfig: readConfig("controladoPick"),
-        banConfig: readConfig("controladoBan")
+        banConfig: readConfig("controladoBan"),
+        actionDelayConfig: readConfig("controladoActionDelay")
     };
 }
 
@@ -367,7 +371,7 @@ export class ChampionSelect {
             };
         }
 
-        const refreshedPlan = await this.delayAndRefreshAutoSelectPlan(action, config);
+        const refreshedPlan = await this.delayAndRefreshAutoSelectPlan(action, config, configs.actionDelayConfig);
         if (!refreshedPlan) {
             return { status: AUTO_SELECT_PLAN_STATUS.STOP_CYCLE };
         }
@@ -651,10 +655,11 @@ export class ChampionSelect {
     /**
      * @param {ChampSelectAction} action
      * @param {AutoSelectConfig} config
+     * @param {ActionDelayConfig} actionDelayConfig
      * @returns {Promise<AutoSelectPlan | null>}
      */
-    async delayAndRefreshAutoSelectPlan(action, config) {
-        const delayMs = getRandomActionDelayMs(config);
+    async delayAndRefreshAutoSelectPlan(action, config, actionDelayConfig) {
+        const delayMs = getRandomActionDelayMs(actionDelayConfig);
         if (delayMs <= 0) {
             console.debug(`auto-champion-select: Action delay is instant for ${action.type}.`);
             return this.createAutoSelectPlan(action, config);

@@ -43,11 +43,11 @@ export function normalizeActionDelayRange(
 }
 
 /**
- * @param {{delayMinMs?: unknown, delayMaxMs?: unknown}} config
+ * @param {{minMs?: unknown, maxMs?: unknown}} actionDelayConfig
  * @returns {number}
  */
-export function getRandomActionDelayMs(config) {
-    const { minMs, maxMs } = normalizeActionDelayRange(config.delayMinMs, config.delayMaxMs);
+export function getRandomActionDelayMs(actionDelayConfig) {
+    const { minMs, maxMs } = normalizeActionDelayRange(actionDelayConfig.minMs, actionDelayConfig.maxMs);
     const delayRangeMs = maxMs - minMs;
     return minMs + Math.floor(Math.random() * (delayRangeMs + 1));
 }

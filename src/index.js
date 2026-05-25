@@ -81,6 +81,7 @@ const PLUGIN_CHAMP_SELECT_MENU_HEADER_SELECTOR = ".auto-select-champ-select-menu
 
 const CONFIG_KEYS = Object.freeze({
     autoAccept: "controladoAutoAccept",
+    actionDelay: "controladoActionDelay",
     pick: "controladoPick",
     ban: "controladoBan"
 });
@@ -148,9 +149,9 @@ function toggleForceAction(action) {
 /**
  * @returns {{min: number, max: number}}
  */
-function getSharedActionDelayRange() {
-    const pickConfig = readConfig(CONFIG_KEYS.pick);
-    const { minMs, maxMs } = normalizeActionDelayRange(pickConfig.delayMinMs, pickConfig.delayMaxMs);
+function getActionDelayRange() {
+    const actionDelayConfig = readConfig(CONFIG_KEYS.actionDelay);
+    const { minMs, maxMs } = normalizeActionDelayRange(actionDelayConfig.minMs, actionDelayConfig.maxMs);
     return { min: minMs, max: maxMs };
 }
 
@@ -158,15 +159,13 @@ function getSharedActionDelayRange() {
  * @param {{min: number, max: number}} value
  * @returns {void}
  */
-function setSharedActionDelayRange(value) {
+function setActionDelayRange(value) {
     const { minMs, maxMs } = normalizeActionDelayRange(value.min, value.max);
 
-    [CONFIG_KEYS.pick, CONFIG_KEYS.ban].forEach(configKey => {
-        patchConfig(configKey, config => {
-            config.delayMinMs = minMs;
-            config.delayMaxMs = maxMs;
-            return config;
-        });
+    patchConfig(CONFIG_KEYS.actionDelay, config => {
+        config.minMs = minMs;
+        config.maxMs = maxMs;
+        return config;
     });
 }
 
@@ -482,8 +481,8 @@ function createSettingsControls(readyCheckModalSuppressor) {
             min: ACTION_DELAY_MIN_MS,
             max: ACTION_DELAY_MAX_MS,
             step: ACTION_DELAY_STEP_MS,
-            getValue: getSharedActionDelayRange,
-            setValue: setSharedActionDelayRange,
+            getValue: getActionDelayRange,
+            setValue: setActionDelayRange,
             formatValue: formatActionDelayRange
         }),
         new SettingsCheckbox("Ignore team intent and pick", {

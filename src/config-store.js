@@ -6,14 +6,14 @@ import { getChampionIdsFromPriorityOptions, normalizeChampionPriorityOptions } f
 const repairedConfigWarnings = new Set();
 
 /**
- * @typedef {"controladoAutoAccept" | "controladoPick" | "controladoBan"} ConfigKey
+ * @typedef {"controladoAutoAccept" | "controladoActionDelay" | "controladoPick" | "controladoBan"} ConfigKey
  *
  * @typedef {Object} PluginConfig
- * @property {boolean} enabled
+ * @property {boolean} [enabled]
  * @property {boolean} [hideAutoAcceptPrompt]
+ * @property {number} [minMs]
+ * @property {number} [maxMs]
  * @property {boolean} [force]
- * @property {number} [delayMinMs]
- * @property {number} [delayMaxMs]
  * @property {number[]} [champions]
  * @property {import("./champion-priority-options.js").ChampionPriorityOption[]} [priorityOptions]
  * @property {string[]} [randomAssignedPositions]
@@ -102,31 +102,33 @@ function getDefaultConfig(configKey) {
  * @param {ConfigNormalizationOptions} [options]
  * @returns {PluginConfig}
  */
-function normalizeActionConfig(configKey, config, options = {}) {
+function normalizePluginConfig(configKey, config, options = {}) {
     const defaultConfig = getDefaultConfig(configKey);
     const sourceConfig = isPlainObject(config) ? cloneJson(config) : {};
     const mergedConfig = { ...defaultConfig, ...sourceConfig };
-    const normalizedConfig = {
-        enabled: mergedConfig.enabled === true
-    };
+    const normalizedConfig = {};
+
+    if (hasDefaultConfigField(defaultConfig, "enabled")) {
+        normalizedConfig.enabled = mergedConfig.enabled === true;
+    }
 
     if (hasDefaultConfigField(defaultConfig, "hideAutoAcceptPrompt")) {
         normalizedConfig.hideAutoAcceptPrompt = mergedConfig.hideAutoAcceptPrompt === true;
     }
 
-    if (hasDefaultConfigField(defaultConfig, "force")) {
-        normalizedConfig.force = mergedConfig.force === true;
+    if (hasDefaultConfigField(defaultConfig, "minMs") && hasDefaultConfigField(defaultConfig, "maxMs")) {
+        const { minMs, maxMs } = normalizeActionDelayRange(
+            mergedConfig.minMs,
+            mergedConfig.maxMs,
+            defaultConfig.minMs,
+            defaultConfig.maxMs
+        );
+        normalizedConfig.minMs = minMs;
+        normalizedConfig.maxMs = maxMs;
     }
 
-    if (hasDefaultConfigField(defaultConfig, "delayMinMs") && hasDefaultConfigField(defaultConfig, "delayMaxMs")) {
-        const { minMs, maxMs } = normalizeActionDelayRange(
-            mergedConfig.delayMinMs,
-            mergedConfig.delayMaxMs,
-            defaultConfig.delayMinMs,
-            defaultConfig.delayMaxMs
-        );
-        normalizedConfig.delayMinMs = minMs;
-        normalizedConfig.delayMaxMs = maxMs;
+    if (hasDefaultConfigField(defaultConfig, "force")) {
+        normalizedConfig.force = mergedConfig.force === true;
     }
 
     if (hasDefaultConfigField(defaultConfig, "champions")) {
@@ -160,7 +162,7 @@ function normalizeActionConfig(configKey, config, options = {}) {
  */
 function normalizeStoredConfig(configKey, storedConfig, options = {}) {
     const sourceConfig = storedConfig === undefined ? getDefaultConfig(configKey) : storedConfig;
-    return normalizeActionConfig(configKey, sourceConfig, options);
+    return normalizePluginConfig(configKey, sourceConfig, options);
 }
 
 /**
@@ -184,7 +186,7 @@ export function readConfig(configKey, options = {}) {
  */
 function writeConfig(configKey, config, options = {}) {
     const store = getStore();
-    const normalizedConfig = normalizeActionConfig(configKey, config, options);
+    const normalizedConfig = normalizePluginConfig(configKey, config, options);
     store.set(configKey, normalizedConfig);
     return normalizedConfig;
 }
