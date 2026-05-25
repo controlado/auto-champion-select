@@ -1,11 +1,15 @@
 {
     "controladoAutoAccept": {
-        "enabled": false
+        "enabled": false,
+        "hideAutoAcceptPrompt": true
+    },
+    "controladoActionDelay": {
+        "minMs": 2000,
+        "maxMs": 4000
     },
     "controladoPick": {
         "enabled": false,
         "force": false,
-        "quickAction": false,
         "champions": [
             432,
             235
@@ -25,7 +29,6 @@
     "controladoBan": {
         "enabled": false,
         "force": false,
-        "quickAction": false,
         "champions": [
             157,
             777,

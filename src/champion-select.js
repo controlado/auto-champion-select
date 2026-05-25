@@ -4,6 +4,7 @@ import { readConfig } from "./config-store.js";
 import { getAllChampions, getRecommendedChampionPositionsById } from "./champion-data.js";
 import { getAllowedPositionsForChampion, isChampionAllowedInPosition, normalizePosition, normalizePositionList } from "./champion-positions.js";
 import { isBraveryChampionOption, isRandomChampionOption, normalizeChampionPriorityOptions } from "./champion-priority-options.js";
+import { getRandomActionDelayMs } from "./action-delay.js";
 import { LEAGUE_CLIENT_ENDPOINTS } from "./league-client-endpoints.js";
 
 /**
@@ -38,16 +39,20 @@ import { LEAGUE_CLIENT_ENDPOINTS } from "./league-client-endpoints.js";
  * @typedef {Object} AutoSelectConfig
  * @property {boolean} enabled
  * @property {boolean} [force]
- * @property {boolean} [quickAction]
  * @property {number[]} champions
  * @property {ChampionPriorityOption[]} [priorityOptions]
  * @property {string[]} [randomAssignedPositions]
  * @property {string[]} [randomPoolPositions]
  * @property {Record<string, string[]>} [positionsByChampionId]
  *
+ * @typedef {Object} ActionDelayConfig
+ * @property {number} minMs
+ * @property {number} maxMs
+ *
  * @typedef {Object} AutoSelectConfigs
  * @property {AutoSelectConfig} pickConfig
  * @property {AutoSelectConfig} banConfig
+ * @property {ActionDelayConfig} actionDelayConfig
  *
  * @typedef {Object} AutoSelectPlan
  * @property {ChampSelectAction} action
@@ -58,9 +63,6 @@ import { LEAGUE_CLIENT_ENDPOINTS } from "./league-client-endpoints.js";
  */
 
 const CHAMP_SELECT_WATCH_INTERVAL_MS = 300;
-
-const AUTO_SELECT_RANDOM_DELAY_MIN_MS = 2000;
-const AUTO_SELECT_RANDOM_DELAY_MAX_MS = 4000;
 
 const ANY_BANNABLE_CHAMPION_SENTINEL = -1;
 
@@ -150,24 +152,9 @@ function getActionTypePriority(action) {
 function readAutoSelectConfigs() {
     return {
         pickConfig: readConfig("controladoPick"),
-        banConfig: readConfig("controladoBan")
+        banConfig: readConfig("controladoBan"),
+        actionDelayConfig: readConfig("controladoActionDelay")
     };
-}
-
-/**
- * @param {AutoSelectConfig} config
- * @returns {boolean}
- */
-function isQuickActionEnabled(config) {
-    return config.quickAction === true;
-}
-
-/**
- * @returns {number}
- */
-function getRandomAutoSelectDelayMs() {
-    const delayRangeMs = AUTO_SELECT_RANDOM_DELAY_MAX_MS - AUTO_SELECT_RANDOM_DELAY_MIN_MS;
-    return AUTO_SELECT_RANDOM_DELAY_MIN_MS + Math.floor(Math.random() * (delayRangeMs + 1));
 }
 
 /**
@@ -211,6 +198,8 @@ export class ChampionSelect {
 
         /** @type {number | null} */
         this.localPlayerCellId = null;
+        /** @type {Set<number>} */
+        this.alliedIntentChampionIds = new Set();
         /** @type {Set<number>} */
         this.teammateIntentChampionIds = new Set();
         /** @type {number | null} */
@@ -302,6 +291,7 @@ export class ChampionSelect {
         const alliedTeam = getTeamPlayers(this.session.myTeam);
         const opposingTeam = getTeamPlayers(this.session.theirTeam);
         const localPlayer = alliedTeam.find(player => player.cellId === this.localPlayerCellId);
+        const teammatePlayers = alliedTeam.filter(player => player.cellId !== this.localPlayerCellId);
         this.localPlayerAssignedPosition = normalizePosition(localPlayer?.assignedPosition);
         this.localPlayerIntentChampionId = toChampionId(localPlayer?.championPickIntent);
         this.localPlayerIntentIsBravery = isBraveryChampionId(localPlayer?.championPickIntent);
@@ -312,7 +302,8 @@ export class ChampionSelect {
             ...(this.session.bans?.theirTeamBans || []),
             ...getCompletedBanChampionIds(this.actions)
         ]);
-        this.teammateIntentChampionIds = championIdSetFromValues(alliedTeam.map(player => player.championPickIntent));
+        this.alliedIntentChampionIds = championIdSetFromValues(alliedTeam.map(player => player.championPickIntent));
+        this.teammateIntentChampionIds = championIdSetFromValues(teammatePlayers.map(player => player.championPickIntent));
     }
 
     async runAutoSelectCycle() {
@@ -380,14 +371,7 @@ export class ChampionSelect {
             };
         }
 
-        if (isQuickActionEnabled(config)) {
-            return {
-                status: AUTO_SELECT_PLAN_STATUS.READY,
-                plan
-            };
-        }
-
-        const refreshedPlan = await this.delayAndRefreshAutoSelectPlan(action);
+        const refreshedPlan = await this.delayAndRefreshAutoSelectPlan(action, config, configs.actionDelayConfig);
         if (!refreshedPlan) {
             return { status: AUTO_SELECT_PLAN_STATUS.STOP_CYCLE };
         }
@@ -670,11 +654,18 @@ export class ChampionSelect {
 
     /**
      * @param {ChampSelectAction} action
+     * @param {AutoSelectConfig} config
+     * @param {ActionDelayConfig} actionDelayConfig
      * @returns {Promise<AutoSelectPlan | null>}
      */
-    async delayAndRefreshAutoSelectPlan(action) {
-        const delayMs = getRandomAutoSelectDelayMs();
-        console.debug(`auto-champion-select: Quick action is off, waiting ${delayMs}ms before ${action.type}...`);
+    async delayAndRefreshAutoSelectPlan(action, config, actionDelayConfig) {
+        const delayMs = getRandomActionDelayMs(actionDelayConfig);
+        if (delayMs <= 0) {
+            console.debug(`auto-champion-select: Action delay is instant for ${action.type}.`);
+            return this.createAutoSelectPlan(action, config);
+        }
+
+        console.debug(`auto-champion-select: Waiting ${delayMs}ms before ${action.type}...`);
 
         const version = this.watchVersion;
         await sleep(delayMs);
@@ -945,22 +936,27 @@ export class ChampionSelect {
             return true;
         }
 
-        if (action.type === "ban" && this.teammateIntentChampionIds.has(championId)) {
+        if (action.type === "ban" && this.alliedIntentChampionIds.has(championId)) {
             if (config.force === true) {
-                console.debug(`auto-champion-select: Banning ${championId} but it's already picked, forcing...`);
+                console.debug(`auto-champion-select: Banning ${championId} but it has an allied pick intent, forcing...`);
             } else {
-                console.debug(`auto-champion-select: Banning ${championId} but it's already picked, skipping...`);
+                console.debug(`auto-champion-select: Banning ${championId} but it has an allied pick intent, skipping...`);
+                return true;
+            }
+        }
+
+        if (action.type === "pick" && this.teammateIntentChampionIds.has(championId)) {
+            if (config.force === true) {
+                console.debug(`auto-champion-select: Picking ${championId} but it has a teammate pick intent, forcing...`);
+            } else {
+                console.debug(`auto-champion-select: Picking ${championId} but it has a teammate pick intent, skipping...`);
                 return true;
             }
         }
 
         if (action.type === "pick" && this.pickedChampionIds.has(championId)) {
-            if (config.force === true) {
-                console.debug(`auto-champion-select: Picking ${championId} but it's already picked, forcing...`);
-            } else {
-                console.debug(`auto-champion-select: Picking ${championId} but it's already picked, skipping...`);
-                return true;
-            }
+            console.debug(`auto-champion-select: Picking ${championId} but it's already picked, skipping...`);
+            return true;
         }
 
         return false;

@@ -1,6 +1,5 @@
 import { sleep } from "https://cdn.jsdelivr.net/npm/balaclava-utils@latest";
-import { ensureConfig, patchConfig } from "./config-store.js";
-import { getChampSelectButtonsContainer, LEAGUE_CLIENT_ELEMENTS, LEAGUE_CLIENT_SELECTORS } from "./league-client-dom.js";
+import { getChampSelectButtonsContainer, LEAGUE_CLIENT_SELECTORS } from "./league-client-dom.js";
 
 /**
  * @callback ReturnControlsToSocialRoster
@@ -8,58 +7,8 @@ import { getChampSelectButtonsContainer, LEAGUE_CLIENT_ELEMENTS, LEAGUE_CLIENT_S
  */
 
 const CHAMP_SELECT_BUTTON_RETRY_DELAY_MS = 200;
-
 const CHAMP_SELECT_MENU_COLLAPSED_CLASS = "auto-select-champ-select-menu--collapsed";
 const CHAMP_SELECT_MENU_OPEN_WRAPPER_CLASS = "auto-select-champ-select-menu-button-wrapper--open";
-
-export class ConfigToggle {
-    /**
-     * @param {string} text
-     * @param {"controladoAutoAccept" | "controladoPick" | "controladoBan"} configKey
-     */
-    constructor(text, configKey) {
-        this.element = document.createElement(LEAGUE_CLIENT_ELEMENTS.radioInputOption);
-        this.element.classList.add("lol-settings-voice-input-mode-option", "auto-select-checkbox");
-        this.element.innerText = text;
-
-        this.config = null;
-        this.configKey = configKey;
-        this.setupComplete = false;
-    }
-
-    /**
-     * @returns {void}
-     */
-    setup() {
-        this.syncFromConfig();
-
-        if (!this.setupComplete) {
-            this.element.addEventListener("click", () => this.toggle());
-            this.setupComplete = true;
-        }
-    }
-
-    /**
-     * @returns {void}
-     */
-    syncFromConfig() {
-        this.config = ensureConfig(this.configKey);
-        this.element.toggleAttribute("selected", this.config.enabled === true);
-    }
-
-    /**
-     * @returns {boolean} The config enabled state after toggling.
-     */
-    toggle() {
-        console.debug("auto-champion-select: Toggling", this.configKey);
-        this.config = patchConfig(this.configKey, config => {
-            config.enabled = !config.enabled;
-            return config;
-        });
-        this.element.toggleAttribute("selected", this.config.enabled === true);
-        return this.config.enabled;
-    }
-}
 
 export class ChampSelectControlsMenu {
     /**
@@ -87,6 +36,7 @@ export class ChampSelectControlsMenu {
         this.titleElement = document.createElement("div");
         this.titleElement.classList.add("auto-select-champ-select-menu__title");
         this.titleElement.textContent = label;
+        this.titleAccessoryElement = null;
 
         this.buttonWrapper.append(this.headerElement, this.element);
         this.contentElement.appendChild(this.titleElement);
@@ -252,45 +202,15 @@ export class ChampSelectControlsMenu {
 
         buttonContainer.insertBefore(this.buttonWrapper, firstSquareButton);
     }
-}
 
-export class SocialRosterSection {
     /**
-     * @param {string} label
-     * @param {...HTMLElement} collapsibleElements
+     * @param {HTMLElement} element
+     * @returns {void}
      */
-    constructor(label, ...collapsibleElements) {
-        this.element = document.createElement(LEAGUE_CLIENT_ELEMENTS.socialRosterGroup);
-        this.element.addEventListener("post-render", () => this.onPostRender());
-        this.element.addEventListener("click", () => this.onClick());
-
-        this.label = label;
-        this.collapsibleElements = collapsibleElements;
-
-        this.waitRender();
-    }
-
-    waitRender() {
-        new MutationObserver((_, observer) => {
-            if (this.element.querySelector(LEAGUE_CLIENT_SELECTORS.socialRosterGroupLabel)) {
-                const newEvent = new Event("post-render");
-                this.element.dispatchEvent(newEvent);
-                observer.disconnect();
-            }
-        }).observe(this.element, { childList: true });
-    }
-
-    onPostRender() {
-        this.element.querySelector(LEAGUE_CLIENT_SELECTORS.socialRosterGroupLabel).innerText = this.label;
-        this.element.querySelector(LEAGUE_CLIENT_SELECTORS.socialRosterGroupHeader)?.removeAttribute("draggable");
-    }
-
-    onClick() {
-        this.collapsibleElements.forEach(element => {
-            if (!element.closest(".auto-select-champ-select-menu")) {
-                element.classList.toggle("hidden");
-            }
-        });
-        this.element.querySelector(LEAGUE_CLIENT_SELECTORS.socialRosterGroupArrow)?.toggleAttribute("open");
+    setTitleAccessory(element) {
+        this.titleAccessoryElement = element;
+        if (!element.isConnected || element.parentNode !== this.titleElement) {
+            this.titleElement.appendChild(element);
+        }
     }
 }

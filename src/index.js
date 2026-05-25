@@ -1,14 +1,18 @@
 import { request, sleep, linkEndpoint } from "https://cdn.jsdelivr.net/npm/balaclava-utils@latest";
 import { version } from "../package.json";
-import { readConfig } from "./config-store.js";
+import { patchConfig, readConfig } from "./config-store.js";
 import { getPlayableChampions, getAllChampions } from "./champion-data.js";
 import { ChampionSelect } from "./champion-select.js";
 import { ChampionPrioritySelector } from "./champion-priority-selector.js";
-import { ChampSelectControlsMenu, ConfigToggle, SocialRosterSection } from "./ui.js";
-import { AutoPickSwitchAction, AutoBanSwitchAction, ForcePickSwitchAction, ForceBanSwitchAction, RefreshDropdownsAction, addActions } from "./actions.js";
+import { ChampSelectControlsMenu } from "./champ-select-controls-menu.js";
+import { ConfigToggle } from "./config-toggle.js";
+import { SettingsCheckbox, SettingsDualRange, SettingsMenu } from "./settings-menu.js";
+import { SocialRosterSection } from "./social-roster-section.js";
+import { AutoPickSwitchAction, AutoBanSwitchAction, ForcePickSwitchAction, ForceBanSwitchAction, RefreshDropdownsAction, addActions } from "./command-bar-actions.js";
 import { LEAGUE_CLIENT_ENDPOINTS } from "./league-client-endpoints.js";
 import { getChampSelectButtonsContainer, getSocialRosterContainer } from "./league-client-dom.js";
 import { showErrorToast, showSuccessToast } from "./toast.js";
+import { ACTION_DELAY_MAX_MS, ACTION_DELAY_MIN_MS, ACTION_DELAY_STEP_MS, formatActionDelaySeconds, normalizeActionDelayRange } from "./action-delay.js";
 import "./assets/style.css";
 
 /**
@@ -31,6 +35,7 @@ import "./assets/style.css";
  * @property {HTMLDivElement} selectorsContainer
  * @property {HTMLDivElement} checkboxesContainer
  * @property {SocialRosterSection} pluginSection
+ * @property {SettingsMenu} settingsMenu
  * @property {ChampionPrioritySelector[]} championSelectors
  *
  * @typedef {Object} PluginRuntime
@@ -44,9 +49,11 @@ import "./assets/style.css";
  * @property {HTMLDivElement} selectorsContainer
  * @property {HTMLDivElement} checkboxesContainer
  * @property {SocialRosterSection} pluginSection
+ * @property {SettingsMenu} settingsMenu
  * @property {ChampionPrioritySelector[]} championSelectors
  * @property {ChampSelectControlsMenu} champSelectControlsMenu
  * @property {() => void} setupToggles
+ * @property {() => void} setupSettingsMenu
  * @property {() => Promise<void>} setupChampionSelectors
  * @property {() => Promise<void>} refreshChampionSelectors
  * @property {() => Promise<void>} refreshPickChampionSelector
@@ -77,6 +84,7 @@ const PLUGIN_CHAMP_SELECT_MENU_HEADER_SELECTOR = ".auto-select-champ-select-menu
 
 const CONFIG_KEYS = Object.freeze({
     autoAccept: "controladoAutoAccept",
+    actionDelay: "controladoActionDelay",
     pick: "controladoPick",
     ban: "controladoBan"
 });
@@ -86,6 +94,104 @@ const CONFIG_KEYS = Object.freeze({
  */
 function isAutoAcceptEnabled() {
     return readConfig(CONFIG_KEYS.autoAccept).enabled === true;
+}
+
+/**
+ * @returns {boolean}
+ */
+function isAutoAcceptPromptHiddenByConfig() {
+    return readConfig(CONFIG_KEYS.autoAccept).hideAutoAcceptPrompt === true;
+}
+
+/**
+ * @returns {boolean}
+ */
+function shouldHideAutoAcceptPrompt() {
+    const config = readConfig(CONFIG_KEYS.autoAccept);
+    return config.enabled === true && config.hideAutoAcceptPrompt === true;
+}
+
+/**
+ * @returns {void}
+ */
+function toggleAutoAcceptPromptHidden() {
+    const hidden = isAutoAcceptPromptHiddenByConfig();
+    patchConfig(CONFIG_KEYS.autoAccept, config => {
+        config.hideAutoAcceptPrompt = !hidden;
+        return config;
+    });
+}
+
+/**
+ * @param {"pick" | "ban"} action
+ * @returns {"controladoPick" | "controladoBan"}
+ */
+function getConfigKeyForDraftAction(action) {
+    return action === "pick" ? CONFIG_KEYS.pick : CONFIG_KEYS.ban;
+}
+
+/**
+ * @param {"pick" | "ban"} action
+ * @returns {boolean}
+ */
+function isForceActionEnabled(action) {
+    return readConfig(getConfigKeyForDraftAction(action)).force === true;
+}
+
+/**
+ * @param {"pick" | "ban"} action
+ * @returns {void}
+ */
+function toggleForceAction(action) {
+    patchConfig(getConfigKeyForDraftAction(action), config => {
+        config.force = config.force !== true;
+        return config;
+    });
+}
+
+/**
+ * @returns {{min: number, max: number}}
+ */
+function getActionDelayRange() {
+    const actionDelayConfig = readConfig(CONFIG_KEYS.actionDelay);
+    const { minMs, maxMs } = normalizeActionDelayRange(actionDelayConfig.minMs, actionDelayConfig.maxMs);
+    return { min: minMs, max: maxMs };
+}
+
+/**
+ * @param {{min: number, max: number}} value
+ * @returns {void}
+ */
+function setActionDelayRange(value) {
+    const { minMs, maxMs } = normalizeActionDelayRange(value.min, value.max);
+
+    patchConfig(CONFIG_KEYS.actionDelay, config => {
+        config.minMs = minMs;
+        config.maxMs = maxMs;
+        return config;
+    });
+}
+
+/**
+ * @param {{min: number, max: number}} value
+ * @returns {string}
+ */
+function formatActionDelayRange(value) {
+    const { minMs, maxMs } = normalizeActionDelayRange(value.min, value.max);
+
+    if (minMs === 0 && maxMs === 0) {
+        return "Instant";
+    }
+
+    if (minMs === maxMs) {
+        return `Delays actions for ${formatActionDelaySeconds(maxMs)}`;
+    }
+
+    if (minMs === 0) {
+        return `Delays actions up to ${formatActionDelaySeconds(maxMs)}`;
+    }
+
+    return `Delays actions ${formatActionDelaySeconds(minMs)}-${formatActionDelaySeconds(maxMs)}`;
 }
 
 class ReadyCheckModalSuppressor {
@@ -331,7 +437,6 @@ function createSharedControls() {
             enablePositionRestrictions: true,
             enableRandomAssignedPositionRestrictions: true,
             enableBraveryOption: true,
-            quickActionLabel: "Pick instantly",
             enableRandomPoolPositionFilters: true,
         }
     );
@@ -342,15 +447,16 @@ function createSharedControls() {
         CONFIG_KEYS.ban,
         getAllChampions,
         {
-            quickActionLabel: "Ban instantly",
             enableRandomPoolPositionFilters: true,
         }
     );
 
     const selectorsContainer = createSelectorsContainer(pickChampionSelector, banChampionSelector);
     const checkboxesContainer = createCheckboxesContainer(autoAcceptToggle, pickToggle, banToggle);
+    const settingsMenu = new SettingsMenu();
 
     const pluginSection = new SocialRosterSection("Auto champion select", selectorsContainer, checkboxesContainer);
+    pluginSection.setHeaderAccessory(settingsMenu.createTriggerElement());
     const championSelectors = [pickChampionSelector, banChampionSelector];
 
     return {
@@ -363,8 +469,41 @@ function createSharedControls() {
         selectorsContainer,
         checkboxesContainer,
         pluginSection,
+        settingsMenu,
         championSelectors
     };
+}
+
+/**
+ * @param {ReadyCheckModalSuppressor} readyCheckModalSuppressor
+ * @returns {import("./settings-menu.js").SettingsControl[]}
+ */
+function createSettingsControls(readyCheckModalSuppressor) {
+    return [
+        new SettingsDualRange("Action delay", {
+            min: ACTION_DELAY_MIN_MS,
+            max: ACTION_DELAY_MAX_MS,
+            step: ACTION_DELAY_STEP_MS,
+            getValue: getActionDelayRange,
+            setValue: setActionDelayRange,
+            formatValue: formatActionDelayRange
+        }),
+        new SettingsCheckbox("Ignore team intent and pick", {
+            isSelected: () => isForceActionEnabled("pick"),
+            toggle: () => toggleForceAction("pick")
+        }),
+        new SettingsCheckbox("Ignore team intent and ban", {
+            isSelected: () => isForceActionEnabled("ban"),
+            toggle: () => toggleForceAction("ban")
+        }),
+        new SettingsCheckbox("Hide auto-accept prompt", {
+            isSelected: () => isAutoAcceptPromptHiddenByConfig(),
+            toggle: () => {
+                toggleAutoAcceptPromptHidden();
+                readyCheckModalSuppressor.sync();
+            }
+        })
+    ];
 }
 
 /**
@@ -474,13 +613,15 @@ async function refreshChampionSelectors(championSelectors) {
  */
 function createPluginRuntime() {
     const controls = createSharedControls();
-    const readyCheckModalSuppressor = new ReadyCheckModalSuppressor(isAutoAcceptEnabled);
+    const readyCheckModalSuppressor = new ReadyCheckModalSuppressor(shouldHideAutoAcceptPrompt);
+    controls.settingsMenu.setControls(createSettingsControls(readyCheckModalSuppressor));
     const controlsPlacementManager = createControlsPlacementManager(controls);
     const champSelectControlsMenu = new ChampSelectControlsMenu(
         "Auto Champion Select",
         controlsPlacementManager.returnControlsToSocialRoster,
         [controls.checkboxesContainer, controls.selectorsContainer]
     );
+    champSelectControlsMenu.setTitleAccessory(controls.settingsMenu.createTriggerElement());
     controlsPlacementManager.setIsChampSelectControlsMounted(() => champSelectControlsMenu.mounted);
 
     const runtime = {
@@ -488,6 +629,7 @@ function createPluginRuntime() {
         champSelectControlsMenu,
         readyCheckModalSuppressor,
         setupToggles: () => setupConfigToggles({ ...controls, readyCheckModalSuppressor }),
+        setupSettingsMenu: () => controls.settingsMenu.setup(),
         setupChampionSelectors: () => setupChampionSelectors(controls.championSelectors),
         refreshChampionSelectors: () => refreshChampionSelectors(controls.championSelectors),
         refreshPickChampionSelector: async () => {
@@ -593,6 +735,7 @@ async function main() {
     const runtime = createPluginRuntime();
 
     runtime.setupToggles();
+    runtime.setupSettingsMenu();
     runtime.readyCheckModalSuppressor.start();
 
     registerCommandActions(runtime);
