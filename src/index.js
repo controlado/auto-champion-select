@@ -4,7 +4,10 @@ import { patchConfig, readConfig } from "./config-store.js";
 import { getPlayableChampions, getAllChampions } from "./champion-data.js";
 import { ChampionSelect } from "./champion-select.js";
 import { ChampionPrioritySelector } from "./champion-priority-selector.js";
-import { ChampSelectControlsMenu, ConfigToggle, SettingsCheckbox, SettingsDualRange, SettingsMenu, SocialRosterSection } from "./ui.js";
+import { ChampSelectControlsMenu } from "./champ-select-controls-menu.js";
+import { ConfigToggle } from "./config-toggle.js";
+import { SettingsCheckbox, SettingsDualRange, SettingsMenu } from "./settings-menu.js";
+import { SocialRosterSection } from "./social-roster-section.js";
 import { AutoPickSwitchAction, AutoBanSwitchAction, ForcePickSwitchAction, ForceBanSwitchAction, RefreshDropdownsAction, addActions } from "./actions.js";
 import { LEAGUE_CLIENT_ENDPOINTS } from "./league-client-endpoints.js";
 import { getChampSelectButtonsContainer, getSocialRosterContainer } from "./league-client-dom.js";
@@ -473,7 +476,7 @@ function createSharedControls() {
 
 /**
  * @param {ReadyCheckModalSuppressor} readyCheckModalSuppressor
- * @returns {import("./ui.js").SettingsControl[]}
+ * @returns {import("./settings-menu.js").SettingsControl[]}
  */
 function createSettingsControls(readyCheckModalSuppressor) {
     return [
