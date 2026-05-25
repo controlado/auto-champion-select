@@ -389,6 +389,10 @@
     min-width: 0;
 }
 
+.auto-select-social-roster-section .group-name-text {
+    padding-right: 5px;
+}
+
 .auto-select-settings-trigger {
     display: grid;
     place-items: center;

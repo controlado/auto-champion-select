@@ -455,7 +455,7 @@ function createSharedControls() {
     const checkboxesContainer = createCheckboxesContainer(autoAcceptToggle, pickToggle, banToggle);
     const settingsMenu = new SettingsMenu();
 
-    const pluginSection = new SocialRosterSection("Auto champion select", selectorsContainer, checkboxesContainer);
+    const pluginSection = new SocialRosterSection("AUTO CHAMPION SELECT", selectorsContainer, checkboxesContainer);
     pluginSection.setHeaderAccessory(settingsMenu.createTriggerElement());
     const championSelectors = [pickChampionSelector, banChampionSelector];
 
