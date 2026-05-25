@@ -1,15 +1,15 @@
 export const ACTION_DELAY_MIN_MS = 0;
 export const ACTION_DELAY_MAX_MS = 8000;
 export const ACTION_DELAY_STEP_MS = 100;
-export const DEFAULT_ACTION_DELAY_MIN_MS = 2000;
-export const DEFAULT_ACTION_DELAY_MAX_MS = 4000;
+const DEFAULT_ACTION_DELAY_MIN_MS = 2000;
+const DEFAULT_ACTION_DELAY_MAX_MS = 4000;
 
 /**
  * @param {unknown} value
  * @param {number} fallback
  * @returns {number}
  */
-export function normalizeActionDelayMs(value, fallback) {
+function normalizeActionDelayMs(value, fallback) {
     const numericValue = Number(value);
     const fallbackValue = Number.isFinite(fallback) ? fallback : DEFAULT_ACTION_DELAY_MIN_MS;
     if (!Number.isFinite(numericValue)) {
