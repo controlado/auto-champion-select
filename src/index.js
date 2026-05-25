@@ -8,7 +8,7 @@ import { ChampSelectControlsMenu } from "./champ-select-controls-menu.js";
 import { ConfigToggle } from "./config-toggle.js";
 import { SettingsCheckbox, SettingsDualRange, SettingsMenu } from "./settings-menu.js";
 import { SocialRosterSection } from "./social-roster-section.js";
-import { AutoPickSwitchAction, AutoBanSwitchAction, ForcePickSwitchAction, ForceBanSwitchAction, RefreshDropdownsAction, addActions } from "./actions.js";
+import { AutoPickSwitchAction, AutoBanSwitchAction, ForcePickSwitchAction, ForceBanSwitchAction, RefreshDropdownsAction, addActions } from "./command-bar-actions.js";
 import { LEAGUE_CLIENT_ENDPOINTS } from "./league-client-endpoints.js";
 import { getChampSelectButtonsContainer, getSocialRosterContainer } from "./league-client-dom.js";
 import { showErrorToast, showSuccessToast } from "./toast.js";
