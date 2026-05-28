@@ -59,11 +59,11 @@ function getRawRandomPoolPositions(sourceConfig, mergedConfig) {
  * @returns {DataStoreLike}
  */
 function getStore() {
-    if (!globalThis.DataStore) {
+    if (!DataStore) {
         throw new Error("DataStore is not available");
     }
 
-    return globalThis.DataStore;
+    return DataStore;
 }
 
 function isPlainObject(value) {

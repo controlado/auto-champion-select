@@ -11,7 +11,7 @@
  */
 export function showSuccessToast(message) {
     if (message) {
-        globalThis.Toast?.success?.(message);
+        Toast.success(message);
     }
 }
 
@@ -21,7 +21,7 @@ export function showSuccessToast(message) {
  */
 export function showErrorToast(message) {
     if (message) {
-        globalThis.Toast?.error?.(message);
+        Toast.error(message);
     }
 }
 
@@ -32,9 +32,8 @@ export function showErrorToast(message) {
  * @returns {unknown}
  */
 export function showPromiseToast(promise, messages) {
-    const toast = globalThis.Toast;
-    if (typeof toast?.promise === "function") {
-        return toast.promise(promise, messages);
+    if (typeof Toast.promise === "function") {
+        return Toast.promise(promise, messages);
     }
 
     return promise;
