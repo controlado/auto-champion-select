@@ -58,6 +58,7 @@
         "triggerLabel": "Auto Champion Select 설정",
         "empty": "설정 없음",
         "actionDelay": "동작 지연",
+        "pickIntent": "선택 의도 설정",
         "forcePick": "아군 희망 챔피언 무시하고 선택",
         "forceBan": "아군 희망 챔피언 무시하고 밴",
         "hideAutoAcceptPrompt": "자동 수락 알림 숨기기",

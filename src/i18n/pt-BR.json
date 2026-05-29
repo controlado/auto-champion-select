@@ -58,6 +58,7 @@
         "triggerLabel": "Configurações do Auto Champion Select",
         "empty": "Nenhuma configuração disponível",
         "actionDelay": "Delay de ação",
+        "pickIntent": "Marcar intenção de pick",
         "forcePick": "Ignorar intenção aliada no pick",
         "forceBan": "Ignorar intenção aliada no ban",
         "hideAutoAcceptPrompt": "Ocultar confirmação da fila",

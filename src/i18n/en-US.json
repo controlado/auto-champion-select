@@ -58,6 +58,7 @@
         "triggerLabel": "Auto champion select settings",
         "empty": "No settings available",
         "actionDelay": "Action delay",
+        "pickIntent": "Set pick intent",
         "forcePick": "Ignore ally pick intent",
         "forceBan": "Ignore ally pick intent when banning",
         "hideAutoAcceptPrompt": "Hide auto-accept prompt",

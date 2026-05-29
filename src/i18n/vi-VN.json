@@ -58,6 +58,7 @@
         "triggerLabel": "Cài đặt Auto Champion Select",
         "empty": "Không có cài đặt",
         "actionDelay": "Độ trễ thao tác",
+        "pickIntent": "Đặt ý định chọn tướng",
         "forcePick": "Bỏ qua ý định chọn tướng",
         "forceBan": "Bỏ qua ý định chọn khi cấm",
         "hideAutoAcceptPrompt": "Ẩn lời nhắc chấp nhận trận",

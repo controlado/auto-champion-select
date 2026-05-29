@@ -39,6 +39,7 @@ import { LEAGUE_CLIENT_ENDPOINTS } from "./league-client-endpoints.js";
  * @typedef {Object} AutoSelectConfig
  * @property {boolean} enabled
  * @property {boolean} [force]
+ * @property {boolean} [pickIntent]
  * @property {number[]} champions
  * @property {ChampionPriorityOption[]} [priorityOptions]
  * @property {string[]} [randomAssignedPositions]
@@ -349,12 +350,12 @@ export class ChampionSelect {
      * @returns {Promise<AutoSelectPlanResult>}
      */
     async prepareActionForAutoSelect(action, configs) {
-        if (!this.isActionAvailable(action)) {
+        const config = this.getConfigForActionType(action.type, configs);
+        if (!config?.enabled) {
             return { status: AUTO_SELECT_PLAN_STATUS.SKIP_ACTION };
         }
 
-        const config = this.getConfigForActionType(action.type, configs);
-        if (!config?.enabled) {
+        if (!this.isActionAvailable(action, config)) {
             return { status: AUTO_SELECT_PLAN_STATUS.SKIP_ACTION };
         }
 
@@ -408,7 +409,7 @@ export class ChampionSelect {
         }
 
         if (isBraveryChampionOption(priorityOption)) {
-            return this.tryBraveryForAction(action);
+            return this.tryBraveryForAction(action, config);
         }
 
         const championIds = await this.resolveChampionIdsForPriorityOption(action, priorityOption, config);
@@ -425,9 +426,10 @@ export class ChampionSelect {
 
     /**
      * @param {ChampSelectAction} action
+     * @param {AutoSelectConfig} config
      * @returns {Promise<PriorityOptionAttemptResult>}
      */
-    async tryBraveryForAction(action) {
+    async tryBraveryForAction(action, config) {
         if (action.type !== "pick") {
             return PRIORITY_OPTION_ATTEMPT_RESULT.TRY_NEXT_PRIORITY_OPTION;
         }
@@ -443,7 +445,7 @@ export class ChampionSelect {
             : "auto-champion-select: Failed to pick Bravery, refreshing champ select state...");
 
         const updatedAction = await this.refreshPendingAction(action);
-        if (!updatedAction || !this.isActionAvailable(updatedAction)) {
+        if (!updatedAction || !this.isActionAvailable(updatedAction, config)) {
             return response.ok
                 ? PRIORITY_OPTION_ATTEMPT_RESULT.SATISFIED
                 : PRIORITY_OPTION_ATTEMPT_RESULT.STOP_CYCLE;
@@ -477,10 +479,15 @@ export class ChampionSelect {
 
     /**
      * @param {ChampSelectAction} action
+     * @param {AutoSelectConfig} config
      * @returns {boolean}
      */
-    isActionAvailable(action) {
-        return action.type === "pick" || action.isInProgress === true;
+    isActionAvailable(action, config) {
+        if (action.type === "pick") {
+            return action.isInProgress === true || config.pickIntent !== false;
+        }
+
+        return action.isInProgress === true;
     }
 
     /**
@@ -683,12 +690,12 @@ export class ChampionSelect {
             return null;
         }
 
-        if (!updatedAction || !this.isActionAvailable(updatedAction)) {
+        const updatedConfig = this.getConfigForActionType(action.type, readAutoSelectConfigs());
+        if (!updatedConfig?.enabled) {
             return null;
         }
 
-        const updatedConfig = this.getConfigForActionType(action.type, readAutoSelectConfigs());
-        if (!updatedConfig?.enabled) {
+        if (!updatedAction || !this.isActionAvailable(updatedAction, updatedConfig)) {
             return null;
         }
 
@@ -854,7 +861,7 @@ export class ChampionSelect {
 
         console.debug(`auto-champion-select: Failed to ${action.type} ${normalizedChampionId}, refreshing champ select state...`);
         const updatedAction = await this.refreshPendingAction(action);
-        if (!updatedAction || !this.isActionAvailable(updatedAction)) {
+        if (!updatedAction || !this.isActionAvailable(updatedAction, config)) {
             return ACTION_ATTEMPT_RESULT.STOP_CYCLE;
         }
 

@@ -14,6 +14,7 @@ const repairedConfigWarnings = new Set();
  * @property {number} [minMs]
  * @property {number} [maxMs]
  * @property {boolean} [force]
+ * @property {boolean} [pickIntent]
  * @property {number[]} [champions]
  * @property {import("./champion-priority-options.js").ChampionPriorityOption[]} [priorityOptions]
  * @property {string[]} [randomAssignedPositions]
@@ -129,6 +130,10 @@ function normalizePluginConfig(configKey, config, options = {}) {
 
     if (hasDefaultConfigField(defaultConfig, "force")) {
         normalizedConfig.force = mergedConfig.force === true;
+    }
+
+    if (hasDefaultConfigField(defaultConfig, "pickIntent")) {
+        normalizedConfig.pickIntent = mergedConfig.pickIntent !== false;
     }
 
     if (hasDefaultConfigField(defaultConfig, "champions")) {

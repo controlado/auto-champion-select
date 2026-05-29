@@ -58,6 +58,7 @@
         "triggerLabel": "Auto Champion Select ayarları",
         "empty": "Ayar yok",
         "actionDelay": "İşlem gecikmesi",
+        "pickIntent": "Seçim niyeti ayarla",
         "forcePick": "Seçim niyetini yok sayarak seç",
         "forceBan": "Seçim niyetini yok sayarak yasakla",
         "hideAutoAcceptPrompt": "Karşılaşma kabul penceresini gizle",

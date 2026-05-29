@@ -10,6 +10,7 @@
     "controladoPick": {
         "enabled": false,
         "force": false,
+        "pickIntent": true,
         "champions": [
             432,
             235

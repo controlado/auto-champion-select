@@ -130,6 +130,24 @@ function getConfigKeyForDraftAction(action) {
 }
 
 /**
+ * @returns {boolean}
+ */
+function isPickIntentEnabled() {
+    return readConfig(CONFIG_KEYS.pick).pickIntent !== false;
+}
+
+/**
+ * @returns {void}
+ */
+function togglePickIntent() {
+    const pickIntent = isPickIntentEnabled();
+    patchConfig(CONFIG_KEYS.pick, config => {
+        config.pickIntent = !pickIntent;
+        return config;
+    });
+}
+
+/**
  * @param {"pick" | "ban"} action
  * @returns {boolean}
  */
@@ -489,6 +507,10 @@ function createSettingsControls(readyCheckModalSuppressor) {
             getValue: getActionDelayRange,
             setValue: setActionDelayRange,
             formatValue: formatActionDelayRange
+        }),
+        new SettingsCheckbox(t("settings.pickIntent"), {
+            isSelected: () => isPickIntentEnabled(),
+            toggle: () => togglePickIntent()
         }),
         new SettingsCheckbox(t("settings.forcePick"), {
             isSelected: () => isForceActionEnabled("pick"),
