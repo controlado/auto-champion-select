@@ -4,6 +4,7 @@ import enUS from "./en-US.json";
 import esMX from "./es-MX.json";
 import koKR from "./ko-KR.json";
 import ptBR from "./pt-BR.json";
+import ruRU from "./ru-RU.json";
 import trTR from "./tr-TR.json";
 import viVN from "./vi-VN.json";
 import zhCN from "./zh-CN.json";
@@ -14,6 +15,7 @@ const TRANSLATIONS = Object.freeze({
     "es-MX": esMX,
     "ko-KR": koKR,
     "pt-BR": ptBR,
+    "ru-RU": ruRU,
     "tr-TR": trTR,
     "vi-VN": viVN,
     "vn-VN": viVN,

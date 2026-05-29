@@ -1,0 +1,102 @@
+{
+    "plugin": {
+        "socialRosterTitle": "AUTO CHAMPION SELECT",
+        "champSelectMenuTitle": "Auto Champion Select"
+    },
+    "toggles": {
+        "autoAccept": "Принять",
+        "pick": "Пик",
+        "ban": "Бан"
+    },
+    "states": {
+        "on": "ON",
+        "off": "OFF"
+    },
+    "actions": {
+        "pick": "Пик",
+        "ban": "Бан"
+    },
+    "positions": {
+        "TOP": "Топ",
+        "JUNGLE": "Лес",
+        "MIDDLE": "Мид",
+        "BOTTOM": "Бот",
+        "UTILITY": "Саппорт"
+    },
+    "list": {
+        "two": "{first} или {second}",
+        "many": "{items} или {last}"
+    },
+    "selectors": {
+        "pickPlaceholder": "Добавить пик",
+        "banPlaceholder": "Добавить бан",
+        "search": "Поиск",
+        "emptyTitle": "Нет чемпионов",
+        "pickEmptyHint": "Добавьте пик через меню",
+        "banEmptyHint": "Добавьте бан через меню",
+        "remove": "Удалить {name}",
+        "positionFilterLabel": "Фильтр чемпионов по позиции",
+        "random": {
+            "label": "Случайный",
+            "assignedTitlePart": "только если позиция — {positions}",
+            "poolTitlePart": "пул: {positions}"
+        },
+        "bravery": {
+            "label": "Храбрость",
+            "description": "Для Арены"
+        },
+        "positionBadge": {
+            "randomAssignedAny": "Случайный выбор работает на любой позиции. Нажмите, чтобы ограничить позиции.",
+            "randomAssignedSome": "Случайный выбор только если позиция — {positions}. Только в драфте; нажмите для изменения.",
+            "randomPoolAny": "Пул: все доступные чемпионы. Нажмите, чтобы отфильтровать.",
+            "randomPoolSome": "Пул: {positions}. Нажмите для изменения.",
+            "championSome": "Чемпион выбирается только если позиция — {positions}. Только в драфте; нажмите для изменения.",
+            "championAny": "Чемпион доступен на любой позиции. Нажмите, чтобы ограничить позиции."
+        }
+    },
+    "settings": {
+        "triggerLabel": "Настройки Auto Champion Select",
+        "empty": "Настроек нет",
+        "actionDelay": "Задержка действий",
+        "pickIntent": "Показывать препик",
+        "forcePick": "Игнорировать препик при пике",
+        "forceBan": "Игнорировать препик при бане",
+        "hideAutoAcceptPrompt": "Скрывать окно принятия матча",
+        "handleLabel": "{label} {handle}",
+        "handles": {
+            "min": "мин",
+            "max": "макс"
+        },
+        "actionDelayValue": {
+            "instant": "Без задержки",
+            "exact": "Задержка {delay}",
+            "upTo": "Задержка до {delay}",
+            "range": "Задержка {min}-{max}"
+        }
+    },
+    "toasts": {
+        "readyCheckAccepted": "Матч принят!",
+        "readyCheckAcceptFailed": "Не удалось принять матч. Проверьте консоль."
+    },
+    "commandBar": {
+        "group": "Balaclava: Auto Champion Select",
+        "autoSwitchName": "Авто {name} [{state}]",
+        "turnOn": "Включить",
+        "turnOff": "Выключить",
+        "autoSwitchOn": "Авто {name} включен!",
+        "autoSwitchOff": "Авто {name} выключен!",
+        "autoSwitchError": "Не удалось переключить Авто {name}. Проверьте консоль.",
+        "forcePickName": "Игнор препика при пике",
+        "forceBanName": "Игнор препика при бане",
+        "forceSwitchName": "{name} [{state}]",
+        "forcePickLegend": "Пикать, даже если союзник препикнул чемпиона",
+        "forceBanLegend": "Банить, даже если союзник препикнул чемпиона",
+        "forceSwitchOn": "Включено: {name}!",
+        "forceSwitchOff": "Выключено: {name}!",
+        "forceSwitchError": "Не удалось переключить {name}. Проверьте консоль.",
+        "refreshChampionsName": "Обновить список чемпионов",
+        "refreshChampionsLegend": "Обычно список чемпионов обновляется автоматически...",
+        "refreshChampionsSuccess": "Список чемпионов обновлен!",
+        "refreshChampionsError": "Не удалось обновить список чемпионов. Проверьте консоль."
+    }
+}
