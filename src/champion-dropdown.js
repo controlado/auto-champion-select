@@ -1,6 +1,8 @@
 import { sleep } from "https://cdn.jsdelivr.net/npm/balaclava-utils@latest";
 import { LEAGUE_CLIENT_ELEMENTS, LEAGUE_CLIENT_SELECTORS } from "./league-client-dom.js";
+import { t } from "./i18n/index.js";
 import { normalizePosition, POSITIONS } from "./champion-positions.js";
+import { getPositionLabel } from "./champion-position-labels.js";
 
 /**
  * @typedef {import("./champion-positions.js").PositionValue} PositionValue
@@ -252,7 +254,7 @@ export class ChampionDropdown {
     constructor(dropdownElement, placeholderText, onPriorityOptionSelected, options = {}) {
         this.dropdownElement = dropdownElement;
         this.placeholderText = placeholderText;
-        this.searchPlaceholderText = options.searchPlaceholderText || "Search";
+        this.searchPlaceholderText = options.searchPlaceholderText || t("selectors.search");
         this.staticOptions = Array.isArray(options.staticOptions) ? options.staticOptions : [];
         this.onPriorityOptionSelected = onPriorityOptionSelected;
         this.placeholderOption = null;
@@ -479,7 +481,7 @@ export class ChampionDropdown {
         const filter = document.createElement("div");
         filter.classList.add(POSITION_FILTER_CLASS);
         filter.setAttribute("role", "toolbar");
-        filter.setAttribute("aria-label", "Filter champions by position");
+        filter.setAttribute("aria-label", t("selectors.positionFilterLabel"));
 
         for (const position of POSITIONS) {
             filter.appendChild(this.createPositionFilterBadge(position));
@@ -493,12 +495,13 @@ export class ChampionDropdown {
      * @returns {HTMLButtonElement}
      */
     createPositionFilterBadge(position) {
+        const label = getPositionLabel(position);
         const button = document.createElement("button");
         button.classList.add(POSITION_FILTER_BADGE_CLASS);
         button.type = "button";
         button.dataset.position = position.value;
-        button.title = position.label;
-        button.setAttribute("aria-label", position.label);
+        button.title = label;
+        button.setAttribute("aria-label", label);
         button.setAttribute("aria-pressed", "false");
 
         const image = document.createElement("img");

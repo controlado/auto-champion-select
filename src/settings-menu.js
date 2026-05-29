@@ -1,4 +1,5 @@
 import { LEAGUE_CLIENT_ELEMENTS } from "./league-client-dom.js";
+import { t } from "./i18n/index.js";
 
 const SETTINGS_FLYOUT_WIDTH_PX = 224;
 const SETTINGS_TRIGGER_CLASS = "auto-select-settings-trigger";
@@ -94,7 +95,7 @@ export class SettingsMenu {
      * @param {string} [label]
      * @returns {HTMLButtonElement}
      */
-    createTriggerElement(label = "Auto champion select settings") {
+    createTriggerElement(label = t("settings.triggerLabel")) {
         const button = document.createElement("button");
         button.type = "button";
         button.classList.add(SETTINGS_TRIGGER_CLASS);
@@ -151,7 +152,7 @@ export class SettingsMenu {
         if (this.controls.length === 0) {
             const emptyElement = document.createElement("div");
             emptyElement.classList.add(SETTINGS_EMPTY_CLASS);
-            emptyElement.textContent = "No settings available";
+            emptyElement.textContent = t("settings.empty");
             menu.appendChild(emptyElement);
             return;
         }
@@ -384,7 +385,10 @@ export class SettingsDualRange {
             SETTINGS_RANGE_HANDLE_CLASS,
             handle === "min" ? SETTINGS_RANGE_HANDLE_MIN_CLASS : SETTINGS_RANGE_HANDLE_MAX_CLASS
         );
-        button.setAttribute("aria-label", `${this.label} ${handle}`);
+        button.setAttribute("aria-label", t("settings.handleLabel", {
+            label: this.label,
+            handle: t(`settings.handles.${handle}`)
+        }));
         button.setAttribute("aria-valuemin", String(this.options.min));
         button.setAttribute("aria-valuemax", String(this.options.max));
         button.setAttribute("role", "slider");

@@ -1,0 +1,101 @@
+{
+    "plugin": {
+        "socialRosterTitle": "AUTO CHAMPION SELECT",
+        "champSelectMenuTitle": "Auto Champion Select"
+    },
+    "toggles": {
+        "autoAccept": "Chấp nhận",
+        "pick": "Chọn",
+        "ban": "Cấm"
+    },
+    "states": {
+        "on": "ON",
+        "off": "OFF"
+    },
+    "actions": {
+        "pick": "Chọn",
+        "ban": "Cấm"
+    },
+    "positions": {
+        "TOP": "Đường trên",
+        "JUNGLE": "Rừng",
+        "MIDDLE": "Đường giữa",
+        "BOTTOM": "Đường dưới",
+        "UTILITY": "Hỗ trợ"
+    },
+    "list": {
+        "two": "{first} hoặc {second}",
+        "many": "{items} hoặc {last}"
+    },
+    "selectors": {
+        "pickPlaceholder": "Thêm tướng chọn",
+        "banPlaceholder": "Thêm tướng cấm",
+        "search": "Tìm",
+        "emptyTitle": "Không có tướng",
+        "pickEmptyHint": "Dùng menu để thêm",
+        "banEmptyHint": "Dùng menu để thêm",
+        "remove": "Xóa {name}",
+        "positionFilterLabel": "Lọc tướng theo vị trí",
+        "random": {
+            "label": "Ngẫu nhiên",
+            "assignedTitlePart": "chỉ chạy khi vị trí là {positions}",
+            "poolTitlePart": "lọc bể tướng theo {positions}"
+        },
+        "bravery": {
+            "label": "Quả Cảm",
+            "description": "Cho chế độ Võ Đài"
+        },
+        "positionBadge": {
+            "randomAssignedAny": "Ngẫu nhiên dùng được mọi vị trí. Bấm để giới hạn vị trí Cấm Chọn.",
+            "randomAssignedSome": "Ngẫu nhiên chỉ dùng khi vị trí là {positions}. Chỉ Cấm Chọn; bấm để sửa.",
+            "randomPoolAny": "Ngẫu nhiên có thể chọn mọi tướng hợp lệ. Bấm để lọc nhóm.",
+            "randomPoolSome": "Ngẫu nhiên chọn tướng thuộc {positions}. Bấm để sửa.",
+            "championSome": "Tướng này chỉ được chọn khi vị trí là {positions}. Chỉ Cấm Chọn; bấm để sửa.",
+            "championAny": "Tướng này dùng được mọi vị trí. Bấm để giới hạn."
+        }
+    },
+    "settings": {
+        "triggerLabel": "Cài đặt Auto Champion Select",
+        "empty": "Không có cài đặt",
+        "actionDelay": "Độ trễ thao tác",
+        "forcePick": "Bỏ qua ý định chọn tướng",
+        "forceBan": "Bỏ qua ý định chọn khi cấm",
+        "hideAutoAcceptPrompt": "Ẩn lời nhắc chấp nhận trận",
+        "handleLabel": "{label} {handle}",
+        "handles": {
+            "min": "tối thiểu",
+            "max": "tối đa"
+        },
+        "actionDelayValue": {
+            "instant": "Ngay",
+            "exact": "Trễ {delay}",
+            "upTo": "Tới {delay}",
+            "range": "Trễ {min}-{max}"
+        }
+    },
+    "toasts": {
+        "readyCheckAccepted": "Đã chấp nhận trận!",
+        "readyCheckAcceptFailed": "Không thể chấp nhận trận. Xem console."
+    },
+    "commandBar": {
+        "group": "Balaclava: Auto Champion Select",
+        "autoSwitchName": "Tự động {name} [{state}]",
+        "turnOn": "Bật",
+        "turnOff": "Tắt",
+        "autoSwitchOn": "Tự động {name} đã bật!",
+        "autoSwitchOff": "Tự động {name} đã tắt!",
+        "autoSwitchError": "Không đổi được tự động {name}. Xem console.",
+        "forcePickName": "Bỏ qua ý định chọn tướng",
+        "forceBanName": "Bỏ qua ý định chọn khi cấm",
+        "forceSwitchName": "{name} [{state}]",
+        "forcePickLegend": "Vẫn chọn dù đồng đội cũng định chọn",
+        "forceBanLegend": "Vẫn cấm dù đồng đội định chọn",
+        "forceSwitchOn": "{name} đã bật!",
+        "forceSwitchOff": "{name} đã tắt!",
+        "forceSwitchError": "Không đổi được {name}. Xem console.",
+        "refreshChampionsName": "Làm mới tướng",
+        "refreshChampionsLegend": "Danh sách tướng thường tự làm mới...",
+        "refreshChampionsSuccess": "Đã làm mới tướng!",
+        "refreshChampionsError": "Không thể làm mới tướng. Xem console."
+    }
+}

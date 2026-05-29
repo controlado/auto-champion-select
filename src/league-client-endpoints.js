@@ -1,5 +1,6 @@
 export const LEAGUE_CLIENT_ENDPOINTS = Object.freeze({
     readyCheckAccept: "/lol-matchmaking/v1/ready-check/accept",
+    regionLocale: "/riotclient/region-locale",
     gameflowPhase: "/lol-gameflow/v1/gameflow-phase",
     wallet: "/lol-inventory/v1/wallet",
     ownedChampions: "/lol-champions/v1/owned-champions-minimal",

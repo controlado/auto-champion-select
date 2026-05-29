@@ -1,6 +1,7 @@
 import { toChampionId } from "./champion-ids.js";
 import { ensureConfig, patchConfig } from "./config-store.js";
 import { getPositionMetadata, normalizePosition, normalizePositionList, normalizePositionsByChampionId, POSITIONS } from "./champion-positions.js";
+import { getPositionLabel, getPositionLabelByValue } from "./champion-position-labels.js";
 import {
     BRAVERY_CHAMPION_OPTION,
     getChampionIdsFromPriorityOptions,
@@ -12,6 +13,7 @@ import {
     toChampionPriorityOptionKey
 } from "./champion-priority-options.js";
 import { ChampionDropdown } from "./champion-dropdown.js";
+import { formatList, t } from "./i18n/index.js";
 import { LEAGUE_CLIENT_ELEMENTS } from "./league-client-dom.js";
 
 /**
@@ -59,10 +61,7 @@ const REMOVE_BUTTON_SELECTOR = ".champion-priority-selector__remove";
 const REMOVE_ICON_TEXT = "\u2715";
 
 const RANDOM_ICON_TEXT = "?";
-const RANDOM_OPTION_LABEL = "Random";
 
-const BRAVERY_OPTION_LABEL = "Bravery";
-const BRAVERY_OPTION_DESCRIPTION = "For Arena mode";
 const BRAVERY_OPTION_ICON_PATH = "/fe/lol-champ-select/images/champion-grid/bravery-champion.png";
 const BRAVERY_DROPDOWN_ICON_CLASS = "controlado-champion-option__icon--bravery";
 const BRAVERY_SELECTED_ICON_CLASS = "champion-priority-selector__icon--bravery";
@@ -82,6 +81,20 @@ const DRAG_ACTIVATION_DISTANCE_PX = 5;
 const REORDER_ANIMATION_DURATION_MS = 150;
 const REORDER_ANIMATION_EASING = "cubic-bezier(0.2, 0, 0, 1)";
 
+/**
+ * @returns {string}
+ */
+function getRandomOptionLabel() {
+    return t("selectors.random.label");
+}
+
+/**
+ * @returns {string}
+ */
+function getBraveryOptionLabel() {
+    return t("selectors.bravery.label");
+}
+
 export class ChampionPrioritySelector {
     /**
      * @param {string} placeholderText
@@ -98,8 +111,8 @@ export class ChampionPrioritySelector {
         if (options.enableBraveryOption === true) {
             staticOptions.push({
                 value: BRAVERY_CHAMPION_OPTION,
-                label: BRAVERY_OPTION_LABEL,
-                description: BRAVERY_OPTION_DESCRIPTION,
+                label: getBraveryOptionLabel(),
+                description: t("selectors.bravery.description"),
                 iconPath: BRAVERY_OPTION_ICON_PATH,
                 iconClass: BRAVERY_DROPDOWN_ICON_CLASS
             });
@@ -107,7 +120,7 @@ export class ChampionPrioritySelector {
 
         staticOptions.push({
             value: RANDOM_CHAMPION_OPTION,
-            label: RANDOM_OPTION_LABEL,
+            label: getRandomOptionLabel(),
             iconText: RANDOM_ICON_TEXT
         });
 
@@ -141,7 +154,7 @@ export class ChampionPrioritySelector {
         /** @type {string[]} */
         this.randomPoolPositions = [];
 
-        this.emptyElement = this.createEmptyState(placeholderText);
+        this.emptyElement = this.createEmptyState(configKey);
 
         this.element.append(this.dropdownElement, this.scrollElement);
         if (this.positionMenuElement) {
@@ -210,19 +223,18 @@ export class ChampionPrioritySelector {
     }
 
     /**
-     * @param {string} placeholderText
+     * @param {"controladoPick" | "controladoBan"} configKey
      * @returns {HTMLDivElement}
      */
-    createEmptyState(placeholderText) {
+    createEmptyState(configKey) {
         const emptyElement = document.createElement("div");
         emptyElement.classList.add("champion-priority-selector__empty");
 
         const emptyTitle = document.createElement("span");
-        emptyTitle.innerText = "No champions";
+        emptyTitle.innerText = t("selectors.emptyTitle");
 
         const emptyHint = document.createElement("span");
-        const optionType = placeholderText.replace(/^Add\s+/i, "").toLowerCase();
-        emptyHint.innerText = `Use dropdown to add ${optionType} option`;
+        emptyHint.innerText = t(configKey === "controladoPick" ? "selectors.pickEmptyHint" : "selectors.banEmptyHint");
 
         emptyElement.append(emptyTitle, emptyHint);
         return emptyElement;
@@ -248,12 +260,13 @@ export class ChampionPrioritySelector {
      * @returns {HTMLButtonElement}
      */
     createPositionOption(position) {
+        const label = getPositionLabel(position);
         const button = document.createElement("button");
         button.classList.add("champion-priority-selector__position-option");
         button.type = "button";
         button.dataset.position = position.value;
-        button.title = position.label;
-        button.setAttribute("aria-label", position.label);
+        button.title = label;
+        button.setAttribute("aria-label", label);
         button.setAttribute("aria-pressed", "false");
         button.addEventListener("pointerdown", event => event.stopPropagation());
         button.addEventListener("click", event => {
@@ -263,7 +276,7 @@ export class ChampionPrioritySelector {
 
         const image = document.createElement("img");
         image.src = position.iconPath;
-        image.alt = position.label;
+        image.alt = label;
         image.draggable = false;
 
         button.appendChild(image);
@@ -592,8 +605,8 @@ export class ChampionPrioritySelector {
         image.alt = champion.name;
 
         const removeButton = button.querySelector(REMOVE_BUTTON_SELECTOR);
-        removeButton.setAttribute("aria-label", `Remove ${champion.name}`);
-        removeButton.title = `Remove ${champion.name}`;
+        removeButton.setAttribute("aria-label", t("selectors.remove", { name: champion.name }));
+        removeButton.title = t("selectors.remove", { name: champion.name });
 
         this.renderPositionBadge(button, championId);
 
@@ -612,13 +625,14 @@ export class ChampionPrioritySelector {
         }
 
         button.dataset.rank = String(index + 1);
+        const randomOptionLabel = getRandomOptionLabel();
         const positionText = this.getRandomPositionTitleSuffix();
-        button.title = `${index + 1}. ${RANDOM_OPTION_LABEL}${positionText}`;
-        button.setAttribute("aria-label", `${index + 1}. ${RANDOM_OPTION_LABEL}${positionText}`);
+        button.title = `${index + 1}. ${randomOptionLabel}${positionText}`;
+        button.setAttribute("aria-label", `${index + 1}. ${randomOptionLabel}${positionText}`);
 
         const removeButton = button.querySelector(REMOVE_BUTTON_SELECTOR);
-        removeButton.setAttribute("aria-label", `Remove ${RANDOM_OPTION_LABEL}`);
-        removeButton.title = `Remove ${RANDOM_OPTION_LABEL}`;
+        removeButton.setAttribute("aria-label", t("selectors.remove", { name: randomOptionLabel }));
+        removeButton.title = t("selectors.remove", { name: randomOptionLabel });
 
         this.renderPositionBadge(button, RANDOM_CHAMPION_OPTION);
 
@@ -637,16 +651,17 @@ export class ChampionPrioritySelector {
         }
 
         button.dataset.rank = String(index + 1);
-        button.title = `${index + 1}. ${BRAVERY_OPTION_LABEL}`;
-        button.setAttribute("aria-label", `${index + 1}. ${BRAVERY_OPTION_LABEL}`);
+        const braveryOptionLabel = getBraveryOptionLabel();
+        button.title = `${index + 1}. ${braveryOptionLabel}`;
+        button.setAttribute("aria-label", `${index + 1}. ${braveryOptionLabel}`);
 
         const image = button.querySelector("img");
         image.src = BRAVERY_OPTION_ICON_PATH;
-        image.alt = BRAVERY_OPTION_LABEL;
+        image.alt = braveryOptionLabel;
 
         const removeButton = button.querySelector(REMOVE_BUTTON_SELECTOR);
-        removeButton.setAttribute("aria-label", `Remove ${BRAVERY_OPTION_LABEL}`);
-        removeButton.title = `Remove ${BRAVERY_OPTION_LABEL}`;
+        removeButton.setAttribute("aria-label", t("selectors.remove", { name: braveryOptionLabel }));
+        removeButton.title = t("selectors.remove", { name: braveryOptionLabel });
 
         return button;
     }
@@ -775,7 +790,7 @@ export class ChampionPrioritySelector {
      */
     getPositionLabels(positions) {
         return positions
-            .map(position => getPositionMetadata(position)?.label)
+            .map(position => getPositionLabelByValue(position))
             .filter(Boolean);
     }
 
@@ -819,11 +834,15 @@ export class ChampionPrioritySelector {
         const randomPositionLabels = this.getRandomPoolPositionLabels();
 
         if (assignedPositionLabels.length > 0) {
-            parts.push(`runs only when assigned lane matches ${this.formatPositionLabelsForSentence(assignedPositionLabels)}`);
+            parts.push(t("selectors.random.assignedTitlePart", {
+                positions: this.formatPositionLabelsForSentence(assignedPositionLabels)
+            }));
         }
 
         if (randomPositionLabels.length > 0) {
-            parts.push(`filters random pool to ${this.formatPositionLabelsForSentence(randomPositionLabels)}`);
+            parts.push(t("selectors.random.poolTitlePart", {
+                positions: this.formatPositionLabelsForSentence(randomPositionLabels)
+            }));
         }
 
         return parts.length > 0 ? ` (${parts.join("; ")})` : "";
@@ -834,15 +853,7 @@ export class ChampionPrioritySelector {
      * @returns {string}
      */
     formatPositionLabelsForSentence(positionLabels) {
-        if (positionLabels.length <= 1) {
-            return positionLabels[0] || "";
-        }
-
-        if (positionLabels.length === 2) {
-            return `${positionLabels[0]} or ${positionLabels[1]}`;
-        }
-
-        return `${positionLabels.slice(0, -1).join(", ")}, or ${positionLabels[positionLabels.length - 1]}`;
+        return formatList(positionLabels);
     }
 
     /**
@@ -936,7 +947,7 @@ export class ChampionPrioritySelector {
 
         const image = document.createElement("img");
         image.src = firstPosition.iconPath;
-        image.alt = firstPosition.label;
+        image.alt = getPositionLabel(firstPosition);
         image.draggable = false;
 
         badge.appendChild(image);
@@ -951,25 +962,31 @@ export class ChampionPrioritySelector {
     getPositionBadgeTitle(allowedPositionLabels, target) {
         if (target.kind === POSITION_MENU_TARGET_KIND.RANDOM_ASSIGNED) {
             if (allowedPositionLabels.length === 0) {
-                return "The plugin can use Random in any lane. Click to run it only in selected draft lanes.";
+                return t("selectors.positionBadge.randomAssignedAny");
             }
 
-            return `The plugin will use Random only when your assigned lane matches ${this.formatPositionLabelsForSentence(allowedPositionLabels)}. Draft modes only. Click to edit.`;
+            return t("selectors.positionBadge.randomAssignedSome", {
+                positions: this.formatPositionLabelsForSentence(allowedPositionLabels)
+            });
         }
 
         if (target.kind === POSITION_MENU_TARGET_KIND.RANDOM_POOL) {
             if (allowedPositionLabels.length === 0) {
-                return "The plugin can choose any available champion at random. Click to filter the pool first.";
+                return t("selectors.positionBadge.randomPoolAny");
             }
 
-            return `The plugin filters Random to champions for ${this.formatPositionLabelsForSentence(allowedPositionLabels)}, then picks one. Click to edit.`;
+            return t("selectors.positionBadge.randomPoolSome", {
+                positions: this.formatPositionLabelsForSentence(allowedPositionLabels)
+            });
         }
 
         if (allowedPositionLabels.length > 0) {
-            return `The plugin will pick this champion only when your assigned lane matches ${this.formatPositionLabelsForSentence(allowedPositionLabels)}. Draft modes only. Click to edit.`;
+            return t("selectors.positionBadge.championSome", {
+                positions: this.formatPositionLabelsForSentence(allowedPositionLabels)
+            });
         }
 
-        return "The plugin can pick this champion in any lane. Click to limit it to selected draft lanes.";
+        return t("selectors.positionBadge.championAny");
     }
 
     /**

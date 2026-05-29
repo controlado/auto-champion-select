@@ -1,0 +1,101 @@
+{
+    "plugin": {
+        "socialRosterTitle": "AUTO CHAMPION SELECT",
+        "champSelectMenuTitle": "Auto Champion Select"
+    },
+    "toggles": {
+        "autoAccept": "Aceitar",
+        "pick": "Pick",
+        "ban": "Ban"
+    },
+    "states": {
+        "on": "ON",
+        "off": "OFF"
+    },
+    "actions": {
+        "pick": "Pick",
+        "ban": "Ban"
+    },
+    "positions": {
+        "TOP": "Top",
+        "JUNGLE": "Jungle",
+        "MIDDLE": "Mid",
+        "BOTTOM": "ADC",
+        "UTILITY": "Suporte"
+    },
+    "list": {
+        "two": "{first} ou {second}",
+        "many": "{items} ou {last}"
+    },
+    "selectors": {
+        "pickPlaceholder": "Adicionar pick",
+        "banPlaceholder": "Adicionar ban",
+        "search": "Buscar",
+        "emptyTitle": "Nenhum campeão",
+        "pickEmptyHint": "Use o menu para adicionar um pick",
+        "banEmptyHint": "Use o menu para adicionar um ban",
+        "remove": "Remover {name}",
+        "positionFilterLabel": "Filtrar campeões por posição",
+        "random": {
+            "label": "Aleatório",
+            "assignedTitlePart": "só roda quando sua rota for {positions}",
+            "poolTitlePart": "limita o pool a {positions}"
+        },
+        "bravery": {
+            "label": "Bravura",
+            "description": "Para o modo Arena"
+        },
+        "positionBadge": {
+            "randomAssignedAny": "Aleatório pode rodar em qualquer rota. Clique para limitar às rotas do draft.",
+            "randomAssignedSome": "Aleatório só roda se sua rota for {positions}. Draft apenas. Clique para editar.",
+            "randomPoolAny": "Aleatório pode escolher qualquer campeão disponível. Clique para filtrar o pool.",
+            "randomPoolSome": "Aleatório escolhe campeões de {positions}. Clique para editar.",
+            "championSome": "Este campeão só será escolhido se sua rota for {positions}. Draft apenas. Clique para editar.",
+            "championAny": "Este campeão pode ser escolhido em qualquer rota. Clique para limitar às rotas do draft."
+        }
+    },
+    "settings": {
+        "triggerLabel": "Configurações do Auto Champion Select",
+        "empty": "Nenhuma configuração disponível",
+        "actionDelay": "Delay de ação",
+        "forcePick": "Ignorar intenção aliada no pick",
+        "forceBan": "Ignorar intenção aliada no ban",
+        "hideAutoAcceptPrompt": "Ocultar confirmação da fila",
+        "handleLabel": "{label} {handle}",
+        "handles": {
+            "min": "mínimo",
+            "max": "máximo"
+        },
+        "actionDelayValue": {
+            "instant": "Sem delay",
+            "exact": "Delay de {delay}",
+            "upTo": "Delay de até {delay}",
+            "range": "Delay de {min}-{max}"
+        }
+    },
+    "toasts": {
+        "readyCheckAccepted": "Fila aceita!",
+        "readyCheckAcceptFailed": "Falha ao aceitar a fila. Verifique o console."
+    },
+    "commandBar": {
+        "group": "Balaclava: Auto Champion Select",
+        "autoSwitchName": "Auto {name} [{state}]",
+        "turnOn": "Ativar",
+        "turnOff": "Desativar",
+        "autoSwitchOn": "Auto {name} está ON!",
+        "autoSwitchOff": "Auto {name} está OFF!",
+        "autoSwitchError": "Falha ao alternar Auto {name}. Verifique o console.",
+        "forcePickName": "Ignorar intenção aliada no pick",
+        "forceBanName": "Ignorar intenção aliada no ban",
+        "forceSwitchName": "{name} [{state}]",
+        "forcePickLegend": "Escolhe mesmo se um aliado indicar o mesmo campeão",
+        "forceBanLegend": "Bane mesmo se um aliado indicar o campeão",
+        "forceSwitchOn": "{name} está ON!",
+        "forceSwitchOff": "{name} está OFF!",
+        "forceSwitchError": "Falha ao alternar {name}. Verifique o console.",
+        "refreshChampionsName": "Atualizar campeões",
+        "refreshChampionsLegend": "Normalmente as listas de campeões atualizam automaticamente...",
+        "refreshChampionsSuccess": "Campeões atualizados!",
+        "refreshChampionsError": "Falha ao atualizar campeões. Verifique o console."
+    }
+}

@@ -12,6 +12,7 @@ import { AutoPickSwitchAction, AutoBanSwitchAction, ForcePickSwitchAction, Force
 import { LEAGUE_CLIENT_ENDPOINTS } from "./league-client-endpoints.js";
 import { getChampSelectButtonsContainer, getSocialRosterContainer } from "./league-client-dom.js";
 import { showErrorToast, showSuccessToast } from "./toast.js";
+import { t, waitForLocale } from "./i18n/index.js";
 import { ACTION_DELAY_MAX_MS, ACTION_DELAY_MIN_MS, ACTION_DELAY_STEP_MS, formatActionDelaySeconds, normalizeActionDelayRange } from "./action-delay.js";
 import "./assets/style.css";
 
@@ -77,8 +78,6 @@ const CHAMP_SELECT_RECOVERY_OBSERVER_TIMEOUT_MS = 60000;
 const READY_CHECK_ACCEPT_DELAY_MS = 2000;
 const READY_CHECK_ROOT_SELECTOR = ".ready-check-root-element";
 const READY_CHECK_MODAL_SELECTOR = "#lol-uikit-layer-manager-wrapper > .modal";
-const READY_CHECK_ACCEPT_SUCCESS_TOAST = "Accepted ready check!";
-const READY_CHECK_ACCEPT_ERROR_TOAST = "Failed to accept ready check. Check console.";
 
 const PLUGIN_CHAMP_SELECT_MENU_HEADER_SELECTOR = ".auto-select-champ-select-menu__header";
 
@@ -180,18 +179,21 @@ function formatActionDelayRange(value) {
     const { minMs, maxMs } = normalizeActionDelayRange(value.min, value.max);
 
     if (minMs === 0 && maxMs === 0) {
-        return "Instant";
+        return t("settings.actionDelayValue.instant");
     }
 
     if (minMs === maxMs) {
-        return `Delays actions for ${formatActionDelaySeconds(maxMs)}`;
+        return t("settings.actionDelayValue.exact", { delay: formatActionDelaySeconds(maxMs) });
     }
 
     if (minMs === 0) {
-        return `Delays actions up to ${formatActionDelaySeconds(maxMs)}`;
+        return t("settings.actionDelayValue.upTo", { delay: formatActionDelaySeconds(maxMs) });
     }
 
-    return `Delays actions ${formatActionDelaySeconds(minMs)}-${formatActionDelaySeconds(maxMs)}`;
+    return t("settings.actionDelayValue.range", {
+        min: formatActionDelaySeconds(minMs),
+        max: formatActionDelaySeconds(maxMs)
+    });
 }
 
 class ReadyCheckModalSuppressor {
@@ -333,15 +335,15 @@ async function onReadyCheck(readyCheckModalSuppressor) {
         accepted = await autoAccept();
     } catch (error) {
         readyCheckModalSuppressor.restore();
-        showErrorToast(READY_CHECK_ACCEPT_ERROR_TOAST);
+        showErrorToast(t("toasts.readyCheckAcceptFailed"));
         throw error;
     }
 
     if (accepted) {
-        showSuccessToast(READY_CHECK_ACCEPT_SUCCESS_TOAST);
+        showSuccessToast(t("toasts.readyCheckAccepted"));
     } else {
         readyCheckModalSuppressor.restore();
-        showErrorToast(READY_CHECK_ACCEPT_ERROR_TOAST);
+        showErrorToast(t("toasts.readyCheckAcceptFailed"));
     }
 }
 
@@ -427,10 +429,10 @@ function createGameflowPhaseHandler({ championSelect, champSelectControlsMenu, r
 function createSharedControls() {
     const championSelect = new ChampionSelect();
 
-    const autoAcceptToggle = new ConfigToggle("Accept", CONFIG_KEYS.autoAccept);
-    const pickToggle = new ConfigToggle("Pick", CONFIG_KEYS.pick);
+    const autoAcceptToggle = new ConfigToggle(t("toggles.autoAccept"), CONFIG_KEYS.autoAccept);
+    const pickToggle = new ConfigToggle(t("toggles.pick"), CONFIG_KEYS.pick);
     const pickChampionSelector = new ChampionPrioritySelector(
-        "Add pick",
+        t("selectors.pickPlaceholder"),
         CONFIG_KEYS.pick,
         getPlayableChampions,
         {
@@ -441,9 +443,9 @@ function createSharedControls() {
         }
     );
 
-    const banToggle = new ConfigToggle("Ban", CONFIG_KEYS.ban);
+    const banToggle = new ConfigToggle(t("toggles.ban"), CONFIG_KEYS.ban);
     const banChampionSelector = new ChampionPrioritySelector(
-        "Add ban",
+        t("selectors.banPlaceholder"),
         CONFIG_KEYS.ban,
         getAllChampions,
         {
@@ -455,7 +457,7 @@ function createSharedControls() {
     const checkboxesContainer = createCheckboxesContainer(autoAcceptToggle, pickToggle, banToggle);
     const settingsMenu = new SettingsMenu();
 
-    const pluginSection = new SocialRosterSection("AUTO CHAMPION SELECT", selectorsContainer, checkboxesContainer);
+    const pluginSection = new SocialRosterSection(t("plugin.socialRosterTitle"), selectorsContainer, checkboxesContainer);
     pluginSection.setHeaderAccessory(settingsMenu.createTriggerElement());
     const championSelectors = [pickChampionSelector, banChampionSelector];
 
@@ -480,7 +482,7 @@ function createSharedControls() {
  */
 function createSettingsControls(readyCheckModalSuppressor) {
     return [
-        new SettingsDualRange("Action delay", {
+        new SettingsDualRange(t("settings.actionDelay"), {
             min: ACTION_DELAY_MIN_MS,
             max: ACTION_DELAY_MAX_MS,
             step: ACTION_DELAY_STEP_MS,
@@ -488,15 +490,15 @@ function createSettingsControls(readyCheckModalSuppressor) {
             setValue: setActionDelayRange,
             formatValue: formatActionDelayRange
         }),
-        new SettingsCheckbox("Ignore team intent and pick", {
+        new SettingsCheckbox(t("settings.forcePick"), {
             isSelected: () => isForceActionEnabled("pick"),
             toggle: () => toggleForceAction("pick")
         }),
-        new SettingsCheckbox("Ignore team intent and ban", {
+        new SettingsCheckbox(t("settings.forceBan"), {
             isSelected: () => isForceActionEnabled("ban"),
             toggle: () => toggleForceAction("ban")
         }),
-        new SettingsCheckbox("Hide auto-accept prompt", {
+        new SettingsCheckbox(t("settings.hideAutoAcceptPrompt"), {
             isSelected: () => isAutoAcceptPromptHiddenByConfig(),
             toggle: () => {
                 toggleAutoAcceptPromptHidden();
@@ -617,7 +619,7 @@ function createPluginRuntime() {
     controls.settingsMenu.setControls(createSettingsControls(readyCheckModalSuppressor));
     const controlsPlacementManager = createControlsPlacementManager(controls);
     const champSelectControlsMenu = new ChampSelectControlsMenu(
-        "Auto Champion Select",
+        t("plugin.champSelectMenuTitle"),
         controlsPlacementManager.returnControlsToSocialRoster,
         [controls.checkboxesContainer, controls.selectorsContainer]
     );
@@ -732,6 +734,8 @@ function observeInitialChampSelectRecovery(runtime) {
  * @returns {Promise<void>}
  */
 async function main() {
+    await waitForLocale();
+
     const runtime = createPluginRuntime();
 
     runtime.setupToggles();

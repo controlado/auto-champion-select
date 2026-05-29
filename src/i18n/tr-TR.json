@@ -1,0 +1,101 @@
+{
+    "plugin": {
+        "socialRosterTitle": "AUTO CHAMPION SELECT",
+        "champSelectMenuTitle": "Auto Champion Select"
+    },
+    "toggles": {
+        "autoAccept": "Kabul Et",
+        "pick": "Seç",
+        "ban": "Yasakla"
+    },
+    "states": {
+        "on": "ON",
+        "off": "OFF"
+    },
+    "actions": {
+        "pick": "Seç",
+        "ban": "Yasakla"
+    },
+    "positions": {
+        "TOP": "Üst",
+        "JUNGLE": "Orman",
+        "MIDDLE": "Orta",
+        "BOTTOM": "Alt",
+        "UTILITY": "Destek"
+    },
+    "list": {
+        "two": "{first} veya {second}",
+        "many": "{items} veya {last}"
+    },
+    "selectors": {
+        "pickPlaceholder": "Seçim ekle",
+        "banPlaceholder": "Yasaklama ekle",
+        "search": "Ara",
+        "emptyTitle": "Şampiyon yok",
+        "pickEmptyHint": "Menüden seçenek ekle",
+        "banEmptyHint": "Menüden seçenek ekle",
+        "remove": "{name} kaldır",
+        "positionFilterLabel": "Şampiyonları konuma göre filtrele",
+        "random": {
+            "label": "Rastgele",
+            "assignedTitlePart": "atanan konum {positions} ise çalışır",
+            "poolTitlePart": "rastgele havuzu {positions} ile sınırlar"
+        },
+        "bravery": {
+            "label": "Cesaret",
+            "description": "Arena modu için"
+        },
+        "positionBadge": {
+            "randomAssignedAny": "Rastgele her konumda kullanılabilir. Draft konumlarıyla sınırla.",
+            "randomAssignedSome": "Rastgele yalnız atanan konum {positions} ise kullanılır. Sadece draft; düzenle.",
+            "randomPoolAny": "Rastgele tüm uygun şampiyonlardan seçebilir. Havuzu filtrele.",
+            "randomPoolSome": "Rastgele, {positions} şampiyonlarından seçer. Düzenle.",
+            "championSome": "Bu şampiyon yalnız atanan konum {positions} ise seçilir. Sadece draft; düzenle.",
+            "championAny": "Bu şampiyon her konumda seçilebilir. Konumları sınırla."
+        }
+    },
+    "settings": {
+        "triggerLabel": "Auto Champion Select ayarları",
+        "empty": "Ayar yok",
+        "actionDelay": "İşlem gecikmesi",
+        "forcePick": "Seçim niyetini yok sayarak seç",
+        "forceBan": "Seçim niyetini yok sayarak yasakla",
+        "hideAutoAcceptPrompt": "Karşılaşma kabul penceresini gizle",
+        "handleLabel": "{label} {handle}",
+        "handles": {
+            "min": "min",
+            "max": "maks"
+        },
+        "actionDelayValue": {
+            "instant": "Anında",
+            "exact": "{delay} gecikme",
+            "upTo": "{delay} kadar gecikme",
+            "range": "{min}-{max} gecikme"
+        }
+    },
+    "toasts": {
+        "readyCheckAccepted": "Karşılaşma kabul edildi!",
+        "readyCheckAcceptFailed": "Karşılaşma kabul edilemedi. Konsola bakın."
+    },
+    "commandBar": {
+        "group": "Balaclava: Auto Champion Select",
+        "autoSwitchName": "Oto {name} [{state}]",
+        "turnOn": "Aç",
+        "turnOff": "Kapat",
+        "autoSwitchOn": "Oto {name} açık!",
+        "autoSwitchOff": "Oto {name} kapalı!",
+        "autoSwitchError": "Oto {name} değiştirilemedi. Konsola bakın.",
+        "forcePickName": "Seçim niyetini yok sayarak seç",
+        "forceBanName": "Seçim niyetini yok sayarak yasakla",
+        "forceSwitchName": "{name} [{state}]",
+        "forcePickLegend": "Takım arkadaşı aynı şampiyonu istese de seçer",
+        "forceBanLegend": "Takım arkadaşı aynı şampiyonu istese de yasaklar",
+        "forceSwitchOn": "{name} açık!",
+        "forceSwitchOff": "{name} kapalı!",
+        "forceSwitchError": "{name} değiştirilemedi. Konsola bakın.",
+        "refreshChampionsName": "Şampiyonları yenile",
+        "refreshChampionsLegend": "Seçiciler normalde otomatik yenilenir...",
+        "refreshChampionsSuccess": "Şampiyonlar yenilendi!",
+        "refreshChampionsError": "Şampiyonlar yenilenemedi. Konsola bakın."
+    }
+}

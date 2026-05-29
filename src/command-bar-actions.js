@@ -1,7 +1,12 @@
 import { patchConfig, readConfig } from "./config-store.js";
+import { t } from "./i18n/index.js";
 import { showErrorToast, showPromiseToast, showSuccessToast } from "./toast.js";
 
-const PLUGIN_COMMAND_GROUP = "Balaclava: Auto Champion Select";
+const PLUGIN_COMMAND_TAG = "Balaclava: Auto Champion Select";
+
+function getPluginCommandGroup() {
+    return t("commandBar.group");
+}
 
 /**
  * @typedef {Object} CommandActionToasts
@@ -75,15 +80,18 @@ class ConfigSwitchAction extends CommandAction {
     constructor(name, configKey, callback) {
         super({
             id: `${configKey}Switch`,
-            name: () => `Auto ${name} [${readConfig(configKey).enabled ? "ON" : "OFF"}]`,
-            legend: () => readConfig(configKey).enabled ? "Turn OFF" : "Turn ON",
-            tags: [PLUGIN_COMMAND_GROUP, configKey, "switch"],
-            group: PLUGIN_COMMAND_GROUP,
+            name: () => t("commandBar.autoSwitchName", {
+                name,
+                state: readConfig(configKey).enabled ? t("states.on") : t("states.off")
+            }),
+            legend: () => readConfig(configKey).enabled ? t("commandBar.turnOff") : t("commandBar.turnOn"),
+            tags: [PLUGIN_COMMAND_TAG, configKey, "switch"],
+            group: getPluginCommandGroup(),
             callback,
             toasts: {
-                on: `Auto ${name} is ON!`,
-                off: `Auto ${name} is OFF!`,
-                error: `Failed to toggle Auto ${name}. Check console.`
+                on: t("commandBar.autoSwitchOn", { name }),
+                off: t("commandBar.autoSwitchOff", { name }),
+                error: t("commandBar.autoSwitchError", { name })
             }
         });
     }
@@ -104,25 +112,27 @@ function toggleForceConfig(configKey) {
 
 class ForceConfigSwitchAction extends CommandAction {
     /**
-     * @param {string} name
      * @param {"controladoPick" | "controladoBan"} configKey
      */
-    constructor(name, configKey) {
+    constructor(configKey) {
         const isPickConfig = configKey === "controladoPick";
-        const settingName = `Ignore Team Intent ${name}`;
+        const settingName = t(isPickConfig ? "commandBar.forcePickName" : "commandBar.forceBanName");
         super({
             id: `${configKey}ForceSwitch`,
-            name: () => `${settingName} [${readConfig(configKey).force ? "ON" : "OFF"}]`,
+            name: () => t("commandBar.forceSwitchName", {
+                name: settingName,
+                state: readConfig(configKey).force ? t("states.on") : t("states.off")
+            }),
             legend: () => isPickConfig
-                ? "Pick champions even when a teammate shows the same intent"
-                : "Ban champions even when an ally shows the same intent",
-            tags: [PLUGIN_COMMAND_GROUP, configKey, "force", "intent", "switch"],
-            group: PLUGIN_COMMAND_GROUP,
+                ? t("commandBar.forcePickLegend")
+                : t("commandBar.forceBanLegend"),
+            tags: [PLUGIN_COMMAND_TAG, configKey, "force", "intent", "switch"],
+            group: getPluginCommandGroup(),
             callback: () => toggleForceConfig(configKey),
             toasts: {
-                on: `${settingName} is ON!`,
-                off: `${settingName} is OFF!`,
-                error: `Failed to toggle ${settingName}. Check console.`
+                on: t("commandBar.forceSwitchOn", { name: settingName }),
+                off: t("commandBar.forceSwitchOff", { name: settingName }),
+                error: t("commandBar.forceSwitchError", { name: settingName })
             }
         });
     }
@@ -135,14 +145,14 @@ export class RefreshDropdownsAction extends CommandAction {
     constructor(refreshSelectors) {
         super({
             id: "RefreshDropdowns",
-            name: () => "Refresh Champions",
-            legend: () => "Normally champion selectors refresh automatically...",
-            tags: [PLUGIN_COMMAND_GROUP, "refresh"],
-            group: PLUGIN_COMMAND_GROUP,
+            name: () => t("commandBar.refreshChampionsName"),
+            legend: () => t("commandBar.refreshChampionsLegend"),
+            tags: [PLUGIN_COMMAND_TAG, "refresh"],
+            group: getPluginCommandGroup(),
             callback: refreshSelectors,
             toasts: {
-                success: "Refreshed Champions!",
-                error: "Failed to refresh Champions. Check console."
+                success: t("commandBar.refreshChampionsSuccess"),
+                error: t("commandBar.refreshChampionsError")
             }
         });
     }
@@ -153,7 +163,7 @@ export class AutoPickSwitchAction extends ConfigSwitchAction {
      * @param {() => boolean} callback
      */
     constructor(callback) {
-        super("Pick", "controladoPick", callback);
+        super(t("actions.pick"), "controladoPick", callback);
     }
 }
 
@@ -162,19 +172,19 @@ export class AutoBanSwitchAction extends ConfigSwitchAction {
      * @param {() => boolean} callback
      */
     constructor(callback) {
-        super("Ban", "controladoBan", callback);
+        super(t("actions.ban"), "controladoBan", callback);
     }
 }
 
 export class ForcePickSwitchAction extends ForceConfigSwitchAction {
     constructor() {
-        super("Pick", "controladoPick");
+        super("controladoPick");
     }
 }
 
 export class ForceBanSwitchAction extends ForceConfigSwitchAction {
     constructor() {
-        super("Ban", "controladoBan");
+        super("controladoBan");
     }
 }
 

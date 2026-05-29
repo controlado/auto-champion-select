@@ -1,0 +1,101 @@
+{
+    "plugin": {
+        "socialRosterTitle": "AUTO CHAMPION SELECT",
+        "champSelectMenuTitle": "Auto Champion Select"
+    },
+    "toggles": {
+        "autoAccept": "接受",
+        "pick": "选择",
+        "ban": "禁用"
+    },
+    "states": {
+        "on": "ON",
+        "off": "OFF"
+    },
+    "actions": {
+        "pick": "选择",
+        "ban": "禁用"
+    },
+    "positions": {
+        "TOP": "上路",
+        "JUNGLE": "打野",
+        "MIDDLE": "中路",
+        "BOTTOM": "下路",
+        "UTILITY": "辅助"
+    },
+    "list": {
+        "two": "{first}或{second}",
+        "many": "{items}或{last}"
+    },
+    "selectors": {
+        "pickPlaceholder": "添加选用英雄",
+        "banPlaceholder": "添加禁用英雄",
+        "search": "搜索",
+        "emptyTitle": "无英雄",
+        "pickEmptyHint": "用菜单添加",
+        "banEmptyHint": "用菜单添加",
+        "remove": "移除{name}",
+        "positionFilterLabel": "按分路筛选英雄",
+        "random": {
+            "label": "随机",
+            "assignedTitlePart": "仅在分配位置为{positions}时执行",
+            "poolTitlePart": "将随机英雄池限制为{positions}"
+        },
+        "bravery": {
+            "label": "勇敢举动",
+            "description": "用于斗魂竞技场"
+        },
+        "positionBadge": {
+            "randomAssignedAny": "随机可用于任意位置。点击限制为选定征召位置。",
+            "randomAssignedSome": "随机仅在分配位置为{positions}时使用。仅征召；点击编辑。",
+            "randomPoolAny": "随机可从所有可用英雄中选择。点击筛选英雄池。",
+            "randomPoolSome": "随机从{positions}英雄中选择。点击编辑。",
+            "championSome": "仅当分配位置为{positions}时选择此英雄。仅征召；点击编辑。",
+            "championAny": "此英雄可用于任意位置。点击限制位置。"
+        }
+    },
+    "settings": {
+        "triggerLabel": "Auto Champion Select 设置",
+        "empty": "无设置",
+        "actionDelay": "操作延迟",
+        "forcePick": "无视队友意向并选用",
+        "forceBan": "无视队友意向并禁用",
+        "hideAutoAcceptPrompt": "隐藏对局接受提示",
+        "handleLabel": "{label} {handle}",
+        "handles": {
+            "min": "最小",
+            "max": "最大"
+        },
+        "actionDelayValue": {
+            "instant": "立即",
+            "exact": "延迟{delay}",
+            "upTo": "最多{delay}",
+            "range": "延迟{min}-{max}"
+        }
+    },
+    "toasts": {
+        "readyCheckAccepted": "对局已接受！",
+        "readyCheckAcceptFailed": "接受对局失败。查看控制台。"
+    },
+    "commandBar": {
+        "group": "Balaclava: Auto Champion Select",
+        "autoSwitchName": "自动{name} [{state}]",
+        "turnOn": "开启",
+        "turnOff": "关闭",
+        "autoSwitchOn": "自动{name}已开启！",
+        "autoSwitchOff": "自动{name}已关闭！",
+        "autoSwitchError": "切换自动{name}失败。查看控制台。",
+        "forcePickName": "无视队友意向选用",
+        "forceBanName": "无视队友意向禁用",
+        "forceSwitchName": "{name} [{state}]",
+        "forcePickLegend": "即使队友也想用该英雄也会选用",
+        "forceBanLegend": "即使队友想用该英雄也会禁用",
+        "forceSwitchOn": "{name}已开启！",
+        "forceSwitchOff": "{name}已关闭！",
+        "forceSwitchError": "切换{name}失败。查看控制台。",
+        "refreshChampionsName": "刷新英雄列表",
+        "refreshChampionsLegend": "英雄列表通常会自动刷新...",
+        "refreshChampionsSuccess": "英雄列表已刷新！",
+        "refreshChampionsError": "刷新英雄列表失败。查看控制台。"
+    }
+}

@@ -1,0 +1,101 @@
+{
+    "plugin": {
+        "socialRosterTitle": "AUTO CHAMPION SELECT",
+        "champSelectMenuTitle": "Auto Champion Select"
+    },
+    "toggles": {
+        "autoAccept": "Accept",
+        "pick": "Pick",
+        "ban": "Ban"
+    },
+    "states": {
+        "on": "ON",
+        "off": "OFF"
+    },
+    "actions": {
+        "pick": "Pick",
+        "ban": "Ban"
+    },
+    "positions": {
+        "TOP": "Top",
+        "JUNGLE": "Jungle",
+        "MIDDLE": "Mid",
+        "BOTTOM": "ADC",
+        "UTILITY": "Support"
+    },
+    "list": {
+        "two": "{first} or {second}",
+        "many": "{items}, or {last}"
+    },
+    "selectors": {
+        "pickPlaceholder": "Add pick",
+        "banPlaceholder": "Add ban",
+        "search": "Search",
+        "emptyTitle": "No champions",
+        "pickEmptyHint": "Use the menu to add a pick",
+        "banEmptyHint": "Use the menu to add a ban",
+        "remove": "Remove {name}",
+        "positionFilterLabel": "Filter champions by position",
+        "random": {
+            "label": "Random",
+            "assignedTitlePart": "runs only when assigned role matches {positions}",
+            "poolTitlePart": "limits Random pool to {positions}"
+        },
+        "bravery": {
+            "label": "Bravery",
+            "description": "For Arena mode"
+        },
+        "positionBadge": {
+            "randomAssignedAny": "The plugin can use Random in any role. Click to run it only in selected draft roles.",
+            "randomAssignedSome": "The plugin will use Random only when your assigned role matches {positions}. Draft modes only. Click to edit.",
+            "randomPoolAny": "The plugin can choose any available champion at random. Click to filter the pool first.",
+            "randomPoolSome": "The plugin filters Random to champions for {positions}, then picks one. Click to edit.",
+            "championSome": "The plugin will pick this champion only when your assigned role matches {positions}. Draft modes only. Click to edit.",
+            "championAny": "The plugin can pick this champion in any role. Click to limit it to selected draft roles."
+        }
+    },
+    "settings": {
+        "triggerLabel": "Auto champion select settings",
+        "empty": "No settings available",
+        "actionDelay": "Action delay",
+        "forcePick": "Ignore ally pick intent",
+        "forceBan": "Ignore ally pick intent when banning",
+        "hideAutoAcceptPrompt": "Hide auto-accept prompt",
+        "handleLabel": "{label} {handle}",
+        "handles": {
+            "min": "min",
+            "max": "max"
+        },
+        "actionDelayValue": {
+            "instant": "Instant",
+            "exact": "Delays actions for {delay}",
+            "upTo": "Delays actions up to {delay}",
+            "range": "Delays actions {min}-{max}"
+        }
+    },
+    "toasts": {
+        "readyCheckAccepted": "Match accepted!",
+        "readyCheckAcceptFailed": "Failed to accept match. Check console."
+    },
+    "commandBar": {
+        "group": "Balaclava: Auto Champion Select",
+        "autoSwitchName": "Auto {name} [{state}]",
+        "turnOn": "Turn ON",
+        "turnOff": "Turn OFF",
+        "autoSwitchOn": "Auto {name} is ON!",
+        "autoSwitchOff": "Auto {name} is OFF!",
+        "autoSwitchError": "Failed to toggle Auto {name}. Check console.",
+        "forcePickName": "Ignore Team Intent Pick",
+        "forceBanName": "Ignore Team Intent Ban",
+        "forceSwitchName": "{name} [{state}]",
+        "forcePickLegend": "Pick even if a teammate intends that champion",
+        "forceBanLegend": "Ban even if a teammate intends that champion",
+        "forceSwitchOn": "{name} is ON!",
+        "forceSwitchOff": "{name} is OFF!",
+        "forceSwitchError": "Failed to toggle {name}. Check console.",
+        "refreshChampionsName": "Refresh Champions",
+        "refreshChampionsLegend": "Normally champion selectors refresh automatically...",
+        "refreshChampionsSuccess": "Refreshed Champions!",
+        "refreshChampionsError": "Failed to refresh Champions. Check console."
+    }
+}

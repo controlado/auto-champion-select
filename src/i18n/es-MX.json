@@ -1,0 +1,101 @@
+{
+    "plugin": {
+        "socialRosterTitle": "AUTO CHAMPION SELECT",
+        "champSelectMenuTitle": "Auto Champion Select"
+    },
+    "toggles": {
+        "autoAccept": "Aceptar",
+        "pick": "Pick",
+        "ban": "Ban"
+    },
+    "states": {
+        "on": "ON",
+        "off": "OFF"
+    },
+    "actions": {
+        "pick": "Pick",
+        "ban": "Ban"
+    },
+    "positions": {
+        "TOP": "Top",
+        "JUNGLE": "Jungla",
+        "MIDDLE": "Mid",
+        "BOTTOM": "ADC",
+        "UTILITY": "Soporte"
+    },
+    "list": {
+        "two": "{first} o {second}",
+        "many": "{items} o {last}"
+    },
+    "selectors": {
+        "pickPlaceholder": "Agregar pick",
+        "banPlaceholder": "Agregar ban",
+        "search": "Buscar",
+        "emptyTitle": "Sin campeones",
+        "pickEmptyHint": "Usa el menú para agregar",
+        "banEmptyHint": "Usa el menú para agregar",
+        "remove": "Quitar {name}",
+        "positionFilterLabel": "Filtrar campeones por posición",
+        "random": {
+            "label": "Aleatorio",
+            "assignedTitlePart": "solo si la posición asignada es {positions}",
+            "poolTitlePart": "filtra el pool a {positions}"
+        },
+        "bravery": {
+            "label": "Valentía",
+            "description": "Para Arena"
+        },
+        "positionBadge": {
+            "randomAssignedAny": "Aleatorio sirve en cualquier posición. Haz clic para limitar posiciones de draft.",
+            "randomAssignedSome": "Aleatorio solo si tu posición es {positions}. Solo draft; haz clic para editar.",
+            "randomPoolAny": "Aleatorio puede elegir cualquier campeón disponible. Haz clic para filtrar.",
+            "randomPoolSome": "Aleatorio elige campeones de {positions}. Haz clic para editar.",
+            "championSome": "Este campeón solo se elige si tu posición es {positions}. Solo draft; haz clic para editar.",
+            "championAny": "Este campeón sirve en cualquier posición. Haz clic para limitar posiciones."
+        }
+    },
+    "settings": {
+        "triggerLabel": "Ajustes de Auto Champion Select",
+        "empty": "Sin ajustes",
+        "actionDelay": "Retraso de acción",
+        "forcePick": "Ignorar intención aliada al pickear",
+        "forceBan": "Ignorar intención aliada al banear",
+        "hideAutoAcceptPrompt": "Ocultar confirmación de partida",
+        "handleLabel": "{label} {handle}",
+        "handles": {
+            "min": "mín",
+            "max": "máx"
+        },
+        "actionDelayValue": {
+            "instant": "Sin retraso",
+            "exact": "Retraso de {delay}",
+            "upTo": "Hasta {delay}",
+            "range": "Retraso de {min}-{max}"
+        }
+    },
+    "toasts": {
+        "readyCheckAccepted": "¡Partida aceptada!",
+        "readyCheckAcceptFailed": "No se pudo aceptar la partida. Revisa la consola."
+    },
+    "commandBar": {
+        "group": "Balaclava: Auto Champion Select",
+        "autoSwitchName": "Auto {name} [{state}]",
+        "turnOn": "Activar",
+        "turnOff": "Desactivar",
+        "autoSwitchOn": "Auto {name} está ON!",
+        "autoSwitchOff": "Auto {name} está OFF!",
+        "autoSwitchError": "No se pudo cambiar Auto {name}. Revisa la consola.",
+        "forcePickName": "Ignorar intención aliada al pickear",
+        "forceBanName": "Ignorar intención aliada al banear",
+        "forceSwitchName": "{name} [{state}]",
+        "forcePickLegend": "Pickea aunque un aliado quiera el mismo campeón",
+        "forceBanLegend": "Banea aunque un aliado quiera ese campeón",
+        "forceSwitchOn": "{name} está ON!",
+        "forceSwitchOff": "{name} está OFF!",
+        "forceSwitchError": "No se pudo cambiar {name}. Revisa la consola.",
+        "refreshChampionsName": "Actualizar campeones",
+        "refreshChampionsLegend": "Normalmente los selectores se actualizan solos...",
+        "refreshChampionsSuccess": "¡Campeones actualizados!",
+        "refreshChampionsError": "No se actualizaron campeones. Revisa la consola."
+    }
+}

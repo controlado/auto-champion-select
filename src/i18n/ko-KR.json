@@ -1,0 +1,101 @@
+{
+    "plugin": {
+        "socialRosterTitle": "AUTO CHAMPION SELECT",
+        "champSelectMenuTitle": "Auto Champion Select"
+    },
+    "toggles": {
+        "autoAccept": "수락",
+        "pick": "선택",
+        "ban": "밴"
+    },
+    "states": {
+        "on": "ON",
+        "off": "OFF"
+    },
+    "actions": {
+        "pick": "선택",
+        "ban": "밴"
+    },
+    "positions": {
+        "TOP": "탑",
+        "JUNGLE": "정글",
+        "MIDDLE": "미드",
+        "BOTTOM": "원딜",
+        "UTILITY": "서폿"
+    },
+    "list": {
+        "two": "{first} 또는 {second}",
+        "many": "{items} 또는 {last}"
+    },
+    "selectors": {
+        "pickPlaceholder": "픽 추가",
+        "banPlaceholder": "밴 추가",
+        "search": "검색",
+        "emptyTitle": "챔피언 없음",
+        "pickEmptyHint": "메뉴에서 추가",
+        "banEmptyHint": "메뉴에서 추가",
+        "remove": "{name} 제거",
+        "positionFilterLabel": "포지션별 챔피언 필터",
+        "random": {
+            "label": "랜덤",
+            "assignedTitlePart": "배정 포지션이 {positions}일 때만 실행",
+            "poolTitlePart": "랜덤 풀을 {positions}로 제한"
+        },
+        "bravery": {
+            "label": "용기",
+            "description": "아레나용"
+        },
+        "positionBadge": {
+            "randomAssignedAny": "랜덤은 모든 포지션에서 사용 가능. 클릭해 드래프트 포지션 제한.",
+            "randomAssignedSome": "랜덤은 배정 포지션이 {positions}일 때만 사용. 드래프트 전용; 클릭해 편집.",
+            "randomPoolAny": "랜덤은 가능한 모든 챔피언 중 선택 가능. 클릭해 풀 필터.",
+            "randomPoolSome": "랜덤은 {positions} 챔피언 중 선택. 클릭해 편집.",
+            "championSome": "이 챔피언은 배정 포지션이 {positions}일 때만 선택. 드래프트 전용; 클릭해 편집.",
+            "championAny": "이 챔피언은 모든 포지션에서 선택 가능. 클릭해 포지션 제한."
+        }
+    },
+    "settings": {
+        "triggerLabel": "Auto Champion Select 설정",
+        "empty": "설정 없음",
+        "actionDelay": "동작 지연",
+        "forcePick": "아군 희망 챔피언 무시하고 선택",
+        "forceBan": "아군 희망 챔피언 무시하고 밴",
+        "hideAutoAcceptPrompt": "자동 수락 알림 숨기기",
+        "handleLabel": "{label} {handle}",
+        "handles": {
+            "min": "최소",
+            "max": "최대"
+        },
+        "actionDelayValue": {
+            "instant": "즉시",
+            "exact": "{delay} 지연",
+            "upTo": "{delay}까지 지연",
+            "range": "{min}-{max} 지연"
+        }
+    },
+    "toasts": {
+        "readyCheckAccepted": "게임 수락됨!",
+        "readyCheckAcceptFailed": "게임 수락 실패. 콘솔 확인."
+    },
+    "commandBar": {
+        "group": "Balaclava: Auto Champion Select",
+        "autoSwitchName": "자동 {name} [{state}]",
+        "turnOn": "켜기",
+        "turnOff": "끄기",
+        "autoSwitchOn": "자동 {name} 켜짐!",
+        "autoSwitchOff": "자동 {name} 꺼짐!",
+        "autoSwitchError": "자동 {name} 전환 실패. 콘솔 확인.",
+        "forcePickName": "희망 챔피언 무시 선택",
+        "forceBanName": "희망 챔피언 무시 밴",
+        "forceSwitchName": "{name} [{state}]",
+        "forcePickLegend": "팀원이 같은 챔피언을 희망해도 선택",
+        "forceBanLegend": "팀원이 같은 챔피언을 희망해도 밴",
+        "forceSwitchOn": "{name} 켜짐!",
+        "forceSwitchOff": "{name} 꺼짐!",
+        "forceSwitchError": "{name} 전환 실패. 콘솔 확인.",
+        "refreshChampionsName": "챔피언 새로고침",
+        "refreshChampionsLegend": "챔피언 목록은 보통 자동으로 새로고침됩니다...",
+        "refreshChampionsSuccess": "챔피언 새로고침 완료!",
+        "refreshChampionsError": "챔피언 새로고침 실패. 콘솔 확인."
+    }
+}
