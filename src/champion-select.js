@@ -13,6 +13,7 @@ import { LEAGUE_CLIENT_ENDPOINTS } from "./league-client-endpoints.js";
  * @typedef {"satisfied" | "try-next-champion" | "stop-cycle"} ActionAttemptResult
  * @typedef {"continue-cycle" | "stop-cycle"} AutoSelectCycleResult
  * @typedef {"ready" | "skip-action" | "stop-cycle"} AutoSelectPlanStatus
+ * @typedef {"intent" | "completion"} BraveryRejectionPhase
  * @typedef {"satisfied" | "try-next-priority-option" | "stop-cycle"} PriorityOptionAttemptResult
  *
  * @typedef {Object} ChampSelectAction
@@ -69,6 +70,12 @@ const CHAMP_SELECT_WATCH_INTERVAL_MS = 300;
 const ANY_BANNABLE_CHAMPION_SENTINEL = -1;
 
 const BRAVERY_CHAMPION_ID = -3;
+
+/** @type {Readonly<Record<"INTENT" | "COMPLETION", BraveryRejectionPhase>>} */
+const BRAVERY_REJECTION_PHASE = Object.freeze({
+    INTENT: "intent",
+    COMPLETION: "completion"
+});
 
 /** @type {Readonly<Record<"SATISFIED" | "TRY_NEXT_CHAMPION" | "STOP_CYCLE", ActionAttemptResult>>} */
 const ACTION_ATTEMPT_RESULT = Object.freeze({
@@ -191,6 +198,14 @@ function isBraveryChampionId(championId) {
     return Number(championId) === BRAVERY_CHAMPION_ID;
 }
 
+/**
+ * @param {ChampSelectAction} action
+ * @returns {boolean}
+ */
+function shouldCompleteChampionSelection(action) {
+    return action.type !== "pick" || action.isInProgress === true;
+}
+
 export class ChampionSelect {
     constructor() {
         /** @type {ChampSelectSession | null} */
@@ -214,8 +229,8 @@ export class ChampionSelect {
         this.bannedChampionIds = new Set();
         /** @type {string | null} */
         this.localPlayerAssignedPosition = null;
-        /** @type {Set<number>} */
-        this.rejectedBraveryActionIds = new Set();
+        /** @type {Map<number, BraveryRejectionPhase>} */
+        this.rejectedBraveryActionPhases = new Map();
         /** @type {number | null} */
         this.pluginPickSelectionId = null;
         /** @type {boolean} */
@@ -232,7 +247,7 @@ export class ChampionSelect {
             return;
         }
         this.mounted = true;
-        this.rejectedBraveryActionIds.clear();
+        this.rejectedBraveryActionPhases.clear();
         this.resetPickTracking();
         this.watchVersion += 1;
 
@@ -246,7 +261,7 @@ export class ChampionSelect {
             return;
         }
         this.mounted = false;
-        this.rejectedBraveryActionIds.clear();
+        this.rejectedBraveryActionPhases.clear();
         this.resetPickTracking();
         this.watchVersion += 1;
     }
@@ -450,13 +465,14 @@ export class ChampionSelect {
         }
 
         console.debug("auto-champion-select: Trying to pick Bravery...");
-        const response = await this.selectChampion(action.id, BRAVERY_CHAMPION_ID);
+        const response = await this.selectChampion(action, BRAVERY_CHAMPION_ID);
         console.debug(response.ok
             ? "auto-champion-select: Bravery request accepted, refreshing champ select state..."
             : "auto-champion-select: Failed to pick Bravery, refreshing champ select state...");
 
         if (response.ok) {
             this.pluginPickSelectionId = BRAVERY_CHAMPION_ID;
+            await this.completePickIfNowInProgress(action, BRAVERY_CHAMPION_ID);
         }
 
         const updatedAction = await this.refreshPendingAction(action);
@@ -471,7 +487,7 @@ export class ChampionSelect {
         }
 
         this.pluginPickSelectionId = null;
-        this.rejectedBraveryActionIds.add(action.id);
+        this.rememberRejectedBraveryAction(action);
         console.debug("auto-champion-select: Bravery was not applied after refresh, trying next pick...");
         return PRIORITY_OPTION_ATTEMPT_RESULT.TRY_NEXT_PRIORITY_OPTION;
     }
@@ -553,10 +569,47 @@ export class ChampionSelect {
         }
 
         if (isBraveryChampionOption(priorityOption)) {
-            return action.type !== "pick" || this.rejectedBraveryActionIds.has(action.id);
+            return this.isBraveryPriorityOptionUnavailableForAction(action);
         }
 
         return this.isChampionUnavailableForAction(action, priorityOption, config);
+    }
+
+    /**
+     * @param {ChampSelectAction} action
+     * @returns {boolean}
+     */
+    isBraveryPriorityOptionUnavailableForAction(action) {
+        if (action.type !== "pick") {
+            return true;
+        }
+
+        const rejectedPhase = this.rejectedBraveryActionPhases.get(action.id);
+        if (rejectedPhase === undefined) {
+            return false;
+        }
+
+        if (
+            action.isInProgress === true &&
+            rejectedPhase === BRAVERY_REJECTION_PHASE.INTENT
+        ) {
+            this.rejectedBraveryActionPhases.delete(action.id);
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * @param {ChampSelectAction} action
+     * @returns {void}
+     */
+    rememberRejectedBraveryAction(action) {
+        const phase = action.isInProgress === true
+            ? BRAVERY_REJECTION_PHASE.COMPLETION
+            : BRAVERY_REJECTION_PHASE.INTENT;
+
+        this.rejectedBraveryActionPhases.set(action.id, phase);
     }
 
     /**
@@ -945,10 +998,11 @@ export class ChampionSelect {
         }
 
         console.debug(`auto-champion-select: Trying to ${action.type} ${normalizedChampionId}...`);
-        const response = await this.selectChampion(action.id, normalizedChampionId);
+        const response = await this.selectChampion(action, normalizedChampionId);
         if (response.ok) {
             if (action.type === "pick") {
                 this.pluginPickSelectionId = normalizedChampionId;
+                await this.completePickIfNowInProgress(action, normalizedChampionId);
             }
             return ACTION_ATTEMPT_RESULT.SATISFIED;
         }
@@ -985,6 +1039,28 @@ export class ChampionSelect {
         return action.type === "pick" &&
             action.isInProgress !== true &&
             (this.localPlayerIntentChampionId === championId || toChampionId(action.championId) === championId);
+    }
+
+    /**
+     * @param {ChampSelectAction} action
+     * @param {number} championId
+     * @returns {Promise<void>}
+     */
+    async completePickIfNowInProgress(action, championId) {
+        if (action.type !== "pick" || action.isInProgress === true) {
+            return;
+        }
+
+        const updatedAction = await this.refreshPendingAction(action);
+        if (
+            updatedAction?.isInProgress !== true ||
+            this.getCurrentLocalPickOrIntentSelectionId(updatedAction) !== championId
+        ) {
+            return;
+        }
+
+        console.debug(`auto-champion-select: Completing pick ${championId} after accepted pick intent...`);
+        await this.selectChampion(updatedAction, championId);
     }
 
     /**
@@ -1064,13 +1140,13 @@ export class ChampionSelect {
     }
 
     /**
-     * @param {number} actionId
+     * @param {ChampSelectAction} action
      * @param {number} championId
      * @returns {Promise<Response>}
      */
-    selectChampion(actionId, championId) {
-        const endpoint = LEAGUE_CLIENT_ENDPOINTS.champSelectAction(actionId);
-        const body = { championId, completed: true };
+    selectChampion(action, championId) {
+        const endpoint = LEAGUE_CLIENT_ENDPOINTS.champSelectAction(action.id);
+        const body = { championId, completed: shouldCompleteChampionSelection(action) };
         return request("PATCH", endpoint, { body });
     }
 }
