@@ -59,6 +59,7 @@
         "empty": "Nenhuma configuração disponível",
         "actionDelay": "Delay de ação",
         "pickIntent": "Marcar intenção de pick",
+        "respectManualPick": "Respeitar pick manual",
         "forcePick": "Ignorar intenção aliada no pick",
         "forceBan": "Ignorar intenção aliada no ban",
         "hideAutoAcceptPrompt": "Ocultar confirmação da fila",

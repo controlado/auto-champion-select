@@ -11,6 +11,7 @@
         "enabled": false,
         "force": false,
         "pickIntent": true,
+        "respectManualPick": false,
         "champions": [
             432,
             235

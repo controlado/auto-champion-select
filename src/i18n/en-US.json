@@ -59,6 +59,7 @@
         "empty": "No settings available",
         "actionDelay": "Action delay",
         "pickIntent": "Set pick intent",
+        "respectManualPick": "Respect manual pick",
         "forcePick": "Ignore ally pick intent",
         "forceBan": "Ignore ally pick intent when banning",
         "hideAutoAcceptPrompt": "Hide auto-accept prompt",

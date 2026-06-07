@@ -59,6 +59,7 @@
         "empty": "Sin ajustes",
         "actionDelay": "Retraso de acción",
         "pickIntent": "Marcar intención de selección",
+        "respectManualPick": "Respetar selección manual",
         "forcePick": "Ignorar intención aliada al pickear",
         "forceBan": "Ignorar intención aliada al banear",
         "hideAutoAcceptPrompt": "Ocultar confirmación de partida",

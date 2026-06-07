@@ -59,6 +59,7 @@
         "empty": "无设置",
         "actionDelay": "操作延迟",
         "pickIntent": "设置选用意向",
+        "respectManualPick": "尊重手动选择",
         "forcePick": "无视队友意向并选用",
         "forceBan": "无视队友意向并禁用",
         "hideAutoAcceptPrompt": "隐藏对局接受提示",

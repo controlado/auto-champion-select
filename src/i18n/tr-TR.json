@@ -59,6 +59,7 @@
         "empty": "Ayar yok",
         "actionDelay": "İşlem gecikmesi",
         "pickIntent": "Seçim niyeti ayarla",
+        "respectManualPick": "Manuel seçimi koru",
         "forcePick": "Seçim niyetini yok sayarak seç",
         "forceBan": "Seçim niyetini yok sayarak yasakla",
         "hideAutoAcceptPrompt": "Karşılaşma kabul penceresini gizle",

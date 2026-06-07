@@ -40,6 +40,7 @@ import { LEAGUE_CLIENT_ENDPOINTS } from "./league-client-endpoints.js";
  * @property {boolean} enabled
  * @property {boolean} [force]
  * @property {boolean} [pickIntent]
+ * @property {boolean} [respectManualPick]
  * @property {number[]} champions
  * @property {ChampionPriorityOption[]} [priorityOptions]
  * @property {string[]} [randomAssignedPositions]
@@ -215,6 +216,10 @@ export class ChampionSelect {
         this.localPlayerAssignedPosition = null;
         /** @type {Set<number>} */
         this.rejectedBraveryActionIds = new Set();
+        /** @type {number | null} */
+        this.pluginPickSelectionId = null;
+        /** @type {boolean} */
+        this.manualPickBlocked = false;
 
         /** @type {Promise<void> | null} */
         this.watchTask = null;
@@ -228,6 +233,7 @@ export class ChampionSelect {
         }
         this.mounted = true;
         this.rejectedBraveryActionIds.clear();
+        this.resetPickTracking();
         this.watchVersion += 1;
 
         if (!this.watchTask) {
@@ -241,6 +247,7 @@ export class ChampionSelect {
         }
         this.mounted = false;
         this.rejectedBraveryActionIds.clear();
+        this.resetPickTracking();
         this.watchVersion += 1;
     }
 
@@ -359,6 +366,10 @@ export class ChampionSelect {
             return { status: AUTO_SELECT_PLAN_STATUS.SKIP_ACTION };
         }
 
+        if (this.shouldSkipPickForManualSelection(action, config)) {
+            return { status: AUTO_SELECT_PLAN_STATUS.SKIP_ACTION };
+        }
+
         const plan = this.createAutoSelectPlan(action, config);
         if (!plan) {
             return { status: AUTO_SELECT_PLAN_STATUS.SKIP_ACTION };
@@ -372,14 +383,14 @@ export class ChampionSelect {
             };
         }
 
-        const refreshedPlan = await this.delayAndRefreshAutoSelectPlan(action, config, configs.actionDelayConfig);
-        if (!refreshedPlan) {
-            return { status: AUTO_SELECT_PLAN_STATUS.STOP_CYCLE };
+        const refreshedPlanResult = await this.delayAndRefreshAutoSelectPlan(action, config, configs.actionDelayConfig);
+        if (refreshedPlanResult.status !== AUTO_SELECT_PLAN_STATUS.READY) {
+            return refreshedPlanResult;
         }
 
         return {
             status: AUTO_SELECT_PLAN_STATUS.READY,
-            plan: this.createPlanLimitedToAlreadySatisfiedPriorityOption(refreshedPlan) || refreshedPlan
+            plan: this.createPlanLimitedToAlreadySatisfiedPriorityOption(refreshedPlanResult.plan) || refreshedPlanResult.plan
         };
     }
 
@@ -444,6 +455,10 @@ export class ChampionSelect {
             ? "auto-champion-select: Bravery request accepted, refreshing champ select state..."
             : "auto-champion-select: Failed to pick Bravery, refreshing champ select state...");
 
+        if (response.ok) {
+            this.pluginPickSelectionId = BRAVERY_CHAMPION_ID;
+        }
+
         const updatedAction = await this.refreshPendingAction(action);
         if (!updatedAction || !this.isActionAvailable(updatedAction, config)) {
             return response.ok
@@ -455,6 +470,7 @@ export class ChampionSelect {
             return PRIORITY_OPTION_ATTEMPT_RESULT.SATISFIED;
         }
 
+        this.pluginPickSelectionId = null;
         this.rejectedBraveryActionIds.add(action.id);
         console.debug("auto-champion-select: Bravery was not applied after refresh, trying next pick...");
         return PRIORITY_OPTION_ATTEMPT_RESULT.TRY_NEXT_PRIORITY_OPTION;
@@ -661,15 +677,83 @@ export class ChampionSelect {
 
     /**
      * @param {ChampSelectAction} action
+     * @returns {number | null}
+     */
+    getCurrentLocalPickOrIntentSelectionId(action) {
+        if (action.type !== "pick") {
+            return null;
+        }
+
+        const actionChampionId = toChampionId(action.championId);
+        if (actionChampionId !== null) {
+            return actionChampionId;
+        }
+
+        if (isBraveryChampionId(action.championId)) {
+            return BRAVERY_CHAMPION_ID;
+        }
+
+        if (this.localPlayerIntentChampionId !== null) {
+            return this.localPlayerIntentChampionId;
+        }
+
+        if (this.localPlayerIntentIsBravery) {
+            return BRAVERY_CHAMPION_ID;
+        }
+
+        return null;
+    }
+
+    /**
+     * @param {ChampSelectAction} action
+     * @param {AutoSelectConfig} config
+     * @returns {boolean}
+     */
+    shouldSkipPickForManualSelection(action, config) {
+        if (action.type !== "pick" || config.respectManualPick !== true) {
+            return false;
+        }
+
+        if (this.manualPickBlocked) {
+            return true;
+        }
+
+        const localPickSelectionId = this.getCurrentLocalPickOrIntentSelectionId(action);
+        if (localPickSelectionId === null) {
+            return false;
+        }
+
+        if (this.pluginPickSelectionId === localPickSelectionId) {
+            return false;
+        }
+
+        this.manualPickBlocked = true;
+        console.debug(`auto-champion-select: Skipping pick action ${action.id} because manual pick ${localPickSelectionId} was detected.`);
+        return true;
+    }
+
+    /**
+     * @returns {void}
+     */
+    resetPickTracking() {
+        this.pluginPickSelectionId = null;
+        this.manualPickBlocked = false;
+    }
+
+    /**
+     * @param {ChampSelectAction} action
      * @param {AutoSelectConfig} config
      * @param {ActionDelayConfig} actionDelayConfig
-     * @returns {Promise<AutoSelectPlan | null>}
+     * @returns {Promise<AutoSelectPlanResult>}
      */
     async delayAndRefreshAutoSelectPlan(action, config, actionDelayConfig) {
         const delayMs = getRandomActionDelayMs(actionDelayConfig);
         if (delayMs <= 0) {
             console.debug(`auto-champion-select: Action delay is instant for ${action.type}.`);
-            return this.createAutoSelectPlan(action, config);
+            const plan = this.createAutoSelectPlan(action, config);
+            return plan
+                ? { status: AUTO_SELECT_PLAN_STATUS.READY, plan }
+                : { status: AUTO_SELECT_PLAN_STATUS.STOP_CYCLE };
         }
 
         console.debug(`auto-champion-select: Waiting ${delayMs}ms before ${action.type}...`);
@@ -678,7 +762,7 @@ export class ChampionSelect {
         await sleep(delayMs);
 
         if (!this.mounted || version !== this.watchVersion) {
-            return null;
+            return { status: AUTO_SELECT_PLAN_STATUS.STOP_CYCLE };
         }
 
         let updatedAction = null;
@@ -687,19 +771,26 @@ export class ChampionSelect {
             updatedAction = this.findPendingAction(action);
         } catch (error) {
             console.debug("auto-champion-select: Failed to refresh champion select after action delay", error);
-            return null;
+            return { status: AUTO_SELECT_PLAN_STATUS.STOP_CYCLE };
         }
 
         const updatedConfig = this.getConfigForActionType(action.type, readAutoSelectConfigs());
         if (!updatedConfig?.enabled) {
-            return null;
+            return { status: AUTO_SELECT_PLAN_STATUS.STOP_CYCLE };
         }
 
         if (!updatedAction || !this.isActionAvailable(updatedAction, updatedConfig)) {
-            return null;
+            return { status: AUTO_SELECT_PLAN_STATUS.STOP_CYCLE };
         }
 
-        return this.createAutoSelectPlan(updatedAction, updatedConfig);
+        if (this.shouldSkipPickForManualSelection(updatedAction, updatedConfig)) {
+            return { status: AUTO_SELECT_PLAN_STATUS.SKIP_ACTION };
+        }
+
+        const plan = this.createAutoSelectPlan(updatedAction, updatedConfig);
+        return plan
+            ? { status: AUTO_SELECT_PLAN_STATUS.READY, plan }
+            : { status: AUTO_SELECT_PLAN_STATUS.STOP_CYCLE };
     }
 
     /**
@@ -856,6 +947,9 @@ export class ChampionSelect {
         console.debug(`auto-champion-select: Trying to ${action.type} ${normalizedChampionId}...`);
         const response = await this.selectChampion(action.id, normalizedChampionId);
         if (response.ok) {
+            if (action.type === "pick") {
+                this.pluginPickSelectionId = normalizedChampionId;
+            }
             return ACTION_ATTEMPT_RESULT.SATISFIED;
         }
 

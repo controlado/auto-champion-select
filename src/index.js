@@ -148,6 +148,23 @@ function togglePickIntent() {
 }
 
 /**
+ * @returns {boolean}
+ */
+function isRespectManualPickEnabled() {
+    return readConfig(CONFIG_KEYS.pick).respectManualPick === true;
+}
+
+/**
+ * @returns {void}
+ */
+function toggleRespectManualPick() {
+    patchConfig(CONFIG_KEYS.pick, config => {
+        config.respectManualPick = config.respectManualPick !== true;
+        return config;
+    });
+}
+
+/**
  * @param {"pick" | "ban"} action
  * @returns {boolean}
  */
@@ -511,6 +528,10 @@ function createSettingsControls(readyCheckModalSuppressor) {
         new SettingsCheckbox(t("settings.pickIntent"), {
             isSelected: () => isPickIntentEnabled(),
             toggle: () => togglePickIntent()
+        }),
+        new SettingsCheckbox(t("settings.respectManualPick"), {
+            isSelected: () => isRespectManualPickEnabled(),
+            toggle: () => toggleRespectManualPick()
         }),
         new SettingsCheckbox(t("settings.forcePick"), {
             isSelected: () => isForceActionEnabled("pick"),
